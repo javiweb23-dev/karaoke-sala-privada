@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control VIP - MiKaraokeLatino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="canciones.js"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-sans select-none relative">
+
+    <div id="nameModal" class="fixed inset-0 bg-black/90 z-[100] flex flex-col justify-center items-center p-6 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold text-amber-400 mb-2">¡Bienvenido!</h2>
+            <p class="text-zinc-400 text-sm mb-6">Ingresa tu nombre para pedir canciones</p>
+            <input type="text" id="userNameInput" placeholder="Ej: María, Carlos..." class="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-3 px-4 text-white font-bold text-center mb-4 focus:outline-none focus:border-amber-500">
+            <button onclick="guardarNombre()" class="w-full bg-amber-500 text-black font-black py-3 rounded-xl active:scale-95 transition-all">ENTRAR A LA SALA</button>
+        </div>
+    </div>
+
+    <div id="statusAlert" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-4 text-center text-sm font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4"></div>
+
+    <header class="bg-zinc-900 border-b border-zinc-800 p-4 sticky top-0 z-50 flex justify-between items-center">
+        <div>
+            <h1 class="text-lg font-bold text-amber-400 tracking-wide">🎤 KARAOKE VIP</h1>
+            <p id="displayNombre" class="text-xs text-zinc-400">Cantante: -</p>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto p-4 flex flex-col gap-4">
+        
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <h3 class="text-zinc-400 text-xs font-bold mb-2 uppercase tracking-wider">Canciones en Cola</h3>
+            <div id="liveQueue" class="flex flex-col gap-1 text-sm text-zinc-300">
+                <p class="text-zinc-600 italic">No hay canciones en espera.</p>
+            </div>
+        </div>
+
+        <div class="relative">
+            <input type="text" id="searchBar" placeholder="Busca artista, canción, género o idioma..." 
+                class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 pl-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all text-base">
+            <span class="absolute left-4 top-3.5 text-zinc-500">🔍</span>
+        </div>
+
+        <div class="flex-1 flex flex-col gap-2 overflow-y-auto pb-6" id="songList"></div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8"; 
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let miNombre = localStorage.getItem('karaoke_nombre');
+        
+        if (!miNombre) {
+            document.getElementById('nameModal').classList.remove('hidden');
+        } else {
+            document.getElementById('displayNombre').innerText = `Cantante: ${miNombre}`;
+        }
+
+        function guardarNombre() {
+            const input = document.getElementById('userNameInput').value.trim();
+            if (input.length > 1) {
+                miNombre = input.toUpperCase();
+                localStorage.setItem('karaoke_nombre', miNombre);
+                document.getElementById('displayNombre').innerText = `Cantante: ${miNombre}`;
+                document.getElementById('nameModal').classList.add('hidden');
+            }
+        }
+
+        function cargarCanciones(lista) {
+            const songList = document.getElementById('songList');
+            songList.innerHTML = '';
+            
+            if (lista.length === 0) {
+                songList.innerHTML = `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
+                return;
+            }
+
+            lista.forEach(cancion => {
+                const nombreFormateado = `${cancion.artista.toUpperCase()} - ${cancion.titulo.toUpperCase()}`;
+                const card = document.createElement('div');
+                card.className = "bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex justify-between items-center gap-4 transition-colors";
+                card.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-zinc-100 truncate text-base">${cancion.titulo}</h3>
+                        <p class="text-sm text-zinc-400 mt-0.5 mb-2 truncate">${cancion.artista}</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.genero}</span>
+                            <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.idioma}</span>
+                        </div>
+                    </div>
+                    <button onclick="pedirCancion('${nombreFormateado}')" class="bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-3 rounded-lg text-sm active:scale-95 transition-all">Pedir</button>
+                `;
+                songList.appendChild(card);
+            });
+        }
+
+        document.getElementById('searchBar').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            // cancionesREAL viene del archivo externo canciones.js automáticamente
+            const filtradas = cancionesREAL.filter(c => 
+                c.artista.toLowerCase().includes(q) || 
+                c.titulo.toLowerCase().includes(q) ||
+                (c.genero && c.genero.toLowerCase().includes(q)) ||
+                (c.idioma && c.idioma.toLowerCase().includes(q))
+            );
+            cargarCanciones(filtradas);
+        });
+
+        async function actualizarCola() {
+            const { data } = await supabaseClient.from('Solicitudes').select('cancion_info, nombre_usuario').eq('estado', 'pendiente').order('id', { ascending: true });
+            const liveQueue = document.getElementById('liveQueue');
+            if (!data || data.length === 0) {
+                liveQueue.innerHTML = `<p class="text-zinc-600 italic">No hay canciones en espera.</p>`;
+                return;
+            }
+            liveQueue.innerHTML = data.map((s, i) => `<div class="truncate"><span class="text-amber-500 font-bold mr-1">${i+1}.</span> ${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`).join('');
+        }
+
+        async function pedirCancion(nombreArchivo) {
+            if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
+
+            const { data: dups } = await supabaseClient.from('Solicitudes').select('id').eq('estado', 'pendiente').eq('cancion_info', nombreArchivo);
+            if (dups && dups.length > 0) return mostrarAlerta("❌ Esta canción ya está en la cola.", true);
+
+            const { count: misTemas } = await supabaseClient.from('Solicitudes').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente').eq('nombre_usuario', miNombre);
+            if (misTemas >= 3) return mostrarAlerta("⚠️ Canta primero las 3 que tienes en cola para seguir pidiendo.", true);
+
+            const { count: totalCola } = await supabaseClient.from('Solicitudes').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
+            
+            const { error } = await supabaseClient.from('Solicitudes').insert([{ nombre_usuario: miNombre, cancion_info: nombreArchivo, estado: 'pendiente' }]);
+
+            if (!error) {
+                if (totalCola === 0) {
+                    mostrarAlerta("✅ ¡Enviada! Comenzará en unos segundos.");
+                } else {
+                    const minsAprox = totalCola * 3;
+                    mostrarAlerta(`✅ ¡En cola! Tienes ${totalCola} canción(es) por delante (Aprox ${minsAprox} min).`);
+                }
+                actualizarCola();
+            }
+        }
+
+        let alertTimeout;
+        function mostrarAlerta(msg, isError = false) {
+            const alertBox = document.getElementById('statusAlert');
+            alertBox.innerText = msg;
+            
+            if(isError) {
+                alertBox.className = "fixed bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-4 text-center text-sm font-bold shadow-2xl transition-all duration-300 pointer-events-none bg-zinc-900 text-red-400 border-2 border-red-500 shadow-red-500/20";
+            } else {
+                alertBox.className = "fixed bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-4 text-center text-sm font-bold shadow-2xl transition-all duration-300 pointer-events-none bg-zinc-900 text-emerald-400 border-2 border-emerald-500 shadow-emerald-500/20";
+            }
+
+            setTimeout(() => {
+                alertBox.classList.remove('opacity-0', 'translate-y-4');
+                alertBox.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+
+            clearTimeout(alertTimeout);
+
+            alertTimeout = setTimeout(() => {
+                alertBox.classList.remove('opacity-100', 'translate-y-0');
+                alertBox.classList.add('opacity-0', 'translate-y-4');
+            }, 4000);
+        }
+
+        supabaseClient.channel('queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
+
+        // Al iniciar, lee la lista que cargamos desde canciones.js
+        cargarCanciones(cancionesREAL);
+        actualizarCola();
+    </script>
+</body>
+</html>

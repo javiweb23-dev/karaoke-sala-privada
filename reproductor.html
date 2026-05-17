@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor VIP - Karaoke Box</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: contain; display: none; }
+    </style>
+</head>
+<body class="flex flex-col justify-center items-center text-white font-sans select-none">
+
+    <div id="activationWall" class="absolute inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
+        <h1 class="text-3xl font-bold text-amber-400 animate-pulse">SALA PRIVADA LISTA</h1>
+        <p class="text-zinc-500 mt-2 text-lg">Haz un clic para iniciar el sistema</p>
+    </div>
+
+    <div id="lobbyScreen" class="text-center w-full absolute inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
+        <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
+        <h3 id="singerName" class="text-2xl font-bold text-emerald-400 mt-4 hidden"></h3>
+        <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
+    </div>
+
+    <video id="karaokePlayer" class="relative z-10"></video>
+
+    <script>
+        const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const player = document.getElementById('karaokePlayer');
+        const wall = document.getElementById('activationWall');
+        const lobbyScreen = document.getElementById('lobbyScreen');
+        const lobbyMessage = document.getElementById('lobbyMessage');
+        const singerName = document.getElementById('singerName');
+        const countdownText = document.getElementById('countdownText');
+        
+        let isPlaying = false;
+        let systemActive = false;
+        let idActual = null;
+
+        wall.addEventListener('click', () => {
+            systemActive = true;
+            wall.style.display = 'none';
+            buscarSiguienteCancion();
+        });
+
+        async function buscarSiguienteCancion() {
+            if (!systemActive || isPlaying) return;
+
+            const { data, error } = await supabaseClient
+                .from('Solicitudes')
+                .select('*')
+                .eq('estado', 'pendiente')
+                .order('id', { ascending: true })
+                .limit(1);
+
+            if (error || !data || data.length === 0) {
+                lobbyScreen.style.display = 'flex';
+                lobbyMessage.innerText = "ESPERANDO SOLICITUDES...";
+                singerName.classList.add('hidden');
+                countdownText.classList.add('hidden');
+                player.style.display = 'none';
+                return;
+            }
+
+            iniciarCuentaRegresiva(data[0]);
+        }
+
+        function iniciarCuentaRegresiva(solicitud) {
+            isPlaying = true; 
+            idActual = solicitud.id;
+            let segundos = 5;
+            
+            lobbyScreen.style.display = 'flex';
+            lobbyMessage.innerText = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
+            singerName.innerText = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
+            singerName.classList.remove('hidden');
+            countdownText.innerText = segundos;
+            countdownText.classList.remove('hidden');
+
+            const intervalo = setInterval(() => {
+                segundos--;
+                if (segundos > 0) {
+                    countdownText.innerText = segundos;
+                } else {
+                    clearInterval(intervalo);
+                    countdownText.classList.add('hidden');
+                    reproducirVideo(solicitud);
+                }
+            }, 1000);
+        }
+
+        function reproducirVideo(solicitud) {
+            lobbyScreen.style.display = 'none'; // Oculta los textos para que se vea solo el video
+            player.style.display = 'block';
+            
+            const nombreArchivo = solicitud.cancion_info;
+            player.src = `videos_locales/${nombreArchivo}.mp4`;
+            
+            player.play().catch(() => {
+                player.src = `videos_locales/${nombreArchivo}.MP4`;
+                player.play().catch(err => {
+                    marcarComoCompletada(solicitud.id);
+                });
+            });
+
+            player.onended = () => marcarComoCompletada(solicitud.id);
+        }
+
+        async function marcarComoCompletada(id) {
+            await supabaseClient.from('Solicitudes').update({ estado: 'completada' }).eq('id', id);
+            isPlaying = false;
+            idActual = null;
+            player.src = "";
+            buscarSiguienteCancion();
+        }
+
+        // Detecta nuevos pedidos
+        supabaseClient.channel('cambios-db').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Solicitudes' }, () => {
+            buscarSiguienteCancion();
+        }).subscribe();
+
+        // 🎛️ ESCUCHA LOS COMANDOS DEL ADMIN
+        supabaseClient.channel('admin-commands').on('broadcast', { event: 'control' }, ({ payload }) => {
+            if (payload.accion === 'pausa') {
+                player.paused ? player.play() : player.pause();
+            } else if (payload.accion === 'reiniciar' && isPlaying) {
+                player.currentTime = 0;
+                player.play();
+            } else if (payload.accion === 'saltar' && isPlaying) {
+                marcarComoCompletada(idActual);
+            }
+        }).subscribe();
+    </script>
+</body>
+</html>

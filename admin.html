@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control Mágnum - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col justify-center items-center font-sans p-6">
+
+    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl text-center flex flex-col gap-6">
+        <div>
+            <h1 class="text-2xl font-black text-amber-400 tracking-wider">CONSOLE ADMIN</h1>
+            <p class="text-sm text-zinc-500 mt-1">Control Remoto de TV Principal</p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            <button onclick="enviarComando('pausa')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-4 rounded-xl text-lg border border-zinc-700 active:scale-95 transition-all">
+                ⏯️ PAUSAR / CONTINUAR
+            </button>
+
+            <button onclick="enviarComando('reiniciar')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl text-lg active:scale-95 transition-all shadow-lg shadow-blue-600/20">
+                🔄 COMENZAR DE NUEVO
+            </button>
+
+            <button onclick="enviarComando('saltar')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-xl text-lg active:scale-95 transition-all shadow-lg shadow-amber-500/20">
+                ⏭️ SALTAR A LA SIGUIENTE
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Envía el comando directamente a la TV usando Supabase Broadcast
+        const channel = supabaseClient.channel('admin-commands');
+
+        function enviarComando(accion) {
+            channel.send({
+                type: 'broadcast',
+                event: 'control',
+                payload: { accion: accion }
+            }).then(() => {
+                console.log(`Comando '${accion}' enviado a la TV.`);
+            });
+        }
+    </script>
+</body>
+</html>
