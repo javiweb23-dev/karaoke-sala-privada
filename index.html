@@ -71,10 +71,60 @@
             }
         }
 
-        function avatarArtista(artista) {
-            const nombre = encodeURIComponent((artista || '?').trim());
-            return `https://ui-avatars.com/api/?name=${nombre}&background=27272a&color=fbbf24&rounded=true&size=96&bold=true`;
+        const cachePortadas = new Map();
+        const pendientesPortadas = new Map();
+
+        function clavePortada(artista, titulo) {
+            return `${(artista || '').trim().toLowerCase()}|${(titulo || '').trim().toLowerCase()}`;
         }
+
+        function htmlFallbackPortada() {
+            return `<div class="w-16 h-16 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md border border-white/10"><span class="text-2xl drop-shadow-md" aria-hidden="true">🎤</span></div>`;
+        }
+
+        async function obtenerPortadaItunes(artista, titulo) {
+            const clave = clavePortada(artista, titulo);
+            if (cachePortadas.has(clave)) return cachePortadas.get(clave);
+            if (pendientesPortadas.has(clave)) return pendientesPortadas.get(clave);
+
+            const promesa = (async () => {
+                try {
+                    const term = encodeURIComponent(`${artista} ${titulo}`);
+                    const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=1`);
+                    if (!res.ok) return null;
+                    const json = await res.json();
+                    return json.results?.[0]?.artworkUrl100 || null;
+                } catch {
+                    return null;
+                }
+            })();
+
+            pendientesPortadas.set(clave, promesa);
+            const url = await promesa;
+            pendientesPortadas.delete(clave);
+            cachePortadas.set(clave, url);
+            return url;
+        }
+
+        async function aplicarPortada(contenedor, artista, titulo) {
+            const url = await obtenerPortadaItunes(artista, titulo);
+            if (!contenedor.isConnected) return;
+
+            if (url) {
+                contenedor.innerHTML = `<img src="${url}" alt="" class="w-16 h-16 rounded-lg object-cover shadow-md border border-zinc-700/40">`;
+            } else {
+                contenedor.innerHTML = htmlFallbackPortada();
+            }
+        }
+
+        const observerPortadas = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                aplicarPortada(el, el.dataset.artista, el.dataset.titulo);
+                observerPortadas.unobserve(el);
+            });
+        }, { rootMargin: '120px' });
 
         async function cargarCancionesPopulares() {
             const { data, error } = await supabaseClient
@@ -106,22 +156,40 @@
 
             lista.forEach(cancion => {
                 const nombreFormateado = `${cancion.artista.toUpperCase()} - ${cancion.titulo.toUpperCase()}`;
-                const estrellaPopular = esCancionPopular(cancion.titulo, cancion.artista) ? '<span class="shrink-0 text-amber-400">⭐</span>' : '';
+                const estrellaPopular = esCancionPopular(cancion.titulo, cancion.artista) ? '<span class="shrink-0 text-amber-400 text-sm">⭐</span>' : '';
                 const card = document.createElement('div');
-                card.className = "bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex justify-between items-center gap-4 transition-colors";
-                card.innerHTML = `
-                    <img src="${avatarArtista(cancion.artista)}" alt="" class="w-12 h-12 rounded-lg flex-shrink-0 object-cover border border-zinc-700/80 bg-zinc-800">
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-zinc-100 text-base flex items-center gap-1.5 min-w-0"><span class="truncate">${cancion.titulo}</span>${estrellaPopular}</h3>
-                        <p class="text-sm text-zinc-400 mt-0.5 mb-2 truncate">${cancion.artista}</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.genero}</span>
-                            <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.idioma}</span>
-                        </div>
+                card.className = 'bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-4 rounded-2xl flex items-center gap-4 transition-all shadow-sm';
+
+                const portada = document.createElement('div');
+                portada.className = 'flex-shrink-0';
+                portada.dataset.artista = cancion.artista;
+                portada.dataset.titulo = cancion.titulo;
+                portada.innerHTML = htmlFallbackPortada();
+
+                const info = document.createElement('div');
+                info.className = 'flex-1 min-w-0 pr-1';
+                info.innerHTML = `
+                    <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight flex items-center gap-1.5 min-w-0">
+                        <span class="truncate">${cancion.titulo}</span>${estrellaPopular}
+                    </h3>
+                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 truncate font-medium tracking-wide">${cancion.artista}</p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${cancion.genero}</span>
+                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${cancion.idioma}</span>
                     </div>
-                    <button onclick='pedirCancion(${JSON.stringify(nombreFormateado)}, ${JSON.stringify(cancion.titulo)}, ${JSON.stringify(cancion.artista)})' class="bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-3 rounded-lg text-sm active:scale-95 transition-all">Pedir</button>
                 `;
+
+                const btn = document.createElement('button');
+                btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
+                btn.textContent = 'Pedir';
+                btn.onclick = () => pedirCancion(nombreFormateado, cancion.titulo, cancion.artista);
+
+                card.appendChild(portada);
+                card.appendChild(info);
+                card.appendChild(btn);
                 songList.appendChild(card);
+
+                observerPortadas.observe(portada);
             });
         }
 
