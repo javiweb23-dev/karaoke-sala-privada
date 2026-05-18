@@ -28,10 +28,6 @@
 
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">00:00 / 00:00 (Restan: -00:00)</div>
 
-    <div id="bannerProxima" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-zinc-950/95 backdrop-blur-sm border-2 border-amber-400/50 text-white px-6 py-3.5 rounded-xl shadow-[0_0_28px_rgba(251,191,36,0.35)] z-50 flex items-center justify-center max-w-[95vw]">
-        <p id="bannerProximaTexto" class="text-lg font-black text-center tracking-wide text-amber-50 whitespace-nowrap overflow-hidden text-ellipsis">📢 PRÓXIMA CANCIÓN: — | 🎤 CANTA: —</p>
-    </div>
-
     <script>
         const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
@@ -44,8 +40,6 @@
         const singerName = document.getElementById('singerName');
         const countdownText = document.getElementById('countdownText');
         const timeCounter = document.getElementById('timeCounter');
-        const bannerProxima = document.getElementById('bannerProxima');
-        const bannerProximaTexto = document.getElementById('bannerProximaTexto');
         
         let isPlaying = false;
         let systemActive = false;
@@ -77,23 +71,6 @@
             const m = Math.floor(segundos / 60);
             const s = Math.floor(segundos % 60);
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
-
-        async function actualizarBannerProxima() {
-            const { data } = await supabaseClient
-                .from('Solicitudes')
-                .select('cancion_info, nombre_usuario')
-                .eq('estado', 'pendiente')
-                .order('id', { ascending: true })
-                .limit(2);
-
-            if (!data || data.length < 2) {
-                bannerProximaTexto.innerText = '📢 PRÓXIMA CANCIÓN: — | 🎤 CANTA: —';
-                return;
-            }
-
-            const proxima = data[1];
-            bannerProximaTexto.innerText = `📢 PRÓXIMA CANCIÓN: ${proxima.cancion_info} | 🎤 CANTA: ${proxima.nombre_usuario.toUpperCase()}`;
         }
 
         function manejarErrorVideo(solicitud) {
@@ -184,7 +161,6 @@
                 countdownText.classList.add('hidden');
                 player.style.display = 'none';
                 timeCounter.classList.add('hidden');
-                actualizarBannerProxima();
                 return;
             }
 
@@ -195,8 +171,6 @@
             isPlaying = true; 
             idActual = solicitud.id;
             let segundos = 5;
-
-            actualizarBannerProxima();
             
             lobbyScreen.style.display = 'flex';
             lobbyMessage.innerText = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
@@ -219,7 +193,6 @@
 
         function reproducirVideo(solicitud) {
             intentoExtensionAlternativa = false;
-            actualizarBannerProxima();
 
             lobbyScreen.style.display = 'none';
             player.style.display = 'block';
