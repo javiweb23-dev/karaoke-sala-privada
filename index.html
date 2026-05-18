@@ -83,7 +83,7 @@
         async function consultarPortadaCache(identificador) {
             const { data, error } = await supabaseClient
                 .from('portadas_cache')
-                .select('url')
+                .select('caratula_url')
                 .eq('identificador', identificador)
                 .maybeSingle();
             if (error) {
@@ -91,14 +91,14 @@
                 return undefined;
             }
             if (!data) return undefined;
-            return data.url;
+            return data.caratula_url;
         }
 
         async function guardarPortadaCache(identificador, url) {
             const { error } = await supabaseClient
                 .from('portadas_cache')
                 .upsert(
-                    { identificador: identificador, url: url },
+                    { identificador: identificador, caratula_url: url },
                     { onConflict: 'identificador' }
                 );
             if (error) console.error("Error en Supabase:", error);
