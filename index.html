@@ -114,6 +114,13 @@
             if (pendientesPortadas.has(identificador)) return pendientesPortadas.get(identificador);
 
             const promesa = (async () => {
+                let intentosItunes = {};
+                try {
+                    intentosItunes = JSON.parse(localStorage.getItem('intentos_itunes') || '{}');
+                } catch {
+                    intentosItunes = {};
+                }
+
                 const urlCache = await consultarPortadaCache(identificador);
                 if (urlCache !== undefined) {
                     if (urlCache === 'no_encontrado') return null;
@@ -124,11 +131,19 @@
                     const term = encodeURIComponent(`${song.artista} ${song.titulo}`);
                     const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=1`);
                     if (!res.ok) {
-                        await guardarPortadaCache(identificador, 'no_encontrado');
+                        intentosItunes[identificador] = (intentosItunes[identificador] || 0) + 1;
+                        localStorage.setItem('intentos_itunes', JSON.stringify(intentosItunes));
+                        if (intentosItunes[identificador] >= 10) {
+                            await guardarPortadaCache(identificador, 'no_encontrado');
+                        }
                         return null;
                     }
                     const json = await res.json();
-                    const urlItunes = json.results?.[0]?.artworkUrl100 || null;
+                    if (!json.results || json.results.length === 0) {
+                        await guardarPortadaCache(identificador, 'no_encontrado');
+                        return null;
+                    }
+                    const urlItunes = json.results[0].artworkUrl100 || null;
                     if (urlItunes) {
                         await guardarPortadaCache(identificador, urlItunes);
                         return urlItunes;
@@ -136,7 +151,11 @@
                     await guardarPortadaCache(identificador, 'no_encontrado');
                     return null;
                 } catch {
-                    await guardarPortadaCache(identificador, 'no_encontrado');
+                    intentosItunes[identificador] = (intentosItunes[identificador] || 0) + 1;
+                    localStorage.setItem('intentos_itunes', JSON.stringify(intentosItunes));
+                    if (intentosItunes[identificador] >= 10) {
+                        await guardarPortadaCache(identificador, 'no_encontrado');
+                    }
                     return null;
                 }
             })();
@@ -144,7 +163,19 @@
             pendientesPortadas.set(identificador, promesa);
             const url = await promesa;
             pendientesPortadas.delete(identificador);
-            cachePortadas.set(identificador, url);
+            if (url !== null) {
+                cachePortadas.set(identificador, url);
+            } else {
+                let intentosCheck = {};
+                try {
+                    intentosCheck = JSON.parse(localStorage.getItem('intentos_itunes') || '{}');
+                } catch {
+                    intentosCheck = {};
+                }
+                if ((intentosCheck[identificador] || 0) >= 10) {
+                    cachePortadas.set(identificador, null);
+                }
+            }
             return url;
         }
 
