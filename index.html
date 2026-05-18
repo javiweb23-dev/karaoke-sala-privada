@@ -76,8 +76,24 @@
         const cachePortadas = new Map();
         const pendientesPortadas = new Map();
 
-        function clavePortada(artista, titulo) {
-            return `${(artista || '').trim().toLowerCase()}|${(titulo || '').trim().toLowerCase()}`;
+        function identificadorPortada(artista, titulo) {
+            return `${(artista || '').trim()} - ${(titulo || '').trim()}`.toUpperCase();
+        }
+
+        async function consultarPortadaCache(identificador) {
+            const { data, error } = await supabaseClient
+                .from('portadas_cache')
+                .select('url')
+                .eq('identificador', identificador)
+                .maybeSingle();
+            if (error || !data) return undefined;
+            return data.url;
+        }
+
+        async function guardarPortadaCache(identificador, url) {
+            await supabaseClient
+                .from('portadas_cache')
+                .upsert({ identificador, url }, { onConflict: 'identificador' });
         }
 
         function htmlFallbackPortada() {
@@ -85,26 +101,42 @@
         }
 
         async function obtenerPortadaItunes(artista, titulo) {
-            const clave = clavePortada(artista, titulo);
-            if (cachePortadas.has(clave)) return cachePortadas.get(clave);
-            if (pendientesPortadas.has(clave)) return pendientesPortadas.get(clave);
+            const identificador = identificadorPortada(artista, titulo);
+            if (cachePortadas.has(identificador)) return cachePortadas.get(identificador);
+            if (pendientesPortadas.has(identificador)) return pendientesPortadas.get(identificador);
 
             const promesa = (async () => {
+                const urlCache = await consultarPortadaCache(identificador);
+                if (urlCache !== undefined) {
+                    if (urlCache === 'no_encontrado') return null;
+                    return urlCache;
+                }
+
                 try {
                     const term = encodeURIComponent(`${artista} ${titulo}`);
                     const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=1`);
-                    if (!res.ok) return null;
+                    if (!res.ok) {
+                        await guardarPortadaCache(identificador, 'no_encontrado');
+                        return null;
+                    }
                     const json = await res.json();
-                    return json.results?.[0]?.artworkUrl100 || null;
+                    const urlItunes = json.results?.[0]?.artworkUrl100 || null;
+                    if (urlItunes) {
+                        await guardarPortadaCache(identificador, urlItunes);
+                        return urlItunes;
+                    }
+                    await guardarPortadaCache(identificador, 'no_encontrado');
+                    return null;
                 } catch {
+                    await guardarPortadaCache(identificador, 'no_encontrado');
                     return null;
                 }
             })();
 
-            pendientesPortadas.set(clave, promesa);
+            pendientesPortadas.set(identificador, promesa);
             const url = await promesa;
-            pendientesPortadas.delete(clave);
-            cachePortadas.set(clave, url);
+            pendientesPortadas.delete(identificador);
+            cachePortadas.set(identificador, url);
             return url;
         }
 
