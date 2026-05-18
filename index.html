@@ -6,7 +6,9 @@
     <title>Control VIP - MiKaraokeLatino</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <style>
+        .portada-slot img { transition: opacity 0.35s ease-out; }
+    </style>
     <script src="canciones.js"></script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-sans select-none relative">
@@ -22,10 +24,10 @@
 
     <div id="statusAlert" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-4 text-center text-sm font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4"></div>
 
-    <header class="bg-zinc-900 border-b border-zinc-800 p-4 sticky top-0 z-50 flex justify-between items-center">
-        <div>
-            <h1 class="text-lg font-bold text-amber-400 tracking-wide">🎤 KARAOKE VIP</h1>
-            <p id="displayNombre" class="text-xs text-zinc-400">Cantante: -</p>
+    <header class="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-50 w-full">
+        <div class="max-w-md mx-auto px-4 py-3 flex flex-col items-center justify-center gap-1.5">
+            <img src="logo.png" alt="Mi Karaoke Latino" class="h-16 w-auto max-w-[85%] object-contain">
+            <p id="displayNombre" class="text-xs text-zinc-400 text-center tracking-wide">Cantante: -</p>
         </div>
     </header>
 
@@ -79,7 +81,7 @@
         }
 
         function htmlFallbackPortada() {
-            return `<div class="w-16 h-16 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md border border-white/10"><span class="text-2xl drop-shadow-md" aria-hidden="true">🎤</span></div>`;
+            return `<div class="w-16 h-16 rounded-lg bg-gradient-to-tr from-zinc-800 to-zinc-700 flex items-center justify-center shadow-md border border-zinc-600/50"><span class="text-2xl text-amber-400 drop-shadow-md" aria-hidden="true">🎤</span></div>`;
         }
 
         async function obtenerPortadaItunes(artista, titulo) {
@@ -106,25 +108,50 @@
             return url;
         }
 
-        async function aplicarPortada(contenedor, artista, titulo) {
+        async function cargarPortadaLazy(portadaSlot, artista, titulo) {
             const url = await obtenerPortadaItunes(artista, titulo);
-            if (!contenedor.isConnected) return;
+            if (!portadaSlot?.isConnected) return;
 
-            if (url) {
-                contenedor.innerHTML = `<img src="${url}" alt="" class="w-16 h-16 rounded-lg object-cover shadow-md border border-zinc-700/40">`;
-            } else {
-                contenedor.innerHTML = htmlFallbackPortada();
-            }
+            if (!url) return;
+
+            const img = new Image();
+            img.alt = '';
+            img.className = 'w-16 h-16 rounded-lg object-cover shadow-md border border-zinc-700/40 opacity-0';
+
+            await new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                img.src = url;
+                if (img.complete) resolve();
+            });
+
+            if (!portadaSlot.isConnected) return;
+
+            portadaSlot.innerHTML = '';
+            portadaSlot.appendChild(img);
+            requestAnimationFrame(() => img.classList.replace('opacity-0', 'opacity-100'));
         }
 
         const observerPortadas = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (!entry.isIntersecting) return;
-                const el = entry.target;
-                aplicarPortada(el, el.dataset.artista, el.dataset.titulo);
-                observerPortadas.unobserve(el);
+
+                const card = entry.target;
+                if (card.dataset.portadaProcesada === 'true') {
+                    observerPortadas.unobserve(card);
+                    return;
+                }
+
+                const artista = card.dataset.artista;
+                const titulo = card.dataset.titulo;
+                const portadaSlot = card.querySelector('[data-portada]');
+
+                cargarPortadaLazy(portadaSlot, artista, titulo).finally(() => {
+                    card.dataset.portadaProcesada = 'true';
+                    observerPortadas.unobserve(card);
+                });
             });
-        }, { rootMargin: '120px' });
+        }, { root: null, rootMargin: '100px', threshold: 0.05 });
 
         async function cargarCancionesPopulares() {
             const { data, error } = await supabaseClient
@@ -158,12 +185,13 @@
                 const nombreFormateado = `${cancion.artista.toUpperCase()} - ${cancion.titulo.toUpperCase()}`;
                 const estrellaPopular = esCancionPopular(cancion.titulo, cancion.artista) ? '<span class="shrink-0 text-amber-400 text-sm">⭐</span>' : '';
                 const card = document.createElement('div');
-                card.className = 'bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-4 rounded-2xl flex items-center gap-4 transition-all shadow-sm';
+                card.className = 'cancion-card bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-4 rounded-2xl flex items-center gap-4 transition-all shadow-sm';
+                card.dataset.artista = cancion.artista;
+                card.dataset.titulo = cancion.titulo;
 
                 const portada = document.createElement('div');
-                portada.className = 'flex-shrink-0';
-                portada.dataset.artista = cancion.artista;
-                portada.dataset.titulo = cancion.titulo;
+                portada.className = 'portada-slot flex-shrink-0 w-16 h-16';
+                portada.dataset.portada = 'true';
                 portada.innerHTML = htmlFallbackPortada();
 
                 const info = document.createElement('div');
@@ -189,7 +217,7 @@
                 card.appendChild(btn);
                 songList.appendChild(card);
 
-                observerPortadas.observe(portada);
+                observerPortadas.observe(card);
             });
         }
 
