@@ -26,6 +26,12 @@
 
     <video id="karaokePlayer" class="relative z-10"></video>
 
+    <div id="timeCounter" class="fixed bottom-4 right-4 bg-black/60 text-zinc-400 text-xs px-3 py-1.5 rounded-lg font-mono z-50 pointer-events-none hidden">00:00 / 00:00 (Restan: -00:00)</div>
+
+    <div id="bannerProxima" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-zinc-900/95 border border-zinc-800 text-white px-6 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 hidden transition-all duration-500 opacity-0">
+        <p id="bannerProximaTexto" class="text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis"></p>
+    </div>
+
     <script>
         const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
@@ -37,10 +43,16 @@
         const lobbyMessage = document.getElementById('lobbyMessage');
         const singerName = document.getElementById('singerName');
         const countdownText = document.getElementById('countdownText');
+        const timeCounter = document.getElementById('timeCounter');
+        const bannerProxima = document.getElementById('bannerProxima');
+        const bannerProximaTexto = document.getElementById('bannerProximaTexto');
         
         let isPlaying = false;
         let systemActive = false;
         let idActual = null;
+        let avisoProximaMostrado = false;
+        let ocultarAvisoTimeout = null;
+        let intentoExtensionAlternativa = false;
         let audioContexto;
         let nodoFuente;
         let ecualizadorBajos;
@@ -61,6 +73,78 @@
             audio.currentTime = 0;
             audio.play().catch(err => console.warn('No se pudo reproducir efecto:', valor, err));
         }
+
+        function formatTiempo(segundos) {
+            if (!isFinite(segundos) || segundos < 0) segundos = 0;
+            const m = Math.floor(segundos / 60);
+            const s = Math.floor(segundos % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function ocultarBannerProxima() {
+            clearTimeout(ocultarAvisoTimeout);
+            bannerProxima.classList.add('opacity-0');
+            setTimeout(() => bannerProxima.classList.add('hidden'), 500);
+        }
+
+        function mostrarBannerProxima(texto) {
+            bannerProximaTexto.innerText = texto;
+            bannerProxima.classList.remove('hidden');
+            requestAnimationFrame(() => bannerProxima.classList.remove('opacity-0'));
+            ocultarAvisoTimeout = setTimeout(ocultarBannerProxima, 6000);
+        }
+
+        async function mostrarAvisoProximaCancion() {
+            const { data } = await supabaseClient
+                .from('Solicitudes')
+                .select('cancion_info, nombre_usuario')
+                .eq('estado', 'pendiente')
+                .order('id', { ascending: true })
+                .limit(2);
+
+            if (!data || data.length < 2) return;
+
+            const proxima = data[1];
+            mostrarBannerProxima(`📢 PRÓXIMA CANCIÓN: ${proxima.cancion_info} | 🎤 CANTA: ${proxima.nombre_usuario.toUpperCase()}`);
+        }
+
+        function manejarErrorVideo(solicitud) {
+            const err = player.error;
+            if (!err) return;
+
+            if ((err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || err.code === 4) && !intentoExtensionAlternativa) {
+                intentoExtensionAlternativa = true;
+                player.src = `videos_locales/${solicitud.cancion_info}.MP4`;
+                player.load();
+                player.play().catch(e => console.warn('Reintentando con extensión alternativa...', e));
+                return;
+            }
+
+            const errorCritico = err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
+                || err.code === 4
+                || err.code === MediaError.MEDIA_ERR_DECODE
+                || err.code === 3;
+
+            if (errorCritico) {
+                console.error('Error crítico de reproducción:', err.code);
+                marcarComoCompletada(solicitud.id);
+            }
+        }
+
+        player.addEventListener('timeupdate', () => {
+            if (!isPlaying || !player.duration || isNaN(player.duration)) return;
+
+            const transcurrido = player.currentTime;
+            const duracion = player.duration;
+            const restante = duracion - transcurrido;
+
+            timeCounter.innerText = `${formatTiempo(transcurrido)} / ${formatTiempo(duracion)} (Restan: -${formatTiempo(restante)})`;
+
+            if (!avisoProximaMostrado && restante <= 35 && restante >= 30) {
+                avisoProximaMostrado = true;
+                mostrarAvisoProximaCancion();
+            }
+        });
 
         wall.addEventListener('click', () => {
             systemActive = true;
@@ -116,6 +200,8 @@
                 singerName.classList.add('hidden');
                 countdownText.classList.add('hidden');
                 player.style.display = 'none';
+                timeCounter.classList.add('hidden');
+                ocultarBannerProxima();
                 return;
             }
 
@@ -147,26 +233,47 @@
         }
 
         function reproducirVideo(solicitud) {
-            lobbyScreen.style.display = 'none'; // Oculta los textos para que se vea solo el video
+            avisoProximaMostrado = false;
+            intentoExtensionAlternativa = false;
+            ocultarBannerProxima();
+
+            lobbyScreen.style.display = 'none';
             player.style.display = 'block';
-            
+            timeCounter.classList.remove('hidden');
+
             const nombreArchivo = solicitud.cancion_info;
             player.src = `videos_locales/${nombreArchivo}.mp4`;
-            
+            player.load();
+
             player.play().catch(() => {
-                player.src = `videos_locales/${nombreArchivo}.MP4`;
-                player.play().catch(err => {
-                    marcarComoCompletada(solicitud.id);
-                });
+                if (!intentoExtensionAlternativa) {
+                    intentoExtensionAlternativa = true;
+                    player.src = `videos_locales/${nombreArchivo}.MP4`;
+                    player.load();
+                    player.play().catch(err => console.warn('Esperando buffer o interacción...', err));
+                }
             });
 
-            player.onended = () => marcarComoCompletada(solicitud.id);
+            player.onended = () => {
+                if (idActual === solicitud.id) marcarComoCompletada(solicitud.id);
+            };
+
+            player.onerror = () => {
+                if (idActual === solicitud.id) manejarErrorVideo(solicitud);
+            };
         }
 
         async function marcarComoCompletada(id) {
+            if (!id) return;
+
             await supabaseClient.from('Solicitudes').update({ estado: 'completada' }).eq('id', id);
             isPlaying = false;
             idActual = null;
+            avisoProximaMostrado = false;
+            ocultarBannerProxima();
+            timeCounter.classList.add('hidden');
+            player.onended = null;
+            player.onerror = null;
             player.src = "";
             buscarSiguienteCancion();
         }
