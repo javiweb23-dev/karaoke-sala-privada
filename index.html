@@ -53,7 +53,8 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let miNombre = localStorage.getItem('karaoke_nombre');
-        
+        let cancionesPopulares = [];
+
         if (!miNombre) {
             document.getElementById('nameModal').classList.remove('hidden');
         } else {
@@ -75,6 +76,25 @@
             return `https://ui-avatars.com/api/?name=${nombre}&background=27272a&color=fbbf24&rounded=true&size=96&bold=true`;
         }
 
+        async function cargarCancionesPopulares() {
+            const { data, error } = await supabaseClient
+                .from('canciones_populares')
+                .select('identificador')
+                .gte('total_pedidos', 10);
+
+            if (error) {
+                console.warn('No se pudieron cargar canciones populares:', error);
+                cancionesPopulares = [];
+                return;
+            }
+
+            cancionesPopulares = (data || []).map(fila => fila.identificador);
+        }
+
+        function esCancionPopular(titulo, artista) {
+            return cancionesPopulares.includes(`${titulo} - ${artista}`);
+        }
+
         function cargarCanciones(lista) {
             const songList = document.getElementById('songList');
             songList.innerHTML = '';
@@ -86,19 +106,20 @@
 
             lista.forEach(cancion => {
                 const nombreFormateado = `${cancion.artista.toUpperCase()} - ${cancion.titulo.toUpperCase()}`;
+                const estrellaPopular = esCancionPopular(cancion.titulo, cancion.artista) ? '<span class="shrink-0 text-amber-400">⭐</span>' : '';
                 const card = document.createElement('div');
                 card.className = "bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex justify-between items-center gap-4 transition-colors";
                 card.innerHTML = `
                     <img src="${avatarArtista(cancion.artista)}" alt="" class="w-12 h-12 rounded-lg flex-shrink-0 object-cover border border-zinc-700/80 bg-zinc-800">
                     <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-zinc-100 truncate text-base">${cancion.titulo}</h3>
+                        <h3 class="font-bold text-zinc-100 text-base flex items-center gap-1.5 min-w-0"><span class="truncate">${cancion.titulo}</span>${estrellaPopular}</h3>
                         <p class="text-sm text-zinc-400 mt-0.5 mb-2 truncate">${cancion.artista}</p>
                         <div class="flex flex-wrap gap-2">
                             <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.genero}</span>
                             <span class="text-[10px] uppercase tracking-wider bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-md">${cancion.idioma}</span>
                         </div>
                     </div>
-                    <button onclick="pedirCancion('${nombreFormateado}')" class="bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-3 rounded-lg text-sm active:scale-95 transition-all">Pedir</button>
+                    <button onclick='pedirCancion(${JSON.stringify(nombreFormateado)}, ${JSON.stringify(cancion.titulo)}, ${JSON.stringify(cancion.artista)})' class="bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-3 rounded-lg text-sm active:scale-95 transition-all">Pedir</button>
                 `;
                 songList.appendChild(card);
             });
@@ -134,7 +155,33 @@
             liveQueue.innerHTML = html;
         }
 
-        async function pedirCancion(nombreArchivo) {
+        async function registrarPopularidad(titulo, artista) {
+            const identificador = `${titulo} - ${artista}`;
+
+            const { data: existente, error: errorConsulta } = await supabaseClient
+                .from('canciones_populares')
+                .select('total_pedidos')
+                .eq('identificador', identificador)
+                .maybeSingle();
+
+            if (errorConsulta) {
+                console.warn('No se pudo consultar canciones_populares:', errorConsulta);
+                return;
+            }
+
+            if (existente) {
+                await supabaseClient
+                    .from('canciones_populares')
+                    .update({ total_pedidos: existente.total_pedidos + 1 })
+                    .eq('identificador', identificador);
+            } else {
+                await supabaseClient
+                    .from('canciones_populares')
+                    .insert({ identificador, total_pedidos: 1 });
+            }
+        }
+
+        async function pedirCancion(nombreArchivo, titulo, artista) {
             if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
 
             const { data: dups } = await supabaseClient.from('Solicitudes').select('id').eq('estado', 'pendiente').eq('cancion_info', nombreArchivo);
@@ -148,6 +195,8 @@
             const { error } = await supabaseClient.from('Solicitudes').insert([{ nombre_usuario: miNombre, cancion_info: nombreArchivo, estado: 'pendiente' }]);
 
             if (!error) {
+                await registrarPopularidad(titulo, artista);
+
                 if (totalCola === 0) {
                     mostrarAlerta("✅ ¡Enviada! Comenzará en unos segundos.");
                 } else {
@@ -184,9 +233,13 @@
 
         supabaseClient.channel('queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
 
-        // Al iniciar, lee la lista que cargamos desde canciones.js
-        cargarCanciones(cancionesREAL);
-        actualizarCola();
+        async function iniciarPagina() {
+            await cargarCancionesPopulares();
+            cargarCanciones(cancionesREAL);
+            actualizarCola();
+        }
+
+        iniciarPagina();
     </script>
 </body>
 </html>
