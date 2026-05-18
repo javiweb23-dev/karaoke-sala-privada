@@ -43,6 +43,8 @@
         let idActual = null;
         let audioContexto;
         let nodoFuente;
+        let ecualizadorBajos;
+        let ecualizadorBrillo;
         let preAmp;
         let compressor;
 
@@ -67,6 +69,16 @@
             audioContexto = new (window.AudioContext || window.webkitAudioContext)();
             nodoFuente = audioContexto.createMediaElementSource(player);
 
+            ecualizadorBajos = audioContexto.createBiquadFilter();
+            ecualizadorBajos.type = 'lowshelf';
+            ecualizadorBajos.frequency.setValueAtTime(100, audioContexto.currentTime);
+            ecualizadorBajos.gain.value = 4.5;
+
+            ecualizadorBrillo = audioContexto.createBiquadFilter();
+            ecualizadorBrillo.type = 'highshelf';
+            ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
+            ecualizadorBrillo.gain.value = 3.0;
+
             preAmp = audioContexto.createGain();
             preAmp.gain.value = 1.4;
 
@@ -77,7 +89,9 @@
             compressor.attack.value = 0.001;
             compressor.release.value = 0.08;
 
-            nodoFuente.connect(preAmp);
+            nodoFuente.connect(ecualizadorBajos);
+            ecualizadorBajos.connect(ecualizadorBrillo);
+            ecualizadorBrillo.connect(preAmp);
             preAmp.connect(compressor);
             compressor.connect(audioContexto.destination);
 
