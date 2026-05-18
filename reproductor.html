@@ -42,6 +42,20 @@
         let systemActive = false;
         let idActual = null;
 
+        const efectosSonidos = {
+            'aplausos': new Audio('efectos/aplausos.mp3'),
+            'buuu': new Audio('efectos/buuu.mp3'),
+            'corneta': new Audio('efectos/corneta.mp3'),
+            'chacal de la trompeta': new Audio('efectos/chacal de la trompeta.mp3')
+        };
+
+        function reproducirEfecto(valor) {
+            const audio = efectosSonidos[valor];
+            if (!audio) return;
+            audio.currentTime = 0;
+            audio.play().catch(err => console.warn('No se pudo reproducir efecto:', valor, err));
+        }
+
         wall.addEventListener('click', () => {
             systemActive = true;
             wall.style.display = 'none';
@@ -133,6 +147,8 @@
                 player.play();
             } else if (payload.accion === 'saltar' && isPlaying) {
                 marcarComoCompletada(idActual);
+            } else if (payload.accion === 'efecto' && payload.valor) {
+                reproducirEfecto(payload.valor);
             }
         }).subscribe();
     </script>

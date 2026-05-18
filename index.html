@@ -70,6 +70,11 @@
             }
         }
 
+        function avatarArtista(artista) {
+            const nombre = encodeURIComponent((artista || '?').trim());
+            return `https://ui-avatars.com/api/?name=${nombre}&background=27272a&color=fbbf24&rounded=true&size=96&bold=true`;
+        }
+
         function cargarCanciones(lista) {
             const songList = document.getElementById('songList');
             songList.innerHTML = '';
@@ -84,6 +89,7 @@
                 const card = document.createElement('div');
                 card.className = "bg-zinc-900 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl flex justify-between items-center gap-4 transition-colors";
                 card.innerHTML = `
+                    <img src="${avatarArtista(cancion.artista)}" alt="" class="w-12 h-12 rounded-lg flex-shrink-0 object-cover border border-zinc-700/80 bg-zinc-800">
                     <div class="flex-1 min-w-0">
                         <h3 class="font-bold text-zinc-100 truncate text-base">${cancion.titulo}</h3>
                         <p class="text-sm text-zinc-400 mt-0.5 mb-2 truncate">${cancion.artista}</p>
@@ -117,7 +123,15 @@
                 liveQueue.innerHTML = `<p class="text-zinc-600 italic">No hay canciones en espera.</p>`;
                 return;
             }
-            liveQueue.innerHTML = data.map((s, i) => `<div class="truncate"><span class="text-amber-500 font-bold mr-1">${i+1}.</span> ${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`).join('');
+            const MAX_COLA = 6;
+            const visibles = data.slice(0, MAX_COLA);
+            const restantes = data.length - MAX_COLA;
+            let html = visibles.map((s, i) => `<div class="truncate"><span class="text-amber-500 font-bold mr-1">${i + 1}.</span> ${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`).join('');
+            if (restantes > 0) {
+                const etiqueta = restantes === 1 ? 'canción' : 'canciones';
+                html += `<p class="text-zinc-500 text-xs italic mt-2 pt-2 border-t border-zinc-800 text-center">...y ${restantes} ${etiqueta} más en cola</p>`;
+            }
+            liveQueue.innerHTML = html;
         }
 
         async function pedirCancion(nombreArchivo) {
