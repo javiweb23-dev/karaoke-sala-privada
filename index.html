@@ -76,8 +76,8 @@
         const cachePortadas = new Map();
         const pendientesPortadas = new Map();
 
-        function identificadorPortada(artista, titulo) {
-            return `${(artista || '').trim()} - ${(titulo || '').trim()}`.toUpperCase();
+        function identificadorPortada(song) {
+            return `${song.artista} - ${song.titulo}`.toUpperCase();
         }
 
         async function consultarPortadaCache(identificador) {
@@ -86,22 +86,30 @@
                 .select('url')
                 .eq('identificador', identificador)
                 .maybeSingle();
-            if (error || !data) return undefined;
+            if (error) {
+                console.error("Error en Supabase:", error);
+                return undefined;
+            }
+            if (!data) return undefined;
             return data.url;
         }
 
         async function guardarPortadaCache(identificador, url) {
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from('portadas_cache')
-                .upsert({ identificador, url }, { onConflict: 'identificador' });
+                .upsert(
+                    { identificador: identificador, url: url },
+                    { onConflict: 'identificador' }
+                );
+            if (error) console.error("Error en Supabase:", error);
         }
 
         function htmlFallbackPortada() {
             return `<div class="w-16 h-16 rounded-lg bg-gradient-to-tr from-zinc-800 to-zinc-700 flex items-center justify-center shadow-md border border-zinc-600/50"><span class="text-2xl text-amber-400 drop-shadow-md" aria-hidden="true">🎤</span></div>`;
         }
 
-        async function obtenerPortadaItunes(artista, titulo) {
-            const identificador = identificadorPortada(artista, titulo);
+        async function obtenerPortadaItunes(song) {
+            const identificador = identificadorPortada(song);
             if (cachePortadas.has(identificador)) return cachePortadas.get(identificador);
             if (pendientesPortadas.has(identificador)) return pendientesPortadas.get(identificador);
 
@@ -113,7 +121,7 @@
                 }
 
                 try {
-                    const term = encodeURIComponent(`${artista} ${titulo}`);
+                    const term = encodeURIComponent(`${song.artista} ${song.titulo}`);
                     const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=1`);
                     if (!res.ok) {
                         await guardarPortadaCache(identificador, 'no_encontrado');
@@ -140,8 +148,8 @@
             return url;
         }
 
-        async function cargarPortadaLazy(portadaSlot, artista, titulo) {
-            const url = await obtenerPortadaItunes(artista, titulo);
+        async function cargarPortadaLazy(portadaSlot, song) {
+            const url = await obtenerPortadaItunes(song);
             if (!portadaSlot?.isConnected) return;
 
             if (!url) return;
@@ -174,11 +182,13 @@
                     return;
                 }
 
-                const artista = card.dataset.artista;
-                const titulo = card.dataset.titulo;
+                const song = {
+                    artista: card.dataset.artista,
+                    titulo: card.dataset.titulo
+                };
                 const portadaSlot = card.querySelector('[data-portada]');
 
-                cargarPortadaLazy(portadaSlot, artista, titulo).finally(() => {
+                cargarPortadaLazy(portadaSlot, song).finally(() => {
                     card.dataset.portadaProcesada = 'true';
                     observerPortadas.unobserve(card);
                 });
@@ -213,13 +223,13 @@
                 return;
             }
 
-            lista.forEach(cancion => {
-                const nombreFormateado = `${cancion.artista.toUpperCase()} - ${cancion.titulo.toUpperCase()}`;
-                const estrellaPopular = esCancionPopular(cancion.titulo, cancion.artista) ? '<span class="shrink-0 text-amber-400 text-sm">⭐</span>' : '';
+            lista.forEach(song => {
+                const nombreFormateado = `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
+                const estrellaPopular = esCancionPopular(song.titulo, song.artista) ? '<span class="shrink-0 text-amber-400 text-sm">⭐</span>' : '';
                 const card = document.createElement('div');
                 card.className = 'cancion-card bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-4 rounded-2xl flex items-center gap-4 transition-all shadow-sm';
-                card.dataset.artista = cancion.artista;
-                card.dataset.titulo = cancion.titulo;
+                card.dataset.artista = song.artista;
+                card.dataset.titulo = song.titulo;
 
                 const portada = document.createElement('div');
                 portada.className = 'portada-slot flex-shrink-0 w-16 h-16';
@@ -230,19 +240,19 @@
                 info.className = 'flex-1 min-w-0 pr-1';
                 info.innerHTML = `
                     <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight flex items-center gap-1.5 min-w-0">
-                        <span class="truncate">${cancion.titulo}</span>${estrellaPopular}
+                        <span class="truncate">${song.titulo}</span>${estrellaPopular}
                     </h3>
-                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 truncate font-medium tracking-wide">${cancion.artista}</p>
+                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 truncate font-medium tracking-wide">${song.artista}</p>
                     <div class="flex flex-wrap gap-1.5">
-                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${cancion.genero}</span>
-                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${cancion.idioma}</span>
+                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.genero}</span>
+                        <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.idioma}</span>
                     </div>
                 `;
 
                 const btn = document.createElement('button');
                 btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
-                btn.onclick = () => pedirCancion(nombreFormateado, cancion.titulo, cancion.artista);
+                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista);
 
                 card.appendChild(portada);
                 card.appendChild(info);
