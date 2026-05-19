@@ -73,9 +73,16 @@
         let gainFinal          = null;
 
         // ── ESTADO DE TONO Y NORMALIZACIÓN ───────────────────────────────
-        let semitonos       = 0;
+        let semitonos           = 0;
+        let rampaTonoId         = null;
+        const PITCH_WINDOW_SIZE      = 0.18;
+
+        function duracionRampaTono(inicio, destino) {
+            const salto = Math.abs(destino - inicio);
+            return Math.min(800, Math.round(420 + salto * 120));
+        }
         let normInterval    = null;
-        let medicionesRMS   = [];   // Últimas N mediciones para promediar
+        let medicionesRMS   = [];
 
         // ── EFECTOS DE SONIDO ─────────────────────────────────────────────
         const efectosSonidos = {
@@ -103,23 +110,67 @@
             return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         }
 
-        // ─────────────────────────────────────────────────────────────────
-        // TONO (Pitch Shifting)
-        // Tone.js PitchShift usa Phase Vocoder: cambia el tono SIN
-        // cambiar el tempo. Exactamente como VirtualDJ o Serato.
-        // Rango: -6 a +6 semitonos.
-        // ─────────────────────────────────────────────────────────────────
-        function cambiarTono(delta) {
-            semitonos = Math.max(-6, Math.min(6, semitonos + delta));
+        function obtenerPitchActual() {
+            if (!pitchShifter) return semitonos;
+            const p = pitchShifter.pitch;
+            if (typeof p === 'number') return p;
+            if (p && typeof p.value === 'number') return p.value;
+            return semitonos;
+        }
 
-            if (pitchShifter) {
-                pitchShifter.pitch = semitonos;
+        function aplicarTonoSuave(destino) {
+            destino = Math.max(-6, Math.min(6, destino));
+            if (!pitchShifter) {
+                semitonos = destino;
+                return;
             }
+
+            const inicio = obtenerPitchActual();
+            semitonos = destino;
+
+            if (Math.abs(inicio - destino) < 0.01) {
+                pitchShifter.pitch = destino;
+                return;
+            }
+
+            if (rampaTonoId !== null) {
+                cancelAnimationFrame(rampaTonoId);
+                rampaTonoId = null;
+            }
+
+            const duracionMs = duracionRampaTono(inicio, destino);
+
+            const param = pitchShifter.pitch;
+            if (param && typeof param.rampTo === 'function') {
+                param.rampTo(destino, duracionMs / 1000);
+                return;
+            }
+
+            const t0 = performance.now();
+            function animar(ahora) {
+                const progreso = Math.min(1, (ahora - t0) / duracionMs);
+                const suave = progreso * progreso * (3 - 2 * progreso);
+                pitchShifter.pitch = inicio + (destino - inicio) * suave;
+                if (progreso < 1) {
+                    rampaTonoId = requestAnimationFrame(animar);
+                } else {
+                    pitchShifter.pitch = destino;
+                    rampaTonoId = null;
+                }
+            }
+            rampaTonoId = requestAnimationFrame(animar);
+        }
+
+        function cambiarTono(delta) {
+            aplicarTonoSuave(semitonos + delta);
         }
 
         function resetTono(notificarAdmin) {
-            semitonos = 0;
-            if (pitchShifter) pitchShifter.pitch = 0;
+            if (rampaTonoId !== null) {
+                cancelAnimationFrame(rampaTonoId);
+                rampaTonoId = null;
+            }
+            aplicarTonoSuave(0);
             if (notificarAdmin) {
                 try {
                     canalAdmin.send({
@@ -275,7 +326,7 @@
             }
             pitchShifter = new Tone.PitchShift({
                 pitch:      0,
-                windowSize: 0.06,
+                windowSize: PITCH_WINDOW_SIZE,
                 delayTime:  0,
                 feedback:   0
             });
