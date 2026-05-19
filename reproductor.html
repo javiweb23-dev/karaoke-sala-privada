@@ -113,7 +113,7 @@
         async function cargarSoundTouch() {
             if (SoundTouchNodeClass) return SoundTouchNodeClass;
 
-            const localUrl = new URL('lib/soundtouch/index.js', document.baseURI || window.location.href).href;
+            const localUrl = new URL('lib/soundtouch/SoundTouchNode.js', document.baseURI || window.location.href).href;
             try {
                 const mod = await import(localUrl);
                 SoundTouchNodeClass = mod.SoundTouchNode;
