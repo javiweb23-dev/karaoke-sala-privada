@@ -112,8 +112,20 @@
 
         async function cargarSoundTouch() {
             if (SoundTouchNodeClass) return SoundTouchNodeClass;
-            const mod = await import('https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@2.0.3/dist/index.js');
+
+            const localUrl = new URL('lib/soundtouch/index.js', document.baseURI || window.location.href).href;
+            try {
+                const mod = await import(localUrl);
+                SoundTouchNodeClass = mod.SoundTouchNode;
+                console.log('[Audio] SoundTouch cargado desde lib local');
+                return SoundTouchNodeClass;
+            } catch (eLocal) {
+                console.warn('[Audio] lib local no disponible, probando CDN...', eLocal.message);
+            }
+
+            const mod = await import('https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@2.0.3/+esm');
             SoundTouchNodeClass = mod.SoundTouchNode;
+            console.log('[Audio] SoundTouch cargado desde CDN');
             return SoundTouchNodeClass;
         }
 

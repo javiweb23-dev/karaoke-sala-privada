@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 const publicDir = path.join(root, 'public');
@@ -20,6 +21,8 @@ for (const file of required) {
   }
 }
 
+execSync('node scripts/copy-soundtouch-lib.js', { cwd: root, stdio: 'inherit' });
+
 if (fs.existsSync(publicDir)) {
   fs.rmSync(publicDir, { recursive: true, force: true });
 }
@@ -32,26 +35,16 @@ for (const file of [...required, ...optional]) {
   }
 }
 
-const libDir = path.join(publicDir, 'lib');
-fs.mkdirSync(libDir, { recursive: true });
-
-const processorCandidates = [
-  path.join(root, 'lib', 'soundtouch-processor.js'),
-  path.join(root, 'node_modules', '@soundtouchjs', 'audio-worklet', '.dist', 'soundtouch-processor.js')
-];
-
-let processorCopied = false;
-for (const src of processorCandidates) {
-  if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.join(libDir, 'soundtouch-processor.js'));
-    processorCopied = true;
-    break;
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const name of fs.readdirSync(src)) {
+    const s = path.join(src, name);
+    const d = path.join(dest, name);
+    if (fs.statSync(s).isDirectory()) copyDir(s, d);
+    else fs.copyFileSync(s, d);
   }
 }
 
-if (!processorCopied) {
-  console.error('Falta soundtouch-processor.js (ejecuta: npm install)');
-  process.exit(1);
-}
+copyDir(path.join(root, 'lib'), path.join(publicDir, 'lib'));
 
 console.log('Build OK: archivos copiados a public/');
