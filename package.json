@@ -1,0 +1,7 @@
+{
+  "name": "karaoke-sala-privada",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/verify-deploy.js"
+  }
+}

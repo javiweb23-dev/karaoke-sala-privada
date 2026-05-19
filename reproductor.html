@@ -117,9 +117,18 @@
             }
         }
 
-        function resetTono() {
+        function resetTono(notificarAdmin) {
             semitonos = 0;
             if (pitchShifter) pitchShifter.pitch = 0;
+            if (notificarAdmin) {
+                try {
+                    canalAdmin.send({
+                        type: 'broadcast',
+                        event: 'control',
+                        payload: { accion: 'sync_tono', valor: 0 }
+                    });
+                } catch (e) {}
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -180,8 +189,6 @@
                     sumaCuadrados += buffer[i] * buffer[i];
                 }
                 const rms = Math.sqrt(sumaCuadrados / buffer.length);
-
-                console.log('[Auto-Vol] RMS:', rms.toFixed(5), '| ctx:', audioContexto.state, '| paused:', player.paused);
 
                 if (rms < 0.008) return;
 
@@ -419,6 +426,8 @@
             idActual  = solicitud.id;
             let segundos = 5;
 
+            resetTono(true);
+
             lobbyScreen.style.display  = 'flex';
             lobbyMessage.innerText     = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
             singerName.innerText       = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
@@ -446,8 +455,7 @@
             player.style.display      = 'block';
             timeCounter.classList.remove('hidden');
 
-            // Resetear tono a 0 para cada canción nueva
-            resetTono();
+            resetTono(true);
 
             await asegurarAudioContextoActivo();
             iniciarNormalizacion();
@@ -460,6 +468,7 @@
             try {
                 await asegurarAudioContextoActivo();
                 await player.play();
+                resetTono(true);
             } catch {
                 if (!intentoExtensionAlterna) {
                     intentoExtensionAlterna = true;
@@ -467,6 +476,7 @@
                     player.load();
                     try {
                         await player.play();
+                        resetTono(true);
                     } catch (err) {
                         console.warn('Esperando buffer o interacción...', err);
                     }
@@ -490,7 +500,7 @@
 
             // Limpiar audio
             detenerNormalizacion();
-            resetTono();
+            resetTono(true);
 
             player.onended = null;
             player.onerror = null;
@@ -540,7 +550,7 @@
                         break;
 
                     case 'reset_tono':
-                        resetTono();
+                        resetTono(false);
                         break;
                 }
             })

@@ -205,6 +205,10 @@
                 if (payload.accion === 'autovol' && payload.valor !== undefined) {
                     actualizarBarraAutoVol(payload.valor);
                 }
+                if (payload.accion === 'sync_tono') {
+                    semitonosAdmin = payload.valor ?? 0;
+                    actualizarDisplayTono();
+                }
             })
             .subscribe();
 
