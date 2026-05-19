@@ -6,57 +6,140 @@
     <title>Reproductor VIP - Karaoke Box</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
         video { width: 100%; height: 100%; object-fit: contain; display: none; }
+
+        /* Botones de tono con animación al presionar */
+        .btn-tono { transition: transform 0.08s, background 0.15s; }
+        .btn-tono:active { transform: scale(0.92); }
+
+        /* Barra de ganancia con transición suave */
+        #gainBar { transition: width 2.5s ease, background-color 1s ease; }
+
+        /* Indicador de tono: parpadea al cambiar */
+        @keyframes tonoFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .tono-flash { animation: tonoFlash 0.25s ease; }
     </style>
 </head>
 <body class="flex flex-col justify-center items-center text-white font-sans select-none">
 
+    <!-- Pantalla de activación por clic -->
     <div id="activationWall" class="absolute inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
         <h1 class="text-3xl font-bold text-amber-400 animate-pulse">SALA PRIVADA LISTA</h1>
         <p class="text-zinc-500 mt-2 text-lg">Haz un clic para iniciar el sistema</p>
     </div>
 
+    <!-- Lobby / Cuenta regresiva -->
     <div id="lobbyScreen" class="text-center w-full absolute inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
         <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
         <h3 id="singerName" class="text-2xl font-bold text-emerald-400 mt-4 hidden"></h3>
         <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
     </div>
 
+    <!-- Video -->
     <video id="karaokePlayer" class="relative z-10"></video>
 
-    <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">00:00 / 00:00 (Restan: -00:00)</div>
+    <!-- Contador de tiempo (abajo derecha) -->
+    <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
+        00:00 / 00:00 (Restan: -00:00)
+    </div>
+
+    <!-- Panel de TONO + GANANCIA (abajo izquierda, solo durante reproducción) -->
+    <div id="controlPanel" class="fixed bottom-4 left-4 bg-zinc-950/95 backdrop-blur-sm border border-zinc-700/60 rounded-2xl shadow-2xl shadow-black/70 z-50 hidden overflow-hidden">
+
+        <!-- Fila 1: Control de tono -->
+        <div class="flex items-center gap-1.5 px-3 pt-3 pb-2">
+            <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Tono</span>
+
+            <!-- Bajar (azul = masculino más bajo) -->
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-3)">-3</button>
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-2)">-2</button>
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-1)">-1</button>
+
+            <!-- Display de semitonos actual -->
+            <div id="tonoDisplay" class="px-3 py-1 bg-zinc-900 border border-zinc-600 rounded-lg text-amber-400 text-sm font-black min-w-[3.5rem] text-center tracking-wide">0</div>
+
+            <!-- Subir (rojo = femenino más alto) -->
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(1)">+1</button>
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(2)">+2</button>
+            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(3)">+3</button>
+
+            <!-- Reset tono -->
+            <button class="btn-tono ml-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-600 rounded-lg text-zinc-400 hover:text-white text-xs font-black" onclick="resetTono()" title="Resetear tono (R)">↺</button>
+        </div>
+
+        <!-- Divisor -->
+        <div class="mx-3 border-t border-zinc-800"></div>
+
+        <!-- Fila 2: Indicador de ganancia auto -->
+        <div class="flex items-center gap-2 px-3 py-2">
+            <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Auto vol</span>
+            <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[80px]">
+                <div id="gainBar" class="h-full bg-emerald-500 rounded-full" style="width: 50%"></div>
+            </div>
+            <span id="gainLabel" class="text-[10px] text-zinc-500 font-mono w-12 text-right">—</span>
+        </div>
+
+        <!-- Teclas rápidas -->
+        <div class="px-3 pb-2 text-[9px] text-zinc-600 font-mono tracking-wide">
+            ↑↓ teclado &nbsp;·&nbsp; R = reset
+        </div>
+    </div>
 
     <script>
+        // ── CONFIGURACIÓN ─────────────────────────────────────────────────
         const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const player = document.getElementById('karaokePlayer');
-        const wall = document.getElementById('activationWall');
-        const lobbyScreen = document.getElementById('lobbyScreen');
-        const lobbyMessage = document.getElementById('lobbyMessage');
-        const singerName = document.getElementById('singerName');
-        const countdownText = document.getElementById('countdownText');
-        const timeCounter = document.getElementById('timeCounter');
-        
-        let isPlaying = false;
-        let systemActive = false;
-        let sistemaIniciado = false;
-        let idActual = null;
-        let intentoExtensionAlternativa = false;
-        let audioContexto;
-        let nodoFuente;
-        let ecualizadorBajos;
-        let ecualizadorBrillo;
-        let preAmp;
-        let compressor;
 
+        // ── REFERENCIAS DOM ───────────────────────────────────────────────
+        const player        = document.getElementById('karaokePlayer');
+        const wall          = document.getElementById('activationWall');
+        const lobbyScreen   = document.getElementById('lobbyScreen');
+        const lobbyMessage  = document.getElementById('lobbyMessage');
+        const singerName    = document.getElementById('singerName');
+        const countdownText = document.getElementById('countdownText');
+        const timeCounter   = document.getElementById('timeCounter');
+        const controlPanel  = document.getElementById('controlPanel');
+        const tonoDisplay   = document.getElementById('tonoDisplay');
+        const gainBar       = document.getElementById('gainBar');
+        const gainLabel     = document.getElementById('gainLabel');
+
+        // ── ESTADO GENERAL ────────────────────────────────────────────────
+        let isPlaying               = false;
+        let systemActive            = false;
+        let sistemaIniciado         = false;
+        let idActual                = null;
+        let intentoExtensionAlterna = false;
+
+        // ── ESTADO DE AUDIO ───────────────────────────────────────────────
+        let audioContexto      = null;
+        let nodoFuente         = null;
+        let gainNormalizacion  = null;  // Auto-ganancia
+        let analizadorNorm     = null;  // Mide RMS
+        let ecualizadorBajos   = null;
+        let ecualizadorMedios  = null;
+        let ecualizadorBrillo  = null;
+        let pitchShifter       = null;  // Tone.js PitchShift
+        let compressor         = null;
+        let gainFinal          = null;
+
+        // ── ESTADO DE TONO Y NORMALIZACIÓN ───────────────────────────────
+        let semitonos       = 0;
+        let normInterval    = null;
+        let medicionesRMS   = [];   // Últimas N mediciones para promediar
+
+        // ── EFECTOS DE SONIDO ─────────────────────────────────────────────
         const efectosSonidos = {
-            'aplausos': new Audio('efectos/aplausos.mp3'),
-            'buuu': new Audio('efectos/buuu.mp3'),
-            'corneta': new Audio('efectos/corneta.mp3'),
+            'aplausos':              new Audio('efectos/aplausos.mp3'),
+            'buuu':                  new Audio('efectos/buuu.mp3'),
+            'corneta':               new Audio('efectos/corneta.mp3'),
             'chacal de la trompeta': new Audio('efectos/chacal.mp3')
         };
 
@@ -65,119 +148,272 @@
             if (!audio) return;
             audio.currentTime = 0;
             try {
-                const promesa = audio.play();
-                if (promesa && typeof promesa.catch === 'function') {
-                    promesa.catch(err => console.warn('No se pudo reproducir efecto:', valor, err));
-                }
-            } catch (err) {
-                console.warn('No se pudo reproducir efecto:', valor, err);
+                const p = audio.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            } catch (e) {}
+        }
+
+        // ── FORMATO DE TIEMPO ─────────────────────────────────────────────
+        function formatTiempo(s) {
+            if (!isFinite(s) || s < 0) s = 0;
+            const m = Math.floor(s / 60);
+            const ss = Math.floor(s % 60);
+            return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // TONO (Pitch Shifting)
+        // Tone.js PitchShift usa Phase Vocoder: cambia el tono SIN
+        // cambiar el tempo. Exactamente como VirtualDJ o Serato.
+        // Rango: -6 a +6 semitonos.
+        // ─────────────────────────────────────────────────────────────────
+        function cambiarTono(delta) {
+            semitonos = Math.max(-6, Math.min(6, semitonos + delta));
+
+            if (pitchShifter) {
+                pitchShifter.pitch = semitonos;
             }
+
+            // Actualizar display
+            const texto = semitonos > 0 ? `+${semitonos}` : `${semitonos}`;
+            tonoDisplay.innerText = texto;
+
+            // Color: azul = bajo (voz masculina), neutral = 0, rojo = alto (voz femenina)
+            tonoDisplay.className = tonoDisplay.className
+                .replace(/text-(amber|blue|rose)-\d+/g, '');
+            if      (semitonos > 0) tonoDisplay.classList.add('text-rose-400');
+            else if (semitonos < 0) tonoDisplay.classList.add('text-blue-400');
+            else                    tonoDisplay.classList.add('text-amber-400');
+
+            // Animación flash
+            tonoDisplay.classList.remove('tono-flash');
+            void tonoDisplay.offsetWidth; // Reflow para reiniciar
+            tonoDisplay.classList.add('tono-flash');
         }
 
-        function formatTiempo(segundos) {
-            if (!isFinite(segundos) || segundos < 0) segundos = 0;
-            const m = Math.floor(segundos / 60);
-            const s = Math.floor(segundos % 60);
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        function resetTono() {
+            semitonos = 0;
+            if (pitchShifter) pitchShifter.pitch = 0;
+            tonoDisplay.innerText = '0';
+            tonoDisplay.className = tonoDisplay.className
+                .replace(/text-(amber|blue|rose)-\d+/g, '');
+            tonoDisplay.classList.add('text-amber-400');
         }
 
+        // ─────────────────────────────────────────────────────────────────
+        // NORMALIZACIÓN AUTOMÁTICA DE GANANCIA
+        // Mide el RMS real del audio cada 2 segundos.
+        // Promedia las últimas 5 mediciones para estabilidad.
+        // Aplica corrección con rampa de 3 segundos (sin bombeo).
+        // Límites: 0.3x (-10 dB) a 3.0x (+9.5 dB) para no saturar.
+        // ─────────────────────────────────────────────────────────────────
+        function iniciarNormalizacion() {
+            detenerNormalizacion();
+            medicionesRMS = [];
+
+            // Resetear ganancia a neutro en cada canción nueva
+            if (gainNormalizacion) {
+                gainNormalizacion.gain.cancelScheduledValues(audioContexto.currentTime);
+                gainNormalizacion.gain.setValueAtTime(1.0, audioContexto.currentTime);
+            }
+            actualizarBarraGanancia(1.0);
+
+            normInterval = setInterval(() => {
+                if (!isPlaying || !analizadorNorm || !gainNormalizacion) return;
+
+                const buffer = new Float32Array(analizadorNorm.fftSize);
+                analizadorNorm.getFloatTimeDomainData(buffer);
+
+                // Cálculo RMS (Root Mean Square = nivel de energía real)
+                let sumaCuadrados = 0;
+                for (let i = 0; i < buffer.length; i++) {
+                    sumaCuadrados += buffer[i] * buffer[i];
+                }
+                const rms = Math.sqrt(sumaCuadrados / buffer.length);
+
+                // Ignorar silencios (intros, silencios entre estrofas)
+                if (rms < 0.008) return;
+
+                // Promediar últimas mediciones para suavizar
+                medicionesRMS.push(rms);
+                if (medicionesRMS.length > 5) medicionesRMS.shift();
+                const rmsPromedio = medicionesRMS.reduce((a, b) => a + b, 0) / medicionesRMS.length;
+
+                // Calcular corrección para llegar al target (-18 dBFS aprox)
+                const targetRMS  = 0.12;
+                const correccion = Math.max(0.3, Math.min(3.0, targetRMS / rmsPromedio));
+
+                // Aplicar con rampa suave de 3 segundos (sin saltos)
+                gainNormalizacion.gain.exponentialRampToValueAtTime(
+                    correccion,
+                    audioContexto.currentTime + 3.0
+                );
+
+                actualizarBarraGanancia(correccion);
+
+            }, 2000);
+        }
+
+        function detenerNormalizacion() {
+            if (normInterval) { clearInterval(normInterval); normInterval = null; }
+            medicionesRMS = [];
+        }
+
+        function actualizarBarraGanancia(valor) {
+            // Mapear rango 0.3x – 3.0x a 0% – 100%
+            const pct    = Math.round(((valor - 0.3) / (3.0 - 0.3)) * 100);
+            const pctOk  = Math.max(2, Math.min(100, pct));
+            gainBar.style.width = `${pctOk}%`;
+
+            // Color: verde = bien, amarillo = levantado, rojo = muy levantado (pista muy baja)
+            gainBar.style.backgroundColor =
+                pct > 65 ? '#10b981' :   // emerald-500
+                pct > 30 ? '#eab308' :   // yellow-500
+                           '#ef4444';    // red-500
+
+            // Mostrar en dB
+            const db = Math.round(20 * Math.log10(valor));
+            gainLabel.innerText = `${db >= 0 ? '+' : ''}${db} dB`;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // INICIAR SISTEMA DE AUDIO
+        // Cadena: source → normGain → analyser → bajos → medios → brillo
+        //         → PitchShift(Tone.js) → compressor → gainFinal → output
+        // ─────────────────────────────────────────────────────────────────
+        function iniciarSistema() {
+            if (sistemaIniciado) return;
+            sistemaIniciado = true;
+            systemActive    = true;
+            wall.style.display = 'none';
+
+            audioContexto = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Vincular Tone.js al mismo AudioContext (crucial para la cadena)
+            Tone.setContext(audioContexto);
+
+            nodoFuente = audioContexto.createMediaElementSource(player);
+
+            // 1. GANANCIA DE NORMALIZACIÓN (ajustada automáticamente)
+            gainNormalizacion = audioContexto.createGain();
+            gainNormalizacion.gain.value = 1.0;
+
+            // 2. ANALIZADOR para medir RMS (fftSize 4096 = alta precisión)
+            analizadorNorm = audioContexto.createAnalyser();
+            analizadorNorm.fftSize = 4096;
+
+            // 3. EQ BAJOS: suave y controlado
+            ecualizadorBajos = audioContexto.createBiquadFilter();
+            ecualizadorBajos.type = 'lowshelf';
+            ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
+            ecualizadorBajos.gain.value = 2.5;
+
+            // 4. EQ MEDIOS: presencia vocal (2.8kHz = zona de la voz)
+            ecualizadorMedios = audioContexto.createBiquadFilter();
+            ecualizadorMedios.type = 'peaking';
+            ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
+            ecualizadorMedios.Q.value = 1.0;
+            ecualizadorMedios.gain.value = 2.5;
+
+            // 5. EQ BRILLO: aire suave
+            ecualizadorBrillo = audioContexto.createBiquadFilter();
+            ecualizadorBrillo.type = 'highshelf';
+            ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
+            ecualizadorBrillo.gain.value = 1.8;
+
+            // 6. PITCH SHIFTER (Tone.js Phase Vocoder)
+            //    windowSize 0.06s = 60ms: buen balance calidad/latencia
+            //    Sin esto, el tono y el tempo cambian juntos (no lo queremos)
+            pitchShifter = new Tone.PitchShift({
+                pitch:      0,
+                windowSize: 0.06,
+                delayTime:  0,
+                feedback:   0
+            });
+
+            // 7. COMPRESOR: musical (ratio 4:1, no limitador)
+            compressor = audioContexto.createDynamicsCompressor();
+            compressor.threshold.value = -18.0;
+            compressor.knee.value      = 12.0;
+            compressor.ratio.value     = 4.0;
+            compressor.attack.value    = 0.008;
+            compressor.release.value   = 0.25;
+
+            // 8. GANANCIA FINAL (va DESPUÉS del compresor)
+            gainFinal = audioContexto.createGain();
+            gainFinal.gain.value = 1.2;
+
+            // ── CONEXIÓN DE LA CADENA ──────────────────────────────────
+            // Nota: pitchShifter.input es el nodo de entrada de Tone.js
+            //       Tone.js puede conectarse a AudioNodes nativos con .connect()
+            try {
+                nodoFuente.connect(gainNormalizacion);
+                gainNormalizacion.connect(analizadorNorm);
+                analizadorNorm.connect(ecualizadorBajos);
+                ecualizadorBajos.connect(ecualizadorMedios);
+                ecualizadorMedios.connect(ecualizadorBrillo);
+                ecualizadorBrillo.connect(pitchShifter.input);  // native → Tone.js
+                pitchShifter.connect(compressor);               // Tone.js → native
+                compressor.connect(gainFinal);
+                gainFinal.connect(audioContexto.destination);
+            } catch (e) {
+                // Fallback si hay problema con Tone.js: cadena sin pitch shift
+                console.warn('PitchShift no disponible, usando cadena directa:', e);
+                pitchShifter = null;
+                nodoFuente.connect(gainNormalizacion);
+                gainNormalizacion.connect(analizadorNorm);
+                analizadorNorm.connect(ecualizadorBajos);
+                ecualizadorBajos.connect(ecualizadorMedios);
+                ecualizadorMedios.connect(ecualizadorBrillo);
+                ecualizadorBrillo.connect(compressor);
+                compressor.connect(gainFinal);
+                gainFinal.connect(audioContexto.destination);
+            }
+
+            if (audioContexto.state === 'suspended') {
+                try { audioContexto.resume(); } catch (e) {}
+            }
+
+            buscarSiguienteCancion();
+        }
+
+        wall.addEventListener('click', iniciarSistema);
+
+        // ── MANEJO DE ERRORES DE VIDEO ────────────────────────────────────
         function manejarErrorVideo(solicitud) {
             const err = player.error;
             if (!err) return;
 
-            if ((err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || err.code === 4) && !intentoExtensionAlternativa) {
-                intentoExtensionAlternativa = true;
+            if ((err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || err.code === 4) && !intentoExtensionAlterna) {
+                intentoExtensionAlterna = true;
                 player.src = `videos_locales/${solicitud.cancion_info}.MP4`;
                 player.load();
                 try {
-                    const promesa = player.play();
-                    if (promesa && typeof promesa.catch === 'function') {
-                        promesa.catch(e => console.warn('Reintentando con extensión alternativa...', e));
-                    }
-                } catch (e) {
-                    console.warn('Reintentando con extensión alternativa...', e);
-                }
+                    const p = player.play();
+                    if (p && typeof p.catch === 'function') p.catch(e => console.warn('Reintentando MP4 mayúscula...', e));
+                } catch (e) {}
                 return;
             }
 
-            const errorCritico = err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
-                || err.code === 4
-                || err.code === MediaError.MEDIA_ERR_DECODE
-                || err.code === 3;
+            const esCritico = err.code === 4 || err.code === 3
+                || err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
+                || err.code === MediaError.MEDIA_ERR_DECODE;
 
-            if (errorCritico) {
-                console.error('Error crítico de reproducción:', err.code);
+            if (esCritico) {
+                console.error('Error crítico:', err.code);
                 marcarComoCompletada(solicitud.id);
             }
         }
 
+        // ── CONTADOR DE TIEMPO ────────────────────────────────────────────
         player.addEventListener('timeupdate', () => {
             if (!isPlaying || !player.duration || isNaN(player.duration)) return;
-
-            const transcurrido = player.currentTime;
-            const duracion = player.duration;
-            const restante = duracion - transcurrido;
-
-            timeCounter.innerText = `${formatTiempo(transcurrido)} / ${formatTiempo(duracion)} (Restan: -${formatTiempo(restante)})`;
+            const t = player.currentTime;
+            const d = player.duration;
+            timeCounter.innerText = `${formatTiempo(t)} / ${formatTiempo(d)} (Restan: -${formatTiempo(d - t)})`;
         });
 
-        function iniciarSistema() {
-    if (sistemaIniciado) return;
-    sistemaIniciado = true;
-    systemActive = true;
-    wall.style.display = 'none';
-
-    audioContexto = new (window.AudioContext || window.webkitAudioContext)();
-    nodoFuente = audioContexto.createMediaElementSource(player);
-
-    // 1. EQ BAJOS: suave y controlado (antes era +4.5, demasiado)
-    ecualizadorBajos = audioContexto.createBiquadFilter();
-    ecualizadorBajos.type = 'lowshelf';
-    ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
-    ecualizadorBajos.gain.value = 2.5;
-
-    // 2. EQ PRESENCIA VOCAL (nuevo): realza la voz en karaoke
-    const ecualizadorMedios = audioContexto.createBiquadFilter();
-    ecualizadorMedios.type = 'peaking';
-    ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
-    ecualizadorMedios.Q.value = 1.0;
-    ecualizadorMedios.gain.value = 2.5;
-
-    // 3. EQ BRILLO: más suave (antes era +3.0)
-    ecualizadorBrillo = audioContexto.createBiquadFilter();
-    ecualizadorBrillo.type = 'highshelf';
-    ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
-    ecualizadorBrillo.gain.value = 1.8;
-
-    // 4. COMPRESOR: ratio musical, no limitador
-    compressor = audioContexto.createDynamicsCompressor();
-    compressor.threshold.value = -18.0; // Empieza a comprimir antes, más suave
-    compressor.knee.value = 12.0;       // Transición suave
-    compressor.ratio.value = 4.0;       // Ratio musical (antes era 20, un limitador)
-    compressor.attack.value = 0.008;    // 8ms: preserva los transientes
-    compressor.release.value = 0.25;    // 250ms: suelta naturalmente, sin pumping
-
-    // 5. GANANCIA FINAL: va DESPUÉS del compresor (antes era al revés)
-    preAmp = audioContexto.createGain();
-    preAmp.gain.value = 1.2;
-
-    // Cadena correcta: fuente → bajos → medios → brillo → compresor → ganancia → salida
-    nodoFuente.connect(ecualizadorBajos);
-    ecualizadorBajos.connect(ecualizadorMedios);
-    ecualizadorMedios.connect(ecualizadorBrillo);
-    ecualizadorBrillo.connect(compressor);
-    compressor.connect(preAmp);
-    preAmp.connect(audioContexto.destination);
-
-    if (audioContexto.state === 'suspended') {
-        try { audioContexto.resume(); } catch (e) {}
-    }
-
-    buscarSiguienteCancion();
-}
-
-        wall.addEventListener('click', iniciarSistema);
-
+        // ── BÚSQUEDA Y COLA ───────────────────────────────────────────────
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying) return;
 
@@ -190,7 +426,7 @@
 
             if (error || !data || data.length === 0) {
                 lobbyScreen.style.display = 'flex';
-                lobbyMessage.innerText = "ESPERANDO SOLICITUDES...";
+                lobbyMessage.innerText    = "ESPERANDO SOLICITUDES...";
                 singerName.classList.add('hidden');
                 countdownText.classList.add('hidden');
                 player.style.display = 'none';
@@ -202,13 +438,13 @@
         }
 
         function iniciarCuentaRegresiva(solicitud) {
-            isPlaying = true; 
-            idActual = solicitud.id;
+            isPlaying = true;
+            idActual  = solicitud.id;
             let segundos = 5;
-            
-            lobbyScreen.style.display = 'flex';
-            lobbyMessage.innerText = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
-            singerName.innerText = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
+
+            lobbyScreen.style.display  = 'flex';
+            lobbyMessage.innerText     = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
+            singerName.innerText       = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
             singerName.classList.remove('hidden');
             countdownText.innerText = segundos;
             countdownText.classList.remove('hidden');
@@ -226,22 +462,30 @@
         }
 
         async function reproducirVideo(solicitud) {
-            intentoExtensionAlternativa = false;
+            intentoExtensionAlterna = false;
 
+            // UI
             lobbyScreen.style.display = 'none';
-            player.style.display = 'block';
+            player.style.display      = 'block';
             timeCounter.classList.remove('hidden');
+            controlPanel.classList.remove('hidden');
 
-            const nombreArchivo = solicitud.cancion_info;
-            player.src = `videos_locales/${nombreArchivo}.mp4`;
+            // Resetear tono a 0 para cada canción nueva
+            resetTono();
+
+            // Iniciar normalización automática
+            iniciarNormalizacion();
+
+            const nombre = solicitud.cancion_info;
+            player.src = `videos_locales/${nombre}.mp4`;
             player.load();
 
             try {
                 await player.play();
             } catch {
-                if (!intentoExtensionAlternativa) {
-                    intentoExtensionAlternativa = true;
-                    player.src = `videos_locales/${nombreArchivo}.MP4`;
+                if (!intentoExtensionAlterna) {
+                    intentoExtensionAlterna = true;
+                    player.src = `videos_locales/${nombre}.MP4`;
                     player.load();
                     try {
                         await player.play();
@@ -251,56 +495,88 @@
                 }
             }
 
-            player.onended = () => {
-                if (idActual === solicitud.id) marcarComoCompletada(solicitud.id);
-            };
-
-            player.onerror = () => {
-                if (idActual === solicitud.id) manejarErrorVideo(solicitud);
-            };
+            player.onended = () => { if (idActual === solicitud.id) marcarComoCompletada(solicitud.id); };
+            player.onerror = () => { if (idActual === solicitud.id) manejarErrorVideo(solicitud); };
         }
 
         async function marcarComoCompletada(id) {
             if (!id) return;
 
             await supabaseClient.from('Solicitudes').update({ estado: 'completada' }).eq('id', id);
+
             isPlaying = false;
-            idActual = null;
+            idActual  = null;
+
+            // Limpiar UI
             timeCounter.classList.add('hidden');
+            controlPanel.classList.add('hidden');
+
+            // Limpiar audio
+            detenerNormalizacion();
+            resetTono();
+
             player.onended = null;
             player.onerror = null;
             player.src = "";
+
             buscarSiguienteCancion();
         }
 
-        // Detecta nuevos pedidos
-        supabaseClient.channel('cambios-db').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Solicitudes' }, () => {
-            buscarSiguienteCancion();
-        }).subscribe();
+        // ── TECLADO ────────────────────────────────────────────────────────
+        // Flecha arriba/abajo: ±1 semitono  |  R: resetear tono
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            if (e.key === 'ArrowUp')   { e.preventDefault(); cambiarTono(+1); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); cambiarTono(-1); }
+            if (e.key === 'r' || e.key === 'R') resetTono();
+        });
 
-        // 🎛️ ESCUCHA LOS COMANDOS DEL ADMIN
-        supabaseClient.channel('admin-commands').on('broadcast', { event: 'control' }, ({ payload }) => {
-            if (payload.accion === 'pausa') {
-                if (player.paused) {
-                    try {
-                        const promesa = player.play();
-                        if (promesa && typeof promesa.catch === 'function') promesa.catch(() => {});
-                    } catch (e) {}
-                } else {
-                    player.pause();
+        // ── SUPABASE: NUEVAS SOLICITUDES ──────────────────────────────────
+        supabaseClient.channel('cambios-db')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Solicitudes' }, () => {
+                buscarSiguienteCancion();
+            })
+            .subscribe();
+
+        // ── SUPABASE: COMANDOS DEL ADMIN ──────────────────────────────────
+        supabaseClient.channel('admin-commands')
+            .on('broadcast', { event: 'control' }, ({ payload }) => {
+                switch (payload.accion) {
+
+                    case 'pausa':
+                        if (player.paused) {
+                            try { const p = player.play(); if (p?.catch) p.catch(() => {}); } catch (e) {}
+                        } else {
+                            player.pause();
+                        }
+                        break;
+
+                    case 'reiniciar':
+                        if (isPlaying) {
+                            player.currentTime = 0;
+                            try { const p = player.play(); if (p?.catch) p.catch(() => {}); } catch (e) {}
+                        }
+                        break;
+
+                    case 'saltar':
+                        if (isPlaying) marcarComoCompletada(idActual);
+                        break;
+
+                    case 'efecto':
+                        if (payload.valor) reproducirEfecto(payload.valor);
+                        break;
+
+                    // Comandos de tono (enviables desde el panel admin)
+                    case 'tono':
+                        if (payload.delta !== undefined) cambiarTono(payload.delta);
+                        break;
+
+                    case 'reset_tono':
+                        resetTono();
+                        break;
                 }
-            } else if (payload.accion === 'reiniciar' && isPlaying) {
-                player.currentTime = 0;
-                try {
-                    const promesa = player.play();
-                    if (promesa && typeof promesa.catch === 'function') promesa.catch(() => {});
-                } catch (e) {}
-            } else if (payload.accion === 'saltar' && isPlaying) {
-                marcarComoCompletada(idActual);
-            } else if (payload.accion === 'efecto' && payload.valor) {
-                reproducirEfecto(payload.valor);
-            }
-        }).subscribe();
+            })
+            .subscribe();
     </script>
 </body>
 </html>
