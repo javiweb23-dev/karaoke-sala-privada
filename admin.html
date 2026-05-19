@@ -57,7 +57,7 @@
                     <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[80px]">
                         <div id="gainBar" class="h-full bg-emerald-500 rounded-full" style="width: 50%"></div>
                     </div>
-                    <span id="gainLabel" class="text-[10px] text-zinc-500 font-mono w-12 text-right">TV</span>
+                    <span id="gainLabel" class="text-[10px] text-zinc-500 font-mono w-12 text-right">—</span>
                 </div>
                 <div class="px-3 pb-2 text-[9px] text-zinc-600 font-mono tracking-wide text-center">
                     Ajuste remoto de tono en la TV
@@ -105,7 +105,22 @@
 
         const channel = supabaseClient.channel('admin-commands');
         const tonoDisplay = document.getElementById('tonoDisplay');
+        const gainBar = document.getElementById('gainBar');
+        const gainLabel = document.getElementById('gainLabel');
         let semitonosAdmin = 0;
+
+        function actualizarBarraAutoVol(valor) {
+            if (!gainBar || !gainLabel) return;
+            const pct = Math.round(((valor - 0.3) / (3.0 - 0.3)) * 100);
+            const pctOk = Math.max(2, Math.min(100, pct));
+            gainBar.style.width = `${pctOk}%`;
+            gainBar.style.backgroundColor =
+                pctOk > 65 ? '#10b981' :
+                pctOk > 30 ? '#eab308' :
+                             '#ef4444';
+            const db = Math.round(20 * Math.log10(Math.max(0.001, valor)));
+            gainLabel.innerText = `${db >= 0 ? '+' : ''}${db} dB`;
+        }
 
         function actualizarDisplayTono() {
             const texto = semitonosAdmin > 0 ? `+${semitonosAdmin}` : `${semitonosAdmin}`;
@@ -185,7 +200,14 @@
             ).join('');
         }
 
-        channel.subscribe();
+        channel
+            .on('broadcast', { event: 'control' }, ({ payload }) => {
+                if (payload.accion === 'autovol' && payload.valor !== undefined) {
+                    actualizarBarraAutoVol(payload.valor);
+                }
+            })
+            .subscribe();
+
         supabaseClient.channel('admin-queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
 
         actualizarCola();

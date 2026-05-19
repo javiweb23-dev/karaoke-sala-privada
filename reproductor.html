@@ -28,7 +28,7 @@
     </div>
 
     <!-- Video -->
-    <video id="karaokePlayer" class="relative z-10"></video>
+    <video id="karaokePlayer" class="relative z-10" crossorigin="anonymous" playsinline></video>
 
     <!-- Contador de tiempo (abajo derecha) -->
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
@@ -41,6 +41,7 @@
         const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const canalAdmin = supabaseClient.channel('admin-commands');
 
         // ── REFERENCIAS DOM ───────────────────────────────────────────────
         const player        = document.getElementById('karaokePlayer');
@@ -143,6 +144,17 @@
             const actual = Math.max(0.001, gainNormalizacion.gain.value);
             gainNormalizacion.gain.setValueAtTime(actual, t);
             gainNormalizacion.gain.exponentialRampToValueAtTime(ganancia, t + 3.0);
+            notificarAutoVolAdmin(ganancia);
+        }
+
+        function notificarAutoVolAdmin(ganancia) {
+            try {
+                canalAdmin.send({
+                    type: 'broadcast',
+                    event: 'control',
+                    payload: { accion: 'autovol', valor: ganancia }
+                });
+            } catch (e) {}
         }
 
         function iniciarNormalizacion() {
@@ -212,7 +224,7 @@
             gainNormalizacion = audioContexto.createGain();
             gainNormalizacion.gain.value = 1.0;
 
-            // 2. ANALIZADOR (derivación paralela desde gainNormalizacion; solo mide RMS)
+            // 2. ANALIZADOR (en serie: mide RMS del audio que pasa a la cadena)
             analizadorNorm = audioContexto.createAnalyser();
             analizadorNorm.fftSize = 4096;
             analizadorNorm.smoothingTimeConstant = 0.5;
@@ -269,13 +281,19 @@
                 gainFinal.connect(audioContexto.destination);
             }
 
-            try {
+            function conectarCadenaPrincipal() {
                 nodoFuente.connect(gainNormalizacion);
                 gainNormalizacion.connect(analizadorNorm);
-                gainNormalizacion.connect(ecualizadorBajos);
+                analizadorNorm.connect(ecualizadorBajos);
                 ecualizadorBajos.connect(ecualizadorMedios);
                 ecualizadorMedios.connect(ecualizadorBrillo);
                 conectarSalidaDesdeEQ(ecualizadorBrillo);
+            }
+
+            player.crossOrigin = 'anonymous';
+
+            try {
+                conectarCadenaPrincipal();
             } catch (e) {
                 console.warn('PitchShift no disponible, usando cadena directa:', e);
                 pitchShifter = null;
@@ -287,12 +305,7 @@
                     ecualizadorMedios.disconnect();
                     ecualizadorBrillo.disconnect();
                 } catch (err) {}
-                nodoFuente.connect(gainNormalizacion);
-                gainNormalizacion.connect(analizadorNorm);
-                gainNormalizacion.connect(ecualizadorBajos);
-                ecualizadorBajos.connect(ecualizadorMedios);
-                ecualizadorMedios.connect(ecualizadorBrillo);
-                conectarSalidaDesdeEQ(ecualizadorBrillo);
+                conectarCadenaPrincipal();
             }
 
             asegurarAudioContextoActivo();
@@ -400,6 +413,7 @@
             iniciarNormalizacion();
 
             const nombre = solicitud.cancion_info;
+            player.crossOrigin = 'anonymous';
             player.src = `videos_locales/${nombre}.mp4`;
             player.load();
 
@@ -452,7 +466,7 @@
             .subscribe();
 
         // ── SUPABASE: COMANDOS DEL ADMIN ──────────────────────────────────
-        supabaseClient.channel('admin-commands')
+        canalAdmin
             .on('broadcast', { event: 'control' }, ({ payload }) => {
                 switch (payload.accion) {
 
