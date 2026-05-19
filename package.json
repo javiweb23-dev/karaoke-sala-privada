@@ -3,5 +3,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/verify-deploy.js"
+  },
+  "dependencies": {
+    "@soundtouchjs/audio-worklet": "^2.0.3"
   }
 }

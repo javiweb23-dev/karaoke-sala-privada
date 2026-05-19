@@ -6,7 +6,6 @@
     <title>Reproductor VIP - Karaoke Box</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
         video { width: 100%; height: 100%; object-fit: contain; display: none; }
@@ -68,14 +67,15 @@
         let ecualizadorBajos   = null;
         let ecualizadorMedios  = null;
         let ecualizadorBrillo  = null;
-        let pitchShifter       = null;  // Tone.js PitchShift
+        let soundTouchNode     = null;
+        let SoundTouchNodeClass = null;
+        let soundTouchRegistrado = false;
         let compressor         = null;
         let gainFinal          = null;
 
         // ── ESTADO DE TONO Y NORMALIZACIÓN ───────────────────────────────
         let semitonos           = 0;
         let rampaTonoId         = null;
-        const PITCH_WINDOW_SIZE      = 0.18;
 
         function duracionRampaTono(inicio, destino) {
             const salto = Math.abs(destino - inicio);
@@ -110,17 +110,34 @@
             return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         }
 
+        async function cargarSoundTouch() {
+            if (SoundTouchNodeClass) return SoundTouchNodeClass;
+            const mod = await import('https://cdn.jsdelivr.net/npm/@soundtouchjs/audio-worklet@2.0.3/dist/index.js');
+            SoundTouchNodeClass = mod.SoundTouchNode;
+            return SoundTouchNodeClass;
+        }
+
+        function urlProcessorSoundTouch() {
+            return new URL('lib/soundtouch-processor.js', document.baseURI || window.location.href).href;
+        }
+
+        async function registrarSoundTouch() {
+            const STN = await cargarSoundTouch();
+            if (!soundTouchRegistrado) {
+                await STN.register(audioContexto, urlProcessorSoundTouch());
+                soundTouchRegistrado = true;
+                console.log('[Audio] SoundTouch processor registrado');
+            }
+        }
+
         function obtenerPitchActual() {
-            if (!pitchShifter) return semitonos;
-            const p = pitchShifter.pitch;
-            if (typeof p === 'number') return p;
-            if (p && typeof p.value === 'number') return p.value;
-            return semitonos;
+            if (!soundTouchNode) return semitonos;
+            return soundTouchNode.pitchSemitones.value;
         }
 
         function aplicarTonoSuave(destino) {
             destino = Math.max(-6, Math.min(6, destino));
-            if (!pitchShifter) {
+            if (!soundTouchNode || !audioContexto) {
                 semitonos = destino;
                 return;
             }
@@ -129,7 +146,7 @@
             semitonos = destino;
 
             if (Math.abs(inicio - destino) < 0.01) {
-                pitchShifter.pitch = destino;
+                soundTouchNode.pitchSemitones.value = destino;
                 return;
             }
 
@@ -139,10 +156,13 @@
             }
 
             const duracionMs = duracionRampaTono(inicio, destino);
+            const param = soundTouchNode.pitchSemitones;
+            const t = audioContexto.currentTime;
 
-            const param = pitchShifter.pitch;
-            if (param && typeof param.rampTo === 'function') {
-                param.rampTo(destino, duracionMs / 1000);
+            if (param && typeof param.cancelScheduledValues === 'function') {
+                param.cancelScheduledValues(t);
+                param.setValueAtTime(inicio, t);
+                param.linearRampToValueAtTime(destino, t + duracionMs / 1000);
                 return;
             }
 
@@ -150,11 +170,11 @@
             function animar(ahora) {
                 const progreso = Math.min(1, (ahora - t0) / duracionMs);
                 const suave = progreso * progreso * (3 - 2 * progreso);
-                pitchShifter.pitch = inicio + (destino - inicio) * suave;
+                soundTouchNode.pitchSemitones.value = inicio + (destino - inicio) * suave;
                 if (progreso < 1) {
                     rampaTonoId = requestAnimationFrame(animar);
                 } else {
-                    pitchShifter.pitch = destino;
+                    soundTouchNode.pitchSemitones.value = destino;
                     rampaTonoId = null;
                 }
             }
@@ -269,16 +289,16 @@
             analizadorNorm.connect(ecualizadorBajos);
             ecualizadorBajos.connect(ecualizadorMedios);
             ecualizadorMedios.connect(ecualizadorBrillo);
-            if (usarPitch && pitchShifter) {
-                Tone.connect(ecualizadorBrillo, pitchShifter);
-                Tone.connect(pitchShifter, compressor);
+            if (usarPitch && soundTouchNode) {
+                ecualizadorBrillo.connect(soundTouchNode);
+                soundTouchNode.connect(compressor);
             } else {
                 ecualizadorBrillo.connect(compressor);
             }
             compressor.connect(gainFinal);
             gainFinal.connect(audioContexto.destination);
-            console.log('[Audio] Cadena conectada:', usarPitch && pitchShifter
-                ? 'fuente→gain→analizador→EQ→pitch→comp→out'
+            console.log('[Audio] Cadena conectada:', usarPitch && soundTouchNode
+                ? 'fuente→gain→analizador→EQ→SoundTouch→comp→out'
                 : 'fuente→gain→analizador→EQ→comp→out');
         }
 
@@ -321,15 +341,13 @@
                 ecualizadorBrillo.gain.value = 1.8;
             }
 
-            if (pitchShifter && typeof pitchShifter.dispose === 'function') {
-                try { pitchShifter.dispose(); } catch (e) {}
+            if (!soundTouchNode && SoundTouchNodeClass) {
+                soundTouchNode = new SoundTouchNodeClass({ context: audioContexto });
+                soundTouchNode.playbackRate.value = 1;
+                soundTouchNode.pitchSemitones.value = semitonos;
             }
-            pitchShifter = new Tone.PitchShift({
-                pitch:      0,
-                windowSize: PITCH_WINDOW_SIZE,
-                delayTime:  0,
-                feedback:   0
-            });
+
+            player.preservesPitch = false;
 
             if (!compressor) {
                 compressor = audioContexto.createDynamicsCompressor();
@@ -348,8 +366,8 @@
             try {
                 conectarCadenaPrincipal(true);
             } catch (e) {
-                console.warn('[Audio] PitchShift falló, cadena sin pitch:', e);
-                pitchShifter = null;
+                console.warn('[Audio] SoundTouch falló, cadena sin pitch:', e);
+                soundTouchNode = null;
                 try {
                     gainNormalizacion.disconnect();
                     analizadorNorm.disconnect();
@@ -381,14 +399,11 @@
                 console.error('[Audio] No se pudo reanudar AudioContext:', e);
             }
 
-            Tone.setContext(audioContexto);
-            if (typeof Tone.start === 'function') {
-                try {
-                    await Tone.start();
-                    console.log('[Audio] Tone.js iniciado');
-                } catch (e) {
-                    console.warn('[Audio] Tone.start:', e);
-                }
+            try {
+                await registrarSoundTouch();
+                console.log('[Audio] SoundTouch listo');
+            } catch (e) {
+                console.error('[Audio] No se pudo cargar SoundTouch:', e);
             }
 
             conectarCadenaAudio();

@@ -32,4 +32,26 @@ for (const file of [...required, ...optional]) {
   }
 }
 
+const libDir = path.join(publicDir, 'lib');
+fs.mkdirSync(libDir, { recursive: true });
+
+const processorCandidates = [
+  path.join(root, 'lib', 'soundtouch-processor.js'),
+  path.join(root, 'node_modules', '@soundtouchjs', 'audio-worklet', '.dist', 'soundtouch-processor.js')
+];
+
+let processorCopied = false;
+for (const src of processorCandidates) {
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(libDir, 'soundtouch-processor.js'));
+    processorCopied = true;
+    break;
+  }
+}
+
+if (!processorCopied) {
+  console.error('Falta soundtouch-processor.js (ejecuta: npm install)');
+  process.exit(1);
+}
+
 console.log('Build OK: archivos copiados a public/');
