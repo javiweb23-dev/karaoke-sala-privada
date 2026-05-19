@@ -13,10 +13,7 @@
 </head>
 <body class="flex flex-col justify-center items-center text-white font-sans select-none">
 
-    <div id="activationWall" class="absolute inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
-        <h1 class="text-3xl font-bold text-amber-400 animate-pulse">SALA PRIVADA LISTA</h1>
-        <p class="text-zinc-500 mt-2 text-lg">Haz un clic para iniciar el sistema</p>
-    </div>
+    <div id="activationWall" style="display:none"></div>
 
     <div id="lobbyScreen" class="text-center w-full absolute inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
         <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
@@ -121,6 +118,14 @@
             timeCounter.innerText = `${formatTiempo(transcurrido)} / ${formatTiempo(duracion)} (Restan: -${formatTiempo(restante)})`;
         });
 
+        async function intentarReproducir() {
+            try {
+                await player.play();
+            } catch {
+                setTimeout(intentarReproducir, 500);
+            }
+        }
+
         function iniciarSistema() {
             if (sistemaIniciado) return;
             sistemaIniciado = true;
@@ -165,11 +170,10 @@
             buscarSiguienteCancion();
         }
 
-        wall.addEventListener('click', iniciarSistema);
-
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = function() {
             iniciarSistema();
-        });
+            intentarReproducir();
+        };
 
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying) return;
