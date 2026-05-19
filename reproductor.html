@@ -122,48 +122,59 @@
         });
 
         function iniciarSistema() {
-            if (sistemaIniciado) return;
-            sistemaIniciado = true;
-            systemActive = true;
-            wall.style.display = 'none';
+    if (sistemaIniciado) return;
+    sistemaIniciado = true;
+    systemActive = true;
+    wall.style.display = 'none';
 
-            audioContexto = new (window.AudioContext || window.webkitAudioContext)();
-            nodoFuente = audioContexto.createMediaElementSource(player);
+    audioContexto = new (window.AudioContext || window.webkitAudioContext)();
+    nodoFuente = audioContexto.createMediaElementSource(player);
 
-            ecualizadorBajos = audioContexto.createBiquadFilter();
-            ecualizadorBajos.type = 'lowshelf';
-            ecualizadorBajos.frequency.setValueAtTime(100, audioContexto.currentTime);
-            ecualizadorBajos.gain.value = 4.5;
+    // 1. EQ BAJOS: suave y controlado (antes era +4.5, demasiado)
+    ecualizadorBajos = audioContexto.createBiquadFilter();
+    ecualizadorBajos.type = 'lowshelf';
+    ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
+    ecualizadorBajos.gain.value = 2.5;
 
-            ecualizadorBrillo = audioContexto.createBiquadFilter();
-            ecualizadorBrillo.type = 'highshelf';
-            ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
-            ecualizadorBrillo.gain.value = 3.0;
+    // 2. EQ PRESENCIA VOCAL (nuevo): realza la voz en karaoke
+    const ecualizadorMedios = audioContexto.createBiquadFilter();
+    ecualizadorMedios.type = 'peaking';
+    ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
+    ecualizadorMedios.Q.value = 1.0;
+    ecualizadorMedios.gain.value = 2.5;
 
-            preAmp = audioContexto.createGain();
-            preAmp.gain.value = 1.4;
+    // 3. EQ BRILLO: más suave (antes era +3.0)
+    ecualizadorBrillo = audioContexto.createBiquadFilter();
+    ecualizadorBrillo.type = 'highshelf';
+    ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
+    ecualizadorBrillo.gain.value = 1.8;
 
-            compressor = audioContexto.createDynamicsCompressor();
-            compressor.threshold.value = -6.0;
-            compressor.knee.value = 8.0;
-            compressor.ratio.value = 20.0;
-            compressor.attack.value = 0.001;
-            compressor.release.value = 0.08;
+    // 4. COMPRESOR: ratio musical, no limitador
+    compressor = audioContexto.createDynamicsCompressor();
+    compressor.threshold.value = -18.0; // Empieza a comprimir antes, más suave
+    compressor.knee.value = 12.0;       // Transición suave
+    compressor.ratio.value = 4.0;       // Ratio musical (antes era 20, un limitador)
+    compressor.attack.value = 0.008;    // 8ms: preserva los transientes
+    compressor.release.value = 0.25;    // 250ms: suelta naturalmente, sin pumping
 
-            nodoFuente.connect(ecualizadorBajos);
-            ecualizadorBajos.connect(ecualizadorBrillo);
-            ecualizadorBrillo.connect(preAmp);
-            preAmp.connect(compressor);
-            compressor.connect(audioContexto.destination);
+    // 5. GANANCIA FINAL: va DESPUÉS del compresor (antes era al revés)
+    preAmp = audioContexto.createGain();
+    preAmp.gain.value = 1.2;
 
-            if (audioContexto.state === 'suspended') {
-                try {
-                    audioContexto.resume();
-                } catch (e) {}
-            }
+    // Cadena correcta: fuente → bajos → medios → brillo → compresor → ganancia → salida
+    nodoFuente.connect(ecualizadorBajos);
+    ecualizadorBajos.connect(ecualizadorMedios);
+    ecualizadorMedios.connect(ecualizadorBrillo);
+    ecualizadorBrillo.connect(compressor);
+    compressor.connect(preAmp);
+    preAmp.connect(audioContexto.destination);
 
-            buscarSiguienteCancion();
-        }
+    if (audioContexto.state === 'suspended') {
+        try { audioContexto.resume(); } catch (e) {}
+    }
+
+    buscarSiguienteCancion();
+}
 
         wall.addEventListener('click', iniciarSistema);
 
