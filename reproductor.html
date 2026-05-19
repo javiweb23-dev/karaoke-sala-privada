@@ -127,46 +127,61 @@
         // Aplica corrección con rampa de 3 segundos (sin bombeo).
         // Límites: 0.3x (-10 dB) a 3.0x (+9.5 dB) para no saturar.
         // ─────────────────────────────────────────────────────────────────
+        async function asegurarAudioContextoActivo() {
+            if (!audioContexto) return false;
+            if (audioContexto.state === 'suspended') {
+                try { await audioContexto.resume(); } catch (e) {}
+            }
+            return audioContexto.state === 'running';
+        }
+
+        function aplicarGananciaNormalizada(valor) {
+            if (!gainNormalizacion || !audioContexto) return;
+            const t = audioContexto.currentTime;
+            const ganancia = Math.max(0.001, Math.min(3.0, valor));
+            gainNormalizacion.gain.cancelScheduledValues(t);
+            const actual = Math.max(0.001, gainNormalizacion.gain.value);
+            gainNormalizacion.gain.setValueAtTime(actual, t);
+            gainNormalizacion.gain.exponentialRampToValueAtTime(ganancia, t + 3.0);
+        }
+
         function iniciarNormalizacion() {
             detenerNormalizacion();
             medicionesRMS = [];
 
-            // Resetear ganancia a neutro en cada canción nueva
-            if (gainNormalizacion) {
-                gainNormalizacion.gain.cancelScheduledValues(audioContexto.currentTime);
-                gainNormalizacion.gain.setValueAtTime(1.0, audioContexto.currentTime);
+            if (gainNormalizacion && audioContexto) {
+                const t = audioContexto.currentTime;
+                gainNormalizacion.gain.cancelScheduledValues(t);
+                gainNormalizacion.gain.setValueAtTime(1.0, t);
             }
-            normInterval = setInterval(() => {
-                if (!isPlaying || !analizadorNorm || !gainNormalizacion) return;
+
+            normInterval = setInterval(async () => {
+                if (!isPlaying || !analizadorNorm || !gainNormalizacion || !audioContexto) return;
+                if (!(await asegurarAudioContextoActivo())) return;
 
                 const buffer = new Float32Array(analizadorNorm.fftSize);
                 analizadorNorm.getFloatTimeDomainData(buffer);
 
-                // Cálculo RMS (Root Mean Square = nivel de energía real)
                 let sumaCuadrados = 0;
                 for (let i = 0; i < buffer.length; i++) {
                     sumaCuadrados += buffer[i] * buffer[i];
                 }
                 const rms = Math.sqrt(sumaCuadrados / buffer.length);
 
-                // Ignorar silencios (intros, silencios entre estrofas)
                 if (rms < 0.008) return;
 
-                // Promediar últimas mediciones para suavizar
                 medicionesRMS.push(rms);
                 if (medicionesRMS.length > 5) medicionesRMS.shift();
                 const rmsPromedio = medicionesRMS.reduce((a, b) => a + b, 0) / medicionesRMS.length;
 
-                // Calcular corrección para llegar al target (-18 dBFS aprox)
-                const targetRMS  = 0.12;
+                const targetRMS = 0.12;
                 const correccion = Math.max(0.3, Math.min(3.0, targetRMS / rmsPromedio));
 
-                // Aplicar con rampa suave de 3 segundos (sin saltos)
-                gainNormalizacion.gain.exponentialRampToValueAtTime(
-                    correccion,
-                    audioContexto.currentTime + 3.0
-                );
-
+                try {
+                    aplicarGananciaNormalizada(correccion);
+                } catch (e) {
+                    console.warn('Auto-vol:', e);
+                }
             }, 2000);
         }
 
@@ -197,9 +212,10 @@
             gainNormalizacion = audioContexto.createGain();
             gainNormalizacion.gain.value = 1.0;
 
-            // 2. ANALIZADOR para medir RMS (fftSize 4096 = alta precisión)
+            // 2. ANALIZADOR (derivación paralela desde gainNormalizacion; solo mide RMS)
             analizadorNorm = audioContexto.createAnalyser();
             analizadorNorm.fftSize = 4096;
+            analizadorNorm.smoothingTimeConstant = 0.5;
 
             // 3. EQ BAJOS: suave y controlado
             ecualizadorBajos = audioContexto.createBiquadFilter();
@@ -242,36 +258,45 @@
             gainFinal = audioContexto.createGain();
             gainFinal.gain.value = 1.2;
 
-            // ── CONEXIÓN DE LA CADENA ──────────────────────────────────
-            // Nota: pitchShifter.input es el nodo de entrada de Tone.js
-            //       Tone.js puede conectarse a AudioNodes nativos con .connect()
-            try {
-                nodoFuente.connect(gainNormalizacion);
-                gainNormalizacion.connect(analizadorNorm);
-                analizadorNorm.connect(ecualizadorBajos);
-                ecualizadorBajos.connect(ecualizadorMedios);
-                ecualizadorMedios.connect(ecualizadorBrillo);
-                ecualizadorBrillo.connect(pitchShifter.input);  // native ↁETone.js
-                pitchShifter.connect(compressor);               // Tone.js ↁEnative
-                compressor.connect(gainFinal);
-                gainFinal.connect(audioContexto.destination);
-            } catch (e) {
-                // Fallback si hay problema con Tone.js: cadena sin pitch shift
-                console.warn('PitchShift no disponible, usando cadena directa:', e);
-                pitchShifter = null;
-                nodoFuente.connect(gainNormalizacion);
-                gainNormalizacion.connect(analizadorNorm);
-                analizadorNorm.connect(ecualizadorBajos);
-                ecualizadorBajos.connect(ecualizadorMedios);
-                ecualizadorMedios.connect(ecualizadorBrillo);
-                ecualizadorBrillo.connect(compressor);
+            function conectarSalidaDesdeEQ(nodoEQSalida) {
+                if (pitchShifter) {
+                    nodoEQSalida.connect(pitchShifter.input);
+                    pitchShifter.connect(compressor);
+                } else {
+                    nodoEQSalida.connect(compressor);
+                }
                 compressor.connect(gainFinal);
                 gainFinal.connect(audioContexto.destination);
             }
 
-            if (audioContexto.state === 'suspended') {
-                try { audioContexto.resume(); } catch (e) {}
+            try {
+                nodoFuente.connect(gainNormalizacion);
+                gainNormalizacion.connect(analizadorNorm);
+                gainNormalizacion.connect(ecualizadorBajos);
+                ecualizadorBajos.connect(ecualizadorMedios);
+                ecualizadorMedios.connect(ecualizadorBrillo);
+                conectarSalidaDesdeEQ(ecualizadorBrillo);
+            } catch (e) {
+                console.warn('PitchShift no disponible, usando cadena directa:', e);
+                pitchShifter = null;
+                try {
+                    nodoFuente.disconnect();
+                    gainNormalizacion.disconnect();
+                    analizadorNorm.disconnect();
+                    ecualizadorBajos.disconnect();
+                    ecualizadorMedios.disconnect();
+                    ecualizadorBrillo.disconnect();
+                } catch (err) {}
+                nodoFuente.connect(gainNormalizacion);
+                gainNormalizacion.connect(analizadorNorm);
+                gainNormalizacion.connect(ecualizadorBajos);
+                ecualizadorBajos.connect(ecualizadorMedios);
+                ecualizadorMedios.connect(ecualizadorBrillo);
+                conectarSalidaDesdeEQ(ecualizadorBrillo);
             }
+
+            asegurarAudioContextoActivo();
+            player.addEventListener('playing', asegurarAudioContextoActivo);
 
             buscarSiguienteCancion();
         }
@@ -371,7 +396,7 @@
             // Resetear tono a 0 para cada canción nueva
             resetTono();
 
-            // Iniciar normalización automática
+            await asegurarAudioContextoActivo();
             iniciarNormalizacion();
 
             const nombre = solicitud.cancion_info;
