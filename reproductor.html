@@ -180,6 +180,8 @@
                 }
                 const rms = Math.sqrt(sumaCuadrados / buffer.length);
 
+                console.log('[Auto-Vol] RMS:', rms.toFixed(5), '| ctx:', audioContexto.state, '| paused:', player.paused);
+
                 if (rms < 0.008) return;
 
                 medicionesRMS.push(rms);
@@ -207,16 +209,32 @@
         // Cadena: source ↁEnormGain ↁEanalyser ↁEbajos ↁEmedios ↁEbrillo
         //         ↁEPitchShift(Tone.js) ↁEcompressor ↁEgainFinal ↁEoutput
         // ─────────────────────────────────────────────────────────────────
-        function iniciarSistema() {
+        async function iniciarSistema() {
             if (sistemaIniciado) return;
             sistemaIniciado = true;
             systemActive    = true;
             wall.style.display = 'none';
 
+            player.crossOrigin = 'anonymous';
+
             audioContexto = new (window.AudioContext || window.webkitAudioContext)();
 
-            // Vincular Tone.js al mismo AudioContext (crucial para la cadena)
+            try {
+                await audioContexto.resume();
+                console.log('[Audio] AudioContext activado:', audioContexto.state);
+            } catch (e) {
+                console.error('[Audio] No se pudo reanudar AudioContext:', e);
+            }
+
             Tone.setContext(audioContexto);
+            if (typeof Tone.start === 'function') {
+                try {
+                    await Tone.start();
+                    console.log('[Audio] Tone.js iniciado');
+                } catch (e) {
+                    console.warn('[Audio] Tone.start:', e);
+                }
+            }
 
             nodoFuente = audioContexto.createMediaElementSource(player);
 
@@ -270,32 +288,29 @@
             gainFinal = audioContexto.createGain();
             gainFinal.gain.value = 1.2;
 
-            function conectarSalidaDesdeEQ(nodoEQSalida) {
-                if (pitchShifter) {
-                    nodoEQSalida.connect(pitchShifter.input);
-                    pitchShifter.connect(compressor);
-                } else {
-                    nodoEQSalida.connect(compressor);
-                }
-                compressor.connect(gainFinal);
-                gainFinal.connect(audioContexto.destination);
-            }
-
-            function conectarCadenaPrincipal() {
+            function conectarCadenaPrincipal(usarPitch) {
                 nodoFuente.connect(gainNormalizacion);
                 gainNormalizacion.connect(analizadorNorm);
                 analizadorNorm.connect(ecualizadorBajos);
                 ecualizadorBajos.connect(ecualizadorMedios);
                 ecualizadorMedios.connect(ecualizadorBrillo);
-                conectarSalidaDesdeEQ(ecualizadorBrillo);
+                if (usarPitch && pitchShifter) {
+                    ecualizadorBrillo.connect(pitchShifter.input);
+                    pitchShifter.connect(compressor);
+                } else {
+                    ecualizadorBrillo.connect(compressor);
+                }
+                compressor.connect(gainFinal);
+                gainFinal.connect(audioContexto.destination);
+                console.log('[Audio] Cadena conectada:', usarPitch && pitchShifter
+                    ? 'fuente→gain→analizador→EQ→pitch→comp→out'
+                    : 'fuente→gain→analizador→EQ→comp→out');
             }
 
-            player.crossOrigin = 'anonymous';
-
             try {
-                conectarCadenaPrincipal();
+                conectarCadenaPrincipal(true);
             } catch (e) {
-                console.warn('PitchShift no disponible, usando cadena directa:', e);
+                console.warn('[Audio] PitchShift falló, cadena sin pitch:', e);
                 pitchShifter = null;
                 try {
                     nodoFuente.disconnect();
@@ -304,17 +319,25 @@
                     ecualizadorBajos.disconnect();
                     ecualizadorMedios.disconnect();
                     ecualizadorBrillo.disconnect();
+                    compressor.disconnect();
+                    gainFinal.disconnect();
                 } catch (err) {}
-                conectarCadenaPrincipal();
+                conectarCadenaPrincipal(false);
             }
 
-            asegurarAudioContextoActivo();
-            player.addEventListener('playing', asegurarAudioContextoActivo);
+            if (audioContexto.state === 'suspended') {
+                await audioContexto.resume();
+            }
+            console.log('[Audio] Estado final AudioContext:', audioContexto.state);
+
+            player.addEventListener('playing', () => { asegurarAudioContextoActivo(); });
 
             buscarSiguienteCancion();
         }
 
-        wall.addEventListener('click', iniciarSistema);
+        wall.addEventListener('click', () => {
+            iniciarSistema().catch(e => console.error('[Audio] iniciarSistema:', e));
+        });
 
         // ── MANEJO DE ERRORES DE VIDEO ────────────────────────────────────
         function manejarErrorVideo(solicitud) {
@@ -418,6 +441,7 @@
             player.load();
 
             try {
+                await asegurarAudioContextoActivo();
                 await player.play();
             } catch {
                 if (!intentoExtensionAlterna) {
