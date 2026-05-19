@@ -61,8 +61,9 @@
 
         // ── ESTADO DE AUDIO ───────────────────────────────────────────────
         let audioContexto      = null;
-        let nodoFuente         = null;
-        let gainNormalizacion  = null;  // Auto-ganancia
+        let source             = null;
+        let cadenaAudioLista   = false;
+        let gainNormalizacion  = null;
         let analizadorNorm     = null;  // Mide RMS
         let ecualizadorBajos   = null;
         let ecualizadorMedios  = null;
@@ -204,116 +205,96 @@
             medicionesRMS = [];
         }
 
-        // ─────────────────────────────────────────────────────────────────
-        // INICIAR SISTEMA DE AUDIO
-        // Cadena: source ↁEnormGain ↁEanalyser ↁEbajos ↁEmedios ↁEbrillo
-        //         ↁEPitchShift(Tone.js) ↁEcompressor ↁEgainFinal ↁEoutput
-        // ─────────────────────────────────────────────────────────────────
-        async function iniciarSistema() {
-            if (sistemaIniciado) return;
-            sistemaIniciado = true;
-            systemActive    = true;
-            wall.style.display = 'none';
+        function conectarCadenaPrincipal(usarPitch) {
+            source.connect(gainNormalizacion);
+            gainNormalizacion.connect(analizadorNorm);
+            analizadorNorm.connect(ecualizadorBajos);
+            ecualizadorBajos.connect(ecualizadorMedios);
+            ecualizadorMedios.connect(ecualizadorBrillo);
+            if (usarPitch && pitchShifter) {
+                ecualizadorBrillo.connect(pitchShifter.input);
+                pitchShifter.connect(compressor);
+            } else {
+                ecualizadorBrillo.connect(compressor);
+            }
+            compressor.connect(gainFinal);
+            gainFinal.connect(audioContexto.destination);
+            console.log('[Audio] Cadena conectada:', usarPitch && pitchShifter
+                ? 'fuente→gain→analizador→EQ→pitch→comp→out'
+                : 'fuente→gain→analizador→EQ→comp→out');
+        }
 
-            player.crossOrigin = 'anonymous';
+        function conectarCadenaAudio() {
+            if (cadenaAudioLista) return;
 
-            audioContexto = new (window.AudioContext || window.webkitAudioContext)();
-
-            try {
-                await audioContexto.resume();
-                console.log('[Audio] AudioContext activado:', audioContexto.state);
-            } catch (e) {
-                console.error('[Audio] No se pudo reanudar AudioContext:', e);
+            if (!source) {
+                source = audioContexto.createMediaElementSource(player);
+                console.log('[Audio] MediaElementSource creado (una sola vez)');
             }
 
-            Tone.setContext(audioContexto);
-            if (typeof Tone.start === 'function') {
-                try {
-                    await Tone.start();
-                    console.log('[Audio] Tone.js iniciado');
-                } catch (e) {
-                    console.warn('[Audio] Tone.start:', e);
-                }
+            if (!gainNormalizacion) {
+                gainNormalizacion = audioContexto.createGain();
+                gainNormalizacion.gain.value = 1.0;
             }
 
-            nodoFuente = audioContexto.createMediaElementSource(player);
+            if (!analizadorNorm) {
+                analizadorNorm = audioContexto.createAnalyser();
+                analizadorNorm.fftSize = 4096;
+                analizadorNorm.smoothingTimeConstant = 0.5;
+            }
 
-            // 1. GANANCIA DE NORMALIZACIÓN (ajustada automáticamente)
-            gainNormalizacion = audioContexto.createGain();
-            gainNormalizacion.gain.value = 1.0;
+            if (!ecualizadorBajos) {
+                ecualizadorBajos = audioContexto.createBiquadFilter();
+                ecualizadorBajos.type = 'lowshelf';
+                ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
+                ecualizadorBajos.gain.value = 2.5;
+            }
 
-            // 2. ANALIZADOR (en serie: mide RMS del audio que pasa a la cadena)
-            analizadorNorm = audioContexto.createAnalyser();
-            analizadorNorm.fftSize = 4096;
-            analizadorNorm.smoothingTimeConstant = 0.5;
+            if (!ecualizadorMedios) {
+                ecualizadorMedios = audioContexto.createBiquadFilter();
+                ecualizadorMedios.type = 'peaking';
+                ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
+                ecualizadorMedios.Q.value = 1.0;
+                ecualizadorMedios.gain.value = 2.5;
+            }
 
-            // 3. EQ BAJOS: suave y controlado
-            ecualizadorBajos = audioContexto.createBiquadFilter();
-            ecualizadorBajos.type = 'lowshelf';
-            ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
-            ecualizadorBajos.gain.value = 2.5;
+            if (!ecualizadorBrillo) {
+                ecualizadorBrillo = audioContexto.createBiquadFilter();
+                ecualizadorBrillo.type = 'highshelf';
+                ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
+                ecualizadorBrillo.gain.value = 1.8;
+            }
 
-            // 4. EQ MEDIOS: presencia vocal (2.8kHz = zona de la voz)
-            ecualizadorMedios = audioContexto.createBiquadFilter();
-            ecualizadorMedios.type = 'peaking';
-            ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
-            ecualizadorMedios.Q.value = 1.0;
-            ecualizadorMedios.gain.value = 2.5;
+            if (!pitchShifter) {
+                pitchShifter = new Tone.PitchShift({
+                    pitch:      0,
+                    windowSize: 0.06,
+                    delayTime:  0,
+                    feedback:   0
+                });
+            }
 
-            // 5. EQ BRILLO: aire suave
-            ecualizadorBrillo = audioContexto.createBiquadFilter();
-            ecualizadorBrillo.type = 'highshelf';
-            ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
-            ecualizadorBrillo.gain.value = 1.8;
+            if (!compressor) {
+                compressor = audioContexto.createDynamicsCompressor();
+                compressor.threshold.value = -18.0;
+                compressor.knee.value      = 12.0;
+                compressor.ratio.value     = 4.0;
+                compressor.attack.value    = 0.008;
+                compressor.release.value   = 0.25;
+            }
 
-            // 6. PITCH SHIFTER (Tone.js Phase Vocoder)
-            //    windowSize 0.06s = 60ms: buen balance calidad/latencia
-            //    Sin esto, el tono y el tempo cambian juntos (no lo queremos)
-            pitchShifter = new Tone.PitchShift({
-                pitch:      0,
-                windowSize: 0.06,
-                delayTime:  0,
-                feedback:   0
-            });
-
-            // 7. COMPRESOR: musical (ratio 4:1, no limitador)
-            compressor = audioContexto.createDynamicsCompressor();
-            compressor.threshold.value = -18.0;
-            compressor.knee.value      = 12.0;
-            compressor.ratio.value     = 4.0;
-            compressor.attack.value    = 0.008;
-            compressor.release.value   = 0.25;
-
-            // 8. GANANCIA FINAL (va DESPUÉS del compresor)
-            gainFinal = audioContexto.createGain();
-            gainFinal.gain.value = 1.2;
-
-            function conectarCadenaPrincipal(usarPitch) {
-                nodoFuente.connect(gainNormalizacion);
-                gainNormalizacion.connect(analizadorNorm);
-                analizadorNorm.connect(ecualizadorBajos);
-                ecualizadorBajos.connect(ecualizadorMedios);
-                ecualizadorMedios.connect(ecualizadorBrillo);
-                if (usarPitch && pitchShifter) {
-                    ecualizadorBrillo.connect(pitchShifter.input);
-                    pitchShifter.connect(compressor);
-                } else {
-                    ecualizadorBrillo.connect(compressor);
-                }
-                compressor.connect(gainFinal);
-                gainFinal.connect(audioContexto.destination);
-                console.log('[Audio] Cadena conectada:', usarPitch && pitchShifter
-                    ? 'fuente→gain→analizador→EQ→pitch→comp→out'
-                    : 'fuente→gain→analizador→EQ→comp→out');
+            if (!gainFinal) {
+                gainFinal = audioContexto.createGain();
+                gainFinal.gain.value = 1.2;
             }
 
             try {
                 conectarCadenaPrincipal(true);
+                cadenaAudioLista = true;
             } catch (e) {
                 console.warn('[Audio] PitchShift falló, cadena sin pitch:', e);
                 pitchShifter = null;
                 try {
-                    nodoFuente.disconnect();
                     gainNormalizacion.disconnect();
                     analizadorNorm.disconnect();
                     ecualizadorBajos.disconnect();
@@ -323,14 +304,49 @@
                     gainFinal.disconnect();
                 } catch (err) {}
                 conectarCadenaPrincipal(false);
+                cadenaAudioLista = true;
             }
+        }
+
+        async function iniciarSistema() {
+            wall.style.display = 'none';
+            player.crossOrigin = 'anonymous';
+
+            if (sistemaIniciado) {
+                await asegurarAudioContextoActivo();
+                return;
+            }
+            sistemaIniciado = true;
+            systemActive    = true;
+
+            if (!audioContexto) {
+                audioContexto = new (window.AudioContext || window.webkitAudioContext)();
+                Tone.setContext(audioContexto);
+            }
+
+            try {
+                await audioContexto.resume();
+                console.log('[Audio] AudioContext activado:', audioContexto.state);
+            } catch (e) {
+                console.error('[Audio] No se pudo reanudar AudioContext:', e);
+            }
+
+            if (typeof Tone.start === 'function') {
+                try {
+                    await Tone.start();
+                    console.log('[Audio] Tone.js iniciado');
+                } catch (e) {
+                    console.warn('[Audio] Tone.start:', e);
+                }
+            }
+
+            conectarCadenaAudio();
+            player.addEventListener('playing', () => { asegurarAudioContextoActivo(); });
 
             if (audioContexto.state === 'suspended') {
                 await audioContexto.resume();
             }
             console.log('[Audio] Estado final AudioContext:', audioContexto.state);
-
-            player.addEventListener('playing', () => { asegurarAudioContextoActivo(); });
 
             buscarSiguienteCancion();
         }
