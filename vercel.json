@@ -1,4 +1,8 @@
 {
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "installCommand": "",
   "rewrites": [
     { "source": "/(.*)", "destination": "/$1" }
   ]
