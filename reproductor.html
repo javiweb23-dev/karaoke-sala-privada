@@ -63,7 +63,8 @@
         let audioContexto      = null;
         let source             = null;
         let gainNormalizacion  = null;
-        let analizadorNorm     = null;  // Mide RMS
+        let analizadorNorm     = null;
+        let hpFilter           = null;
         let ecualizadorBajos   = null;
         let ecualizadorMedios  = null;
         let ecualizadorBrillo  = null;
@@ -144,6 +145,15 @@
                 soundTouchRegistrado = true;
                 console.log('[Audio] SoundTouch processor registrado');
             }
+        }
+
+        function configurarSoundTouchCalidad(node) {
+            if (!node || typeof node.setStretchParameters !== 'function') return;
+            node.setStretchParameters({
+                overlapMs: 12,
+                quickSeek: false,
+                sequenceMs: 0
+            });
         }
 
         function obtenerPitchActual() {
@@ -301,7 +311,8 @@
         function conectarCadenaPrincipal(usarPitch) {
             source.connect(gainNormalizacion);
             gainNormalizacion.connect(analizadorNorm);
-            analizadorNorm.connect(ecualizadorBajos);
+            analizadorNorm.connect(hpFilter);
+            hpFilter.connect(ecualizadorBajos);
             ecualizadorBajos.connect(ecualizadorMedios);
             ecualizadorMedios.connect(deEsser);
             deEsser.connect(ecualizadorBrillo);
@@ -314,8 +325,8 @@
             compressor.connect(gainFinal);
             gainFinal.connect(audioContexto.destination);
             console.log('[Audio] Cadena conectada:', usarPitch && soundTouchNode
-                ? 'fuente→gain→analizador→EQ→SoundTouch→comp→out'
-                : 'fuente→gain→analizador→EQ→comp→out');
+                ? 'fuente→gain→analizador→HPF→EQ→SoundTouch→comp→out'
+                : 'fuente→gain→analizador→HPF→EQ→comp→out');
         }
 
         function conectarCadenaAudio() {
@@ -333,6 +344,13 @@
                 analizadorNorm = audioContexto.createAnalyser();
                 analizadorNorm.fftSize = 4096;
                 analizadorNorm.smoothingTimeConstant = 0.5;
+            }
+
+            if (!hpFilter) {
+                hpFilter = audioContexto.createBiquadFilter();
+                hpFilter.type = 'highpass';
+                hpFilter.frequency.setValueAtTime(35, audioContexto.currentTime);
+                hpFilter.Q.value = 0.7;
             }
 
             if (!ecualizadorBajos) {
@@ -353,9 +371,9 @@
             if (!deEsser) {
                 deEsser = audioContexto.createBiquadFilter();
                 deEsser.type = 'peaking';
-                deEsser.frequency.setValueAtTime(5500, audioContexto.currentTime);
-                deEsser.Q.value = 1.4;
-                deEsser.gain.value = -1.8;
+                deEsser.frequency.setValueAtTime(6200, audioContexto.currentTime);
+                deEsser.Q.value = 2.2;
+                deEsser.gain.value = -2.5;
             }
 
             if (!ecualizadorBrillo) {
@@ -369,6 +387,7 @@
                 soundTouchNode = new SoundTouchNodeClass({ context: audioContexto });
                 soundTouchNode.playbackRate.value = 1;
                 soundTouchNode.pitchSemitones.value = semitonos;
+                configurarSoundTouchCalidad(soundTouchNode);
             }
 
             player.preservesPitch = false;
@@ -395,6 +414,7 @@
                 try {
                     gainNormalizacion.disconnect();
                     analizadorNorm.disconnect();
+                    hpFilter.disconnect();
                     ecualizadorBajos.disconnect();
                     ecualizadorMedios.disconnect();
                     deEsser.disconnect();
