@@ -60,9 +60,9 @@
         let intentoExtensionAlterna = false;
 
         // ── ESTADO DE AUDIO ───────────────────────────────────────────────
+        let audioIniciado      = false;
         let audioContexto      = null;
         let source             = null;
-        let cadenaAudioLista   = false;
         let gainNormalizacion  = null;
         let analizadorNorm     = null;  // Mide RMS
         let ecualizadorBajos   = null;
@@ -225,8 +225,6 @@
         }
 
         function conectarCadenaAudio() {
-            if (cadenaAudioLista) return;
-
             if (!source) {
                 source = audioContexto.createMediaElementSource(player);
                 console.log('[Audio] MediaElementSource creado (una sola vez)');
@@ -290,7 +288,6 @@
 
             try {
                 conectarCadenaPrincipal(true);
-                cadenaAudioLista = true;
             } catch (e) {
                 console.warn('[Audio] PitchShift falló, cadena sin pitch:', e);
                 pitchShifter = null;
@@ -304,25 +301,19 @@
                     gainFinal.disconnect();
                 } catch (err) {}
                 conectarCadenaPrincipal(false);
-                cadenaAudioLista = true;
             }
         }
 
-        async function iniciarSistema() {
-            wall.style.display = 'none';
-            player.crossOrigin = 'anonymous';
-
-            if (sistemaIniciado) {
+        async function iniciarAudio() {
+            if (audioIniciado) {
                 await asegurarAudioContextoActivo();
                 return;
             }
-            sistemaIniciado = true;
-            systemActive    = true;
+            audioIniciado = true;
 
-            if (!audioContexto) {
-                audioContexto = new (window.AudioContext || window.webkitAudioContext)();
-                Tone.setContext(audioContexto);
-            }
+            player.crossOrigin = 'anonymous';
+
+            audioContexto = new (window.AudioContext || window.webkitAudioContext)();
 
             try {
                 await audioContexto.resume();
@@ -331,6 +322,7 @@
                 console.error('[Audio] No se pudo reanudar AudioContext:', e);
             }
 
+            Tone.setContext(audioContexto);
             if (typeof Tone.start === 'function') {
                 try {
                     await Tone.start();
@@ -347,7 +339,16 @@
                 await audioContexto.resume();
             }
             console.log('[Audio] Estado final AudioContext:', audioContexto.state);
+        }
 
+        async function iniciarSistema() {
+            wall.style.display = 'none';
+
+            if (sistemaIniciado) return;
+            sistemaIniciado = true;
+            systemActive    = true;
+
+            await iniciarAudio();
             buscarSiguienteCancion();
         }
 
