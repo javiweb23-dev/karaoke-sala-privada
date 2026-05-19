@@ -67,6 +67,7 @@
         let ecualizadorBajos   = null;
         let ecualizadorMedios  = null;
         let ecualizadorBrillo  = null;
+        let deEsser            = null;
         let soundTouchNode     = null;
         let SoundTouchNodeClass = null;
         let soundTouchRegistrado = false;
@@ -83,6 +84,9 @@
         }
         let normInterval    = null;
         let medicionesRMS   = [];
+        const AUTO_VOL_TARGET_RMS  = 0.095;
+        const AUTO_VOL_GAIN_MIN    = 0.5;
+        const AUTO_VOL_GAIN_MAX    = 2.2;
 
         // ── EFECTOS DE SONIDO ─────────────────────────────────────────────
         const efectosSonidos = {
@@ -219,7 +223,7 @@
         // Mide el RMS real del audio cada 2 segundos.
         // Promedia las últimas 5 mediciones para estabilidad.
         // Aplica corrección con rampa de 3 segundos (sin bombeo).
-        // Límites: 0.3x (-10 dB) a 3.0x (+9.5 dB) para no saturar.
+        // Objetivo tipo cabina: nivel uniforme sin empujar agudos ni saturar.
         // ─────────────────────────────────────────────────────────────────
         async function asegurarAudioContextoActivo() {
             if (!audioContexto) return false;
@@ -232,7 +236,7 @@
         function aplicarGananciaNormalizada(valor) {
             if (!gainNormalizacion || !audioContexto) return;
             const t = audioContexto.currentTime;
-            const ganancia = Math.max(0.001, Math.min(3.0, valor));
+            const ganancia = Math.max(0.001, Math.min(AUTO_VOL_GAIN_MAX, valor));
             gainNormalizacion.gain.cancelScheduledValues(t);
             const actual = Math.max(0.001, gainNormalizacion.gain.value);
             gainNormalizacion.gain.setValueAtTime(actual, t);
@@ -279,8 +283,7 @@
                 if (medicionesRMS.length > 5) medicionesRMS.shift();
                 const rmsPromedio = medicionesRMS.reduce((a, b) => a + b, 0) / medicionesRMS.length;
 
-                const targetRMS = 0.12;
-                const correccion = Math.max(0.3, Math.min(3.0, targetRMS / rmsPromedio));
+                const correccion = Math.max(AUTO_VOL_GAIN_MIN, Math.min(AUTO_VOL_GAIN_MAX, AUTO_VOL_TARGET_RMS / rmsPromedio));
 
                 try {
                     aplicarGananciaNormalizada(correccion);
@@ -300,7 +303,8 @@
             gainNormalizacion.connect(analizadorNorm);
             analizadorNorm.connect(ecualizadorBajos);
             ecualizadorBajos.connect(ecualizadorMedios);
-            ecualizadorMedios.connect(ecualizadorBrillo);
+            ecualizadorMedios.connect(deEsser);
+            deEsser.connect(ecualizadorBrillo);
             if (usarPitch && soundTouchNode) {
                 ecualizadorBrillo.connect(soundTouchNode);
                 soundTouchNode.connect(compressor);
@@ -334,23 +338,31 @@
             if (!ecualizadorBajos) {
                 ecualizadorBajos = audioContexto.createBiquadFilter();
                 ecualizadorBajos.type = 'lowshelf';
-                ecualizadorBajos.frequency.setValueAtTime(120, audioContexto.currentTime);
-                ecualizadorBajos.gain.value = 2.5;
+                ecualizadorBajos.frequency.setValueAtTime(110, audioContexto.currentTime);
+                ecualizadorBajos.gain.value = 1.2;
             }
 
             if (!ecualizadorMedios) {
                 ecualizadorMedios = audioContexto.createBiquadFilter();
                 ecualizadorMedios.type = 'peaking';
-                ecualizadorMedios.frequency.setValueAtTime(2800, audioContexto.currentTime);
-                ecualizadorMedios.Q.value = 1.0;
-                ecualizadorMedios.gain.value = 2.5;
+                ecualizadorMedios.frequency.setValueAtTime(2500, audioContexto.currentTime);
+                ecualizadorMedios.Q.value = 0.85;
+                ecualizadorMedios.gain.value = 1.0;
+            }
+
+            if (!deEsser) {
+                deEsser = audioContexto.createBiquadFilter();
+                deEsser.type = 'peaking';
+                deEsser.frequency.setValueAtTime(5500, audioContexto.currentTime);
+                deEsser.Q.value = 1.4;
+                deEsser.gain.value = -1.8;
             }
 
             if (!ecualizadorBrillo) {
                 ecualizadorBrillo = audioContexto.createBiquadFilter();
                 ecualizadorBrillo.type = 'highshelf';
-                ecualizadorBrillo.frequency.setValueAtTime(10000, audioContexto.currentTime);
-                ecualizadorBrillo.gain.value = 1.8;
+                ecualizadorBrillo.frequency.setValueAtTime(9000, audioContexto.currentTime);
+                ecualizadorBrillo.gain.value = 0.4;
             }
 
             if (!soundTouchNode && SoundTouchNodeClass) {
@@ -363,16 +375,16 @@
 
             if (!compressor) {
                 compressor = audioContexto.createDynamicsCompressor();
-                compressor.threshold.value = -18.0;
-                compressor.knee.value      = 12.0;
-                compressor.ratio.value     = 4.0;
-                compressor.attack.value    = 0.008;
-                compressor.release.value   = 0.25;
+                compressor.threshold.value = -22.0;
+                compressor.knee.value      = 10.0;
+                compressor.ratio.value     = 3.0;
+                compressor.attack.value    = 0.012;
+                compressor.release.value   = 0.18;
             }
 
             if (!gainFinal) {
                 gainFinal = audioContexto.createGain();
-                gainFinal.gain.value = 1.2;
+                gainFinal.gain.value = 1.0;
             }
 
             try {
@@ -385,6 +397,7 @@
                     analizadorNorm.disconnect();
                     ecualizadorBajos.disconnect();
                     ecualizadorMedios.disconnect();
+                    deEsser.disconnect();
                     ecualizadorBrillo.disconnect();
                     compressor.disconnect();
                     gainFinal.disconnect();
