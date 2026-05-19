@@ -6,6 +6,16 @@
     <title>Panel de Control Mágnum - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .btn-tono { transition: transform 0.08s, background 0.15s; }
+        .btn-tono:active { transform: scale(0.92); }
+        #gainBar { transition: width 2.5s ease, background-color 1s ease; }
+        @keyframes tonoFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .tono-flash { animation: tonoFlash 0.25s ease; }
+    </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col items-center font-sans p-6 py-8">
 
@@ -23,6 +33,34 @@
             <div class="max-h-56 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950/50 p-3">
                 <div id="adminQueue" class="flex flex-col gap-1.5 text-sm text-zinc-300">
                     <p class="text-zinc-600 italic text-sm">Cargando cola...</p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Control de audio</h2>
+            <div id="controlPanel" class="bg-zinc-950/95 backdrop-blur-sm border border-zinc-700/60 rounded-2xl shadow-2xl shadow-black/70 overflow-hidden">
+                <div class="flex items-center gap-1.5 px-3 pt-3 pb-2 flex-wrap justify-center">
+                    <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Tono</span>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="enviarTono(-3)">-3</button>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="enviarTono(-2)">-2</button>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="enviarTono(-1)">-1</button>
+                    <div id="tonoDisplay" class="px-3 py-1 bg-zinc-900 border border-zinc-600 rounded-lg text-amber-400 text-sm font-black min-w-[3.5rem] text-center tracking-wide">0</div>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="enviarTono(1)">+1</button>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="enviarTono(2)">+2</button>
+                    <button type="button" class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="enviarTono(3)">+3</button>
+                    <button type="button" class="btn-tono ml-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-600 rounded-lg text-zinc-400 hover:text-white text-xs font-black" onclick="enviarResetTono()" title="Resetear tono">↺</button>
+                </div>
+                <div class="mx-3 border-t border-zinc-800"></div>
+                <div class="flex items-center gap-2 px-3 py-2">
+                    <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Auto vol</span>
+                    <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[80px]">
+                        <div id="gainBar" class="h-full bg-emerald-500 rounded-full" style="width: 50%"></div>
+                    </div>
+                    <span id="gainLabel" class="text-[10px] text-zinc-500 font-mono w-12 text-right">TV</span>
+                </div>
+                <div class="px-3 pb-2 text-[9px] text-zinc-600 font-mono tracking-wide text-center">
+                    Ajuste remoto de tono en la TV
                 </div>
             </div>
         </div>
@@ -66,8 +104,50 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const channel = supabaseClient.channel('admin-commands');
+        const tonoDisplay = document.getElementById('tonoDisplay');
+        let semitonosAdmin = 0;
+
+        function actualizarDisplayTono() {
+            const texto = semitonosAdmin > 0 ? `+${semitonosAdmin}` : `${semitonosAdmin}`;
+            tonoDisplay.innerText = texto;
+            tonoDisplay.className = tonoDisplay.className.replace(/text-(amber|blue|rose)-\d+/g, '');
+            if (semitonosAdmin > 0) tonoDisplay.classList.add('text-rose-400');
+            else if (semitonosAdmin < 0) tonoDisplay.classList.add('text-blue-400');
+            else tonoDisplay.classList.add('text-amber-400');
+            tonoDisplay.classList.remove('tono-flash');
+            void tonoDisplay.offsetWidth;
+            tonoDisplay.classList.add('tono-flash');
+        }
+
+        function enviarTono(delta) {
+            semitonosAdmin = Math.max(-6, Math.min(6, semitonosAdmin + delta));
+            actualizarDisplayTono();
+            channel.send({
+                type: 'broadcast',
+                event: 'control',
+                payload: { accion: 'tono', delta: delta }
+            }).then(() => {
+                console.log(`Tono ${delta > 0 ? '+' : ''}${delta} enviado a la TV.`);
+            });
+        }
+
+        function enviarResetTono() {
+            semitonosAdmin = 0;
+            actualizarDisplayTono();
+            channel.send({
+                type: 'broadcast',
+                event: 'control',
+                payload: { accion: 'reset_tono' }
+            }).then(() => {
+                console.log('Reset de tono enviado a la TV.');
+            });
+        }
 
         function enviarComando(accion) {
+            if (accion === 'saltar') {
+                semitonosAdmin = 0;
+                actualizarDisplayTono();
+            }
             channel.send({
                 type: 'broadcast',
                 event: 'control',

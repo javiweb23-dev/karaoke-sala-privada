@@ -10,20 +10,6 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
         video { width: 100%; height: 100%; object-fit: contain; display: none; }
-
-        /* Botones de tono con animación al presionar */
-        .btn-tono { transition: transform 0.08s, background 0.15s; }
-        .btn-tono:active { transform: scale(0.92); }
-
-        /* Barra de ganancia con transición suave */
-        #gainBar { transition: width 2.5s ease, background-color 1s ease; }
-
-        /* Indicador de tono: parpadea al cambiar */
-        @keyframes tonoFlash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .tono-flash { animation: tonoFlash 0.25s ease; }
     </style>
 </head>
 <body class="flex flex-col justify-center items-center text-white font-sans select-none">
@@ -49,48 +35,6 @@
         00:00 / 00:00 (Restan: -00:00)
     </div>
 
-    <!-- Panel de TONO + GANANCIA (abajo izquierda, solo durante reproducción) -->
-    <div id="controlPanel" class="fixed bottom-4 left-4 bg-zinc-950/95 backdrop-blur-sm border border-zinc-700/60 rounded-2xl shadow-2xl shadow-black/70 z-50 hidden overflow-hidden">
-
-        <!-- Fila 1: Control de tono -->
-        <div class="flex items-center gap-1.5 px-3 pt-3 pb-2">
-            <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Tono</span>
-
-            <!-- Bajar (azul = masculino más bajo) -->
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-3)">-3</button>
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-2)">-2</button>
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-blue-950 border border-zinc-700 hover:border-blue-700 rounded-lg text-[11px] text-blue-400 font-black" onclick="cambiarTono(-1)">-1</button>
-
-            <!-- Display de semitonos actual -->
-            <div id="tonoDisplay" class="px-3 py-1 bg-zinc-900 border border-zinc-600 rounded-lg text-amber-400 text-sm font-black min-w-[3.5rem] text-center tracking-wide">0</div>
-
-            <!-- Subir (rojo = femenino más alto) -->
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(1)">+1</button>
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(2)">+2</button>
-            <button class="btn-tono px-2 py-1 bg-zinc-800/80 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 rounded-lg text-[11px] text-rose-400 font-black" onclick="cambiarTono(3)">+3</button>
-
-            <!-- Reset tono -->
-            <button class="btn-tono ml-1 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-600 rounded-lg text-zinc-400 hover:text-white text-xs font-black" onclick="resetTono()" title="Resetear tono (R)">↺</button>
-        </div>
-
-        <!-- Divisor -->
-        <div class="mx-3 border-t border-zinc-800"></div>
-
-        <!-- Fila 2: Indicador de ganancia auto -->
-        <div class="flex items-center gap-2 px-3 py-2">
-            <span class="text-zinc-500 text-[10px] font-black tracking-widest uppercase w-14">Auto vol</span>
-            <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden min-w-[80px]">
-                <div id="gainBar" class="h-full bg-emerald-500 rounded-full" style="width: 50%"></div>
-            </div>
-            <span id="gainLabel" class="text-[10px] text-zinc-500 font-mono w-12 text-right">—</span>
-        </div>
-
-        <!-- Teclas rápidas -->
-        <div class="px-3 pb-2 text-[9px] text-zinc-600 font-mono tracking-wide">
-            ↑↓ teclado &nbsp;·&nbsp; R = reset
-        </div>
-    </div>
-
     <script>
         // ── CONFIGURACIÓN ─────────────────────────────────────────────────
         const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
@@ -106,10 +50,6 @@
         const singerName    = document.getElementById('singerName');
         const countdownText = document.getElementById('countdownText');
         const timeCounter   = document.getElementById('timeCounter');
-        const controlPanel  = document.getElementById('controlPanel');
-        const tonoDisplay   = document.getElementById('tonoDisplay');
-        const gainBar       = document.getElementById('gainBar');
-        const gainLabel     = document.getElementById('gainLabel');
 
         // ── ESTADO GENERAL ────────────────────────────────────────────────
         let isPlaying               = false;
@@ -173,31 +113,11 @@
             if (pitchShifter) {
                 pitchShifter.pitch = semitonos;
             }
-
-            // Actualizar display
-            const texto = semitonos > 0 ? `+${semitonos}` : `${semitonos}`;
-            tonoDisplay.innerText = texto;
-
-            // Color: azul = bajo (voz masculina), neutral = 0, rojo = alto (voz femenina)
-            tonoDisplay.className = tonoDisplay.className
-                .replace(/text-(amber|blue|rose)-\d+/g, '');
-            if      (semitonos > 0) tonoDisplay.classList.add('text-rose-400');
-            else if (semitonos < 0) tonoDisplay.classList.add('text-blue-400');
-            else                    tonoDisplay.classList.add('text-amber-400');
-
-            // Animación flash
-            tonoDisplay.classList.remove('tono-flash');
-            void tonoDisplay.offsetWidth; // Reflow para reiniciar
-            tonoDisplay.classList.add('tono-flash');
         }
 
         function resetTono() {
             semitonos = 0;
             if (pitchShifter) pitchShifter.pitch = 0;
-            tonoDisplay.innerText = '0';
-            tonoDisplay.className = tonoDisplay.className
-                .replace(/text-(amber|blue|rose)-\d+/g, '');
-            tonoDisplay.classList.add('text-amber-400');
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -216,8 +136,6 @@
                 gainNormalizacion.gain.cancelScheduledValues(audioContexto.currentTime);
                 gainNormalizacion.gain.setValueAtTime(1.0, audioContexto.currentTime);
             }
-            actualizarBarraGanancia(1.0);
-
             normInterval = setInterval(() => {
                 if (!isPlaying || !analizadorNorm || !gainNormalizacion) return;
 
@@ -249,8 +167,6 @@
                     audioContexto.currentTime + 3.0
                 );
 
-                actualizarBarraGanancia(correccion);
-
             }, 2000);
         }
 
@@ -259,27 +175,10 @@
             medicionesRMS = [];
         }
 
-        function actualizarBarraGanancia(valor) {
-            // Mapear rango 0.3x – 3.0x a 0% – 100%
-            const pct    = Math.round(((valor - 0.3) / (3.0 - 0.3)) * 100);
-            const pctOk  = Math.max(2, Math.min(100, pct));
-            gainBar.style.width = `${pctOk}%`;
-
-            // Color: verde = bien, amarillo = levantado, rojo = muy levantado (pista muy baja)
-            gainBar.style.backgroundColor =
-                pct > 65 ? '#10b981' :   // emerald-500
-                pct > 30 ? '#eab308' :   // yellow-500
-                           '#ef4444';    // red-500
-
-            // Mostrar en dB
-            const db = Math.round(20 * Math.log10(valor));
-            gainLabel.innerText = `${db >= 0 ? '+' : ''}${db} dB`;
-        }
-
         // ─────────────────────────────────────────────────────────────────
         // INICIAR SISTEMA DE AUDIO
-        // Cadena: source → normGain → analyser → bajos → medios → brillo
-        //         → PitchShift(Tone.js) → compressor → gainFinal → output
+        // Cadena: source ↁEnormGain ↁEanalyser ↁEbajos ↁEmedios ↁEbrillo
+        //         ↁEPitchShift(Tone.js) ↁEcompressor ↁEgainFinal ↁEoutput
         // ─────────────────────────────────────────────────────────────────
         function iniciarSistema() {
             if (sistemaIniciado) return;
@@ -352,8 +251,8 @@
                 analizadorNorm.connect(ecualizadorBajos);
                 ecualizadorBajos.connect(ecualizadorMedios);
                 ecualizadorMedios.connect(ecualizadorBrillo);
-                ecualizadorBrillo.connect(pitchShifter.input);  // native → Tone.js
-                pitchShifter.connect(compressor);               // Tone.js → native
+                ecualizadorBrillo.connect(pitchShifter.input);  // native ↁETone.js
+                pitchShifter.connect(compressor);               // Tone.js ↁEnative
                 compressor.connect(gainFinal);
                 gainFinal.connect(audioContexto.destination);
             } catch (e) {
@@ -468,7 +367,6 @@
             lobbyScreen.style.display = 'none';
             player.style.display      = 'block';
             timeCounter.classList.remove('hidden');
-            controlPanel.classList.remove('hidden');
 
             // Resetear tono a 0 para cada canción nueva
             resetTono();
@@ -509,7 +407,6 @@
 
             // Limpiar UI
             timeCounter.classList.add('hidden');
-            controlPanel.classList.add('hidden');
 
             // Limpiar audio
             detenerNormalizacion();
@@ -521,15 +418,6 @@
 
             buscarSiguienteCancion();
         }
-
-        // ── TECLADO ────────────────────────────────────────────────────────
-        // Flecha arriba/abajo: ±1 semitono  |  R: resetear tono
-        window.addEventListener('keydown', (e) => {
-            if (!isPlaying) return;
-            if (e.key === 'ArrowUp')   { e.preventDefault(); cambiarTono(+1); }
-            if (e.key === 'ArrowDown') { e.preventDefault(); cambiarTono(-1); }
-            if (e.key === 'r' || e.key === 'R') resetTono();
-        });
 
         // ── SUPABASE: NUEVAS SOLICITUDES ──────────────────────────────────
         supabaseClient.channel('cambios-db')
