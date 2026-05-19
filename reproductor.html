@@ -219,8 +219,8 @@
             ecualizadorBajos.connect(ecualizadorMedios);
             ecualizadorMedios.connect(ecualizadorBrillo);
             if (usarPitch && pitchShifter) {
-                ecualizadorBrillo.connect(pitchShifter.input);
-                pitchShifter.connect(compressor);
+                Tone.connect(ecualizadorBrillo, pitchShifter);
+                Tone.connect(pitchShifter, compressor);
             } else {
                 ecualizadorBrillo.connect(compressor);
             }
@@ -270,14 +270,15 @@
                 ecualizadorBrillo.gain.value = 1.8;
             }
 
-            if (!pitchShifter) {
-                pitchShifter = new Tone.PitchShift({
-                    pitch:      0,
-                    windowSize: 0.06,
-                    delayTime:  0,
-                    feedback:   0
-                });
+            if (pitchShifter && typeof pitchShifter.dispose === 'function') {
+                try { pitchShifter.dispose(); } catch (e) {}
             }
+            pitchShifter = new Tone.PitchShift({
+                pitch:      0,
+                windowSize: 0.06,
+                delayTime:  0,
+                feedback:   0
+            });
 
             if (!compressor) {
                 compressor = audioContexto.createDynamicsCompressor();
