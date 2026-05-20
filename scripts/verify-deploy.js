@@ -21,7 +21,16 @@ for (const file of required) {
   }
 }
 
-execSync('node scripts/copy-soundtouch-lib.js', { cwd: root, stdio: 'inherit' });
+const soundTouchNode = path.join(root, 'lib', 'soundtouch', 'SoundTouchNode.js');
+const copyScript = path.join(root, 'scripts', 'copy-soundtouch-lib.js');
+
+if (!fs.existsSync(soundTouchNode)) {
+  if (!fs.existsSync(copyScript)) {
+    console.error('Falta scripts/copy-soundtouch-lib.js o lib/soundtouch en el repo.');
+    process.exit(1);
+  }
+  execSync('node scripts/copy-soundtouch-lib.js', { cwd: root, stdio: 'inherit' });
+}
 
 if (fs.existsSync(publicDir)) {
   fs.rmSync(publicDir, { recursive: true, force: true });
