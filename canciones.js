@@ -1772,7 +1772,7 @@ const cancionesREAL = [
 { id: 1770, artista: "ZAPATO 3", titulo: "PANTALETAS NEGRAS", genero: "REGGAETON", idioma: "ESPAÑOL" },
 { id: 1771, artista: "ZION LENNOX", titulo: "YO VOY", genero: "VALLENATO", idioma: "ESPAÑOL" },
 { id: 1772, artista: "ZUCCHERO", titulo: "BAILA MORENA", genero: "BACHATA", idioma: "ESPAÑOL" },
-,
+
 
     // Aquí abajo sigues pegando las filas que te tire el Excel...
 ];
