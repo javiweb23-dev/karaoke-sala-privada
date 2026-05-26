@@ -56,6 +56,13 @@
         let miNombre = localStorage.getItem('karaoke_nombre');
         let cancionesPopulares = [];
 
+        function sinAcentos(texto) {
+            return (texto || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+        }
+
         if (!miNombre) {
             document.getElementById('nameModal').classList.remove('hidden');
         } else {
@@ -300,12 +307,12 @@
         }
 
         document.getElementById('searchBar').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase();
-            const filtradas = cancionesREAL.filter(c => 
-                c.artista.toLowerCase().includes(q) || 
-                c.titulo.toLowerCase().includes(q) ||
-                (c.genero && c.genero.toLowerCase().includes(q)) ||
-                (c.idioma && c.idioma.toLowerCase().includes(q))
+            const q = sinAcentos(e.target.value);
+            const filtradas = cancionesREAL.filter(c =>
+                sinAcentos(c.artista).includes(q) ||
+                sinAcentos(c.titulo).includes(q) ||
+                sinAcentos(c.genero).includes(q) ||
+                sinAcentos(c.idioma).includes(q)
             );
             cargarCanciones(filtradas);
         });
