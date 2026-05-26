@@ -183,35 +183,6 @@
             });
         }
 
-        function usarSoundTouchEnCadena() {
-            return soundTouchNode && Math.abs(semitonos) >= 0.05;
-        }
-
-        function necesitaReconexionPitch(inicio, destino) {
-            const desdeCero = Math.abs(inicio) < 0.05;
-            const haciaCero = Math.abs(destino) < 0.05;
-            return desdeCero !== haciaCero;
-        }
-
-        function desconectarSalidaProcesamiento() {
-            const nodos = [
-                gainNormalizacion, analizadorNorm, hpFilter,
-                ecualizadorBajos, ecualizadorMedios, deEsser, ecualizadorBrillo,
-                soundTouchNode, compressor, limiter, gainFinal
-            ];
-            for (const n of nodos) {
-                if (n) {
-                    try { n.disconnect(); } catch (e) {}
-                }
-            }
-        }
-
-        function reconectarCadenaProcesamiento() {
-            if (!gainNormalizacion || !hpFilter) return;
-            desconectarSalidaProcesamiento();
-            conectarCadenaPrincipal(usarSoundTouchEnCadena());
-        }
-
         function obtenerPitchActual() {
             if (!soundTouchNode) return semitonos;
             return soundTouchNode.pitchSemitones.value;
@@ -225,18 +196,11 @@
             }
 
             const inicio = obtenerPitchActual();
-            const reconectar = necesitaReconexionPitch(inicio, destino);
             semitonos = destino;
 
             if (Math.abs(inicio - destino) < 0.01) {
                 soundTouchNode.pitchSemitones.value = destino;
-                if (reconectar && audioIniciado) reconectarCadenaProcesamiento();
                 return;
-            }
-
-            // Entrar a pitch: activar SoundTouch antes de la rampa
-            if (reconectar && audioIniciado && Math.abs(inicio) < 0.05 && Math.abs(destino) >= 0.05) {
-                reconectarCadenaProcesamiento();
             }
 
             if (rampaTonoId !== null) {
@@ -252,11 +216,6 @@
                 param.cancelScheduledValues(t);
                 param.setValueAtTime(inicio, t);
                 param.linearRampToValueAtTime(destino, t + duracionMs / 1000);
-                if (reconectar && Math.abs(destino) < 0.05) {
-                    setTimeout(() => {
-                        if (Math.abs(semitonos) < 0.05 && audioIniciado) reconectarCadenaProcesamiento();
-                    }, duracionMs + 80);
-                }
                 return;
             }
 
@@ -270,9 +229,6 @@
                 } else {
                     soundTouchNode.pitchSemitones.value = destino;
                     rampaTonoId = null;
-                    if (reconectar && audioIniciado && Math.abs(destino) < 0.05) {
-                        reconectarCadenaProcesamiento();
-                    }
                 }
             }
             rampaTonoId = requestAnimationFrame(animar);
@@ -383,28 +339,24 @@
         }
 
         function conectarCadenaPrincipal(usarPitch) {
-            const p = PRESET_CABINA;
             source.connect(gainNormalizacion);
             gainNormalizacion.connect(hpFilter);
             hpFilter.connect(ecualizadorBajos);
             ecualizadorBajos.connect(ecualizadorMedios);
             ecualizadorMedios.connect(deEsser);
             deEsser.connect(ecualizadorBrillo);
-            // Medición post-EQ (no altera la ruta principal)
             ecualizadorBrillo.connect(analizadorNorm);
             if (usarPitch && soundTouchNode) {
                 ecualizadorBrillo.connect(soundTouchNode);
                 soundTouchNode.connect(compressor);
+                console.log('[Audio] Cadena: fuente→gain→HPF→EQ→SoundTouch→comp→limit→out');
             } else {
                 ecualizadorBrillo.connect(compressor);
+                console.log('[Audio] Cadena: fuente→gain→HPF→EQ→comp→limit→out (sin SoundTouch)');
             }
             compressor.connect(limiter);
             limiter.connect(gainFinal);
             gainFinal.connect(audioContexto.destination);
-            const ruta = usarPitch && soundTouchNode
-                ? 'fuente→gain→HPF→EQ→[tap RMS]→SoundTouch→comp→limit→out'
-                : 'fuente→gain→HPF→EQ→[tap RMS]→comp→limit→out (pitch bypass)';
-            console.log('[Audio] Cadena conectada:', ruta);
         }
 
         function conectarCadenaAudio() {
@@ -496,11 +448,23 @@
             }
 
             try {
-                conectarCadenaPrincipal(usarSoundTouchEnCadena());
+                conectarCadenaPrincipal(!!soundTouchNode);
             } catch (e) {
                 console.warn('[Audio] SoundTouch falló, cadena sin pitch:', e);
                 soundTouchNode = null;
-                desconectarSalidaProcesamiento();
+                try {
+                    source.disconnect();
+                    gainNormalizacion.disconnect();
+                    analizadorNorm.disconnect();
+                    hpFilter.disconnect();
+                    ecualizadorBajos.disconnect();
+                    ecualizadorMedios.disconnect();
+                    deEsser.disconnect();
+                    ecualizadorBrillo.disconnect();
+                    compressor.disconnect();
+                    limiter.disconnect();
+                    gainFinal.disconnect();
+                } catch (err) {}
                 conectarCadenaPrincipal(false);
             }
         }
