@@ -33,7 +33,8 @@
 
     <main class="flex-1 max-w-md w-full mx-auto px-4 pb-4 flex flex-col">
         <div class="flex-1 flex flex-col overflow-y-auto">
-            <div class="sticky top-0 z-40 bg-zinc-950 pt-4 pb-3 space-y-4">
+            <!-- Sticky debajo del header (evita que se "pierda" detrás) -->
+            <div class="sticky top-[88px] z-40 bg-zinc-950 pt-4 pb-3 space-y-4">
                 <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <h3 class="text-zinc-400 text-xs font-bold mb-2 uppercase tracking-wider">Canciones en Cola</h3>
                     <div id="liveQueue" class="flex flex-col gap-1 text-sm text-zinc-300">
