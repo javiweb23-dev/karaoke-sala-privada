@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .portada-slot img { transition: opacity 0.35s ease-out; }
+        .genre-slider-wrap { scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+        .genre-slider-wrap::-webkit-scrollbar { display: none; }
     </style>
     <script src="canciones.js"></script>
 </head>
@@ -46,6 +48,14 @@
                         class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 pl-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all text-base">
                     <span class="absolute left-4 top-3.5 text-zinc-500">🔍</span>
                 </div>
+
+                <div class="flex items-center gap-1.5">
+                    <button type="button" id="genreScrollPrev" aria-label="Géneros anteriores"
+                        class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white active:scale-95 transition-all text-sm font-bold">&lt;</button>
+                    <div id="genreSlider" class="genre-slider-wrap flex-1 min-w-0 flex gap-2 overflow-x-auto py-0.5"></div>
+                    <button type="button" id="genreScrollNext" aria-label="Géneros siguientes"
+                        class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white active:scale-95 transition-all text-sm font-bold">&gt;</button>
+                </div>
             </div>
         </div>
 
@@ -61,6 +71,10 @@
 
         let miNombre = localStorage.getItem('karaoke_nombre');
         let cancionesPopulares = [];
+        let generoActivo = 'Todos';
+
+        const CHIP_GENERO_INACTIVO = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-all active:scale-95';
+        const CHIP_GENERO_ACTIVO   = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-amber-500 border border-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all active:scale-95';
 
         function sinAcentos(texto) {
             return (texto || '')
@@ -263,6 +277,80 @@
             return cancionesPopulares.includes(`${titulo} - ${artista}`);
         }
 
+        function obtenerGenerosUnicos() {
+            const generos = new Set();
+            for (const c of cancionesREAL) {
+                const g = (c.genero || '').trim();
+                if (g) generos.add(g);
+            }
+            return [...generos].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+        }
+
+        function actualizarChipsGenero() {
+            document.querySelectorAll('.genre-chip').forEach(chip => {
+                const activo = chip.dataset.genero === generoActivo;
+                chip.className = activo ? CHIP_GENERO_ACTIVO : CHIP_GENERO_INACTIVO;
+            });
+        }
+
+        function seleccionarGenero(genero) {
+            generoActivo = genero;
+            actualizarChipsGenero();
+            aplicarFiltros();
+        }
+
+        function filtrarCanciones() {
+            const q = sinAcentos(document.getElementById('searchBar').value);
+            return cancionesREAL.filter(c => {
+                const coincideGenero = generoActivo === 'Todos'
+                    || sinAcentos(c.genero) === sinAcentos(generoActivo);
+                if (!coincideGenero) return false;
+                if (!q) return true;
+                return sinAcentos(c.artista).includes(q)
+                    || sinAcentos(c.titulo).includes(q)
+                    || sinAcentos(c.genero).includes(q)
+                    || sinAcentos(c.idioma).includes(q);
+            });
+        }
+
+        function aplicarFiltros() {
+            cargarCanciones(filtrarCanciones());
+        }
+
+        function renderizarSliderGeneros() {
+            const slider = document.getElementById('genreSlider');
+            slider.innerHTML = '';
+
+            const btnTodos = document.createElement('button');
+            btnTodos.type = 'button';
+            btnTodos.dataset.genero = 'Todos';
+            btnTodos.textContent = 'Todos';
+            btnTodos.className = generoActivo === 'Todos' ? CHIP_GENERO_ACTIVO : CHIP_GENERO_INACTIVO;
+            btnTodos.onclick = () => seleccionarGenero('Todos');
+            slider.appendChild(btnTodos);
+
+            for (const genero of obtenerGenerosUnicos()) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.genero = genero;
+                btn.textContent = genero;
+                btn.className = generoActivo === genero ? CHIP_GENERO_ACTIVO : CHIP_GENERO_INACTIVO;
+                btn.onclick = () => seleccionarGenero(genero);
+                slider.appendChild(btn);
+            }
+        }
+
+        function configurarScrollGeneros() {
+            const slider = document.getElementById('genreSlider');
+            const paso = () => Math.max(120, Math.round(slider.clientWidth * 0.65));
+            document.getElementById('genreScrollPrev').onclick = () => {
+                slider.scrollBy({ left: -paso(), behavior: 'smooth' });
+            };
+            document.getElementById('genreScrollNext').onclick = () => {
+                slider.scrollBy({ left: paso(), behavior: 'smooth' });
+            };
+        }
+
         function cargarCanciones(lista) {
             const songList = document.getElementById('songList');
             songList.innerHTML = '';
@@ -301,7 +389,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
-                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista);
+                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero);
 
                 card.appendChild(portada);
                 card.appendChild(info);
@@ -312,16 +400,7 @@
             });
         }
 
-        document.getElementById('searchBar').addEventListener('input', (e) => {
-            const q = sinAcentos(e.target.value);
-            const filtradas = cancionesREAL.filter(c =>
-                sinAcentos(c.artista).includes(q) ||
-                sinAcentos(c.titulo).includes(q) ||
-                sinAcentos(c.genero).includes(q) ||
-                sinAcentos(c.idioma).includes(q)
-            );
-            cargarCanciones(filtradas);
-        });
+        document.getElementById('searchBar').addEventListener('input', () => aplicarFiltros());
 
         async function actualizarCola() {
             const { data } = await supabaseClient.from('Solicitudes').select('cancion_info, nombre_usuario').eq('estado', 'pendiente').order('id', { ascending: true });
@@ -367,7 +446,7 @@
             }
         }
 
-        async function pedirCancion(nombreArchivo, titulo, artista) {
+        async function pedirCancion(nombreArchivo, titulo, artista, genero) {
             if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
 
             const { data: dups } = await supabaseClient.from('Solicitudes').select('id').eq('estado', 'pendiente').eq('cancion_info', nombreArchivo);
@@ -378,7 +457,12 @@
 
             const { count: totalCola } = await supabaseClient.from('Solicitudes').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
             
-            const { error } = await supabaseClient.from('Solicitudes').insert([{ nombre_usuario: miNombre, cancion_info: nombreArchivo, estado: 'pendiente' }]);
+            const { error } = await supabaseClient.from('Solicitudes').insert([{
+                nombre_usuario: miNombre,
+                cancion_info: nombreArchivo,
+                genero: genero || null,
+                estado: 'pendiente'
+            }]);
 
             if (!error) {
                 await registrarPopularidad(titulo, artista);
@@ -421,7 +505,9 @@
 
         async function iniciarPagina() {
             await cargarCancionesPopulares();
-            cargarCanciones(cancionesREAL);
+            renderizarSliderGeneros();
+            configurarScrollGeneros();
+            aplicarFiltros();
             actualizarCola();
         }
 
