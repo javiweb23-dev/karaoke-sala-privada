@@ -73,7 +73,37 @@
         let SoundTouchNodeClass = null;
         let soundTouchRegistrado = false;
         let compressor         = null;
+        let limiter            = null;
         let gainFinal          = null;
+
+        // Preset cabina (referencia VDJ: presencia vocal, sin barro, nivel uniforme)
+        const PRESET_CABINA = {
+            hpfHz: 35,
+            hpfQ: 0.707,
+            bajosDb: 0.6,
+            bajosHz: 100,
+            mediosDb: 1.5,
+            mediosHz: 2800,
+            mediosQ: 0.9,
+            deEsserHz: 6200,
+            deEsserQ: 2.2,
+            deEsserDb: -2.0,
+            brilloDb: 0.9,
+            brilloHz: 10000,
+            compThreshold: -20,
+            compRatio: 2.5,
+            compKnee: 12,
+            compAttack: 0.008,
+            compRelease: 0.22,
+            limiterThreshold: -2.5,
+            limiterRatio: 16,
+            gainSalida: 0.95,
+            autoVolTarget: 0.082,
+            autoVolMin: 0.65,
+            autoVolMax: 1.7,
+            autoVolIntervalMs: 2500,
+            autoVolRampaSeg: 4.0
+        };
 
         // ── ESTADO DE TONO Y NORMALIZACIÓN ───────────────────────────────
         let semitonos           = 0;
@@ -85,9 +115,6 @@
         }
         let normInterval    = null;
         let medicionesRMS   = [];
-        const AUTO_VOL_TARGET_RMS  = 0.095;
-        const AUTO_VOL_GAIN_MIN    = 0.5;
-        const AUTO_VOL_GAIN_MAX    = 2.2;
 
         // ── EFECTOS DE SONIDO ─────────────────────────────────────────────
         const efectosSonidos = {
@@ -156,6 +183,35 @@
             });
         }
 
+        function usarSoundTouchEnCadena() {
+            return soundTouchNode && Math.abs(semitonos) >= 0.05;
+        }
+
+        function necesitaReconexionPitch(inicio, destino) {
+            const desdeCero = Math.abs(inicio) < 0.05;
+            const haciaCero = Math.abs(destino) < 0.05;
+            return desdeCero !== haciaCero;
+        }
+
+        function desconectarSalidaProcesamiento() {
+            const nodos = [
+                gainNormalizacion, analizadorNorm, hpFilter,
+                ecualizadorBajos, ecualizadorMedios, deEsser, ecualizadorBrillo,
+                soundTouchNode, compressor, limiter, gainFinal
+            ];
+            for (const n of nodos) {
+                if (n) {
+                    try { n.disconnect(); } catch (e) {}
+                }
+            }
+        }
+
+        function reconectarCadenaProcesamiento() {
+            if (!gainNormalizacion || !hpFilter) return;
+            desconectarSalidaProcesamiento();
+            conectarCadenaPrincipal(usarSoundTouchEnCadena());
+        }
+
         function obtenerPitchActual() {
             if (!soundTouchNode) return semitonos;
             return soundTouchNode.pitchSemitones.value;
@@ -169,11 +225,18 @@
             }
 
             const inicio = obtenerPitchActual();
+            const reconectar = necesitaReconexionPitch(inicio, destino);
             semitonos = destino;
 
             if (Math.abs(inicio - destino) < 0.01) {
                 soundTouchNode.pitchSemitones.value = destino;
+                if (reconectar && audioIniciado) reconectarCadenaProcesamiento();
                 return;
+            }
+
+            // Entrar a pitch: activar SoundTouch antes de la rampa
+            if (reconectar && audioIniciado && Math.abs(inicio) < 0.05 && Math.abs(destino) >= 0.05) {
+                reconectarCadenaProcesamiento();
             }
 
             if (rampaTonoId !== null) {
@@ -189,6 +252,11 @@
                 param.cancelScheduledValues(t);
                 param.setValueAtTime(inicio, t);
                 param.linearRampToValueAtTime(destino, t + duracionMs / 1000);
+                if (reconectar && Math.abs(destino) < 0.05) {
+                    setTimeout(() => {
+                        if (Math.abs(semitonos) < 0.05 && audioIniciado) reconectarCadenaProcesamiento();
+                    }, duracionMs + 80);
+                }
                 return;
             }
 
@@ -202,6 +270,9 @@
                 } else {
                     soundTouchNode.pitchSemitones.value = destino;
                     rampaTonoId = null;
+                    if (reconectar && audioIniciado && Math.abs(destino) < 0.05) {
+                        reconectarCadenaProcesamiento();
+                    }
                 }
             }
             rampaTonoId = requestAnimationFrame(animar);
@@ -246,11 +317,11 @@
         function aplicarGananciaNormalizada(valor) {
             if (!gainNormalizacion || !audioContexto) return;
             const t = audioContexto.currentTime;
-            const ganancia = Math.max(0.001, Math.min(AUTO_VOL_GAIN_MAX, valor));
+            const ganancia = Math.max(0.001, Math.min(PRESET_CABINA.autoVolMax, valor));
             gainNormalizacion.gain.cancelScheduledValues(t);
             const actual = Math.max(0.001, gainNormalizacion.gain.value);
             gainNormalizacion.gain.setValueAtTime(actual, t);
-            gainNormalizacion.gain.exponentialRampToValueAtTime(ganancia, t + 3.0);
+            gainNormalizacion.gain.exponentialRampToValueAtTime(ganancia, t + PRESET_CABINA.autoVolRampaSeg);
             notificarAutoVolAdmin(ganancia);
         }
 
@@ -290,17 +361,20 @@
                 if (rms < 0.008) return;
 
                 medicionesRMS.push(rms);
-                if (medicionesRMS.length > 5) medicionesRMS.shift();
+                if (medicionesRMS.length > 6) medicionesRMS.shift();
                 const rmsPromedio = medicionesRMS.reduce((a, b) => a + b, 0) / medicionesRMS.length;
 
-                const correccion = Math.max(AUTO_VOL_GAIN_MIN, Math.min(AUTO_VOL_GAIN_MAX, AUTO_VOL_TARGET_RMS / rmsPromedio));
+                const correccion = Math.max(
+                    PRESET_CABINA.autoVolMin,
+                    Math.min(PRESET_CABINA.autoVolMax, PRESET_CABINA.autoVolTarget / rmsPromedio)
+                );
 
                 try {
                     aplicarGananciaNormalizada(correccion);
                 } catch (e) {
                     console.warn('Auto-vol:', e);
                 }
-            }, 2000);
+            }, PRESET_CABINA.autoVolIntervalMs);
         }
 
         function detenerNormalizacion() {
@@ -309,24 +383,28 @@
         }
 
         function conectarCadenaPrincipal(usarPitch) {
+            const p = PRESET_CABINA;
             source.connect(gainNormalizacion);
-            gainNormalizacion.connect(analizadorNorm);
-            analizadorNorm.connect(hpFilter);
+            gainNormalizacion.connect(hpFilter);
             hpFilter.connect(ecualizadorBajos);
             ecualizadorBajos.connect(ecualizadorMedios);
             ecualizadorMedios.connect(deEsser);
             deEsser.connect(ecualizadorBrillo);
+            // Medición post-EQ (no altera la ruta principal)
+            ecualizadorBrillo.connect(analizadorNorm);
             if (usarPitch && soundTouchNode) {
                 ecualizadorBrillo.connect(soundTouchNode);
                 soundTouchNode.connect(compressor);
             } else {
                 ecualizadorBrillo.connect(compressor);
             }
-            compressor.connect(gainFinal);
+            compressor.connect(limiter);
+            limiter.connect(gainFinal);
             gainFinal.connect(audioContexto.destination);
-            console.log('[Audio] Cadena conectada:', usarPitch && soundTouchNode
-                ? 'fuente→gain→analizador→HPF→EQ→SoundTouch→comp→out'
-                : 'fuente→gain→analizador→HPF→EQ→comp→out');
+            const ruta = usarPitch && soundTouchNode
+                ? 'fuente→gain→HPF→EQ→[tap RMS]→SoundTouch→comp→limit→out'
+                : 'fuente→gain→HPF→EQ→[tap RMS]→comp→limit→out (pitch bypass)';
+            console.log('[Audio] Cadena conectada:', ruta);
         }
 
         function conectarCadenaAudio() {
@@ -343,44 +421,46 @@
             if (!analizadorNorm) {
                 analizadorNorm = audioContexto.createAnalyser();
                 analizadorNorm.fftSize = 4096;
-                analizadorNorm.smoothingTimeConstant = 0.5;
+                analizadorNorm.smoothingTimeConstant = 0.65;
             }
+
+            const p = PRESET_CABINA;
 
             if (!hpFilter) {
                 hpFilter = audioContexto.createBiquadFilter();
                 hpFilter.type = 'highpass';
-                hpFilter.frequency.setValueAtTime(35, audioContexto.currentTime);
-                hpFilter.Q.value = 0.7;
+                hpFilter.frequency.setValueAtTime(p.hpfHz, audioContexto.currentTime);
+                hpFilter.Q.value = p.hpfQ;
             }
 
             if (!ecualizadorBajos) {
                 ecualizadorBajos = audioContexto.createBiquadFilter();
                 ecualizadorBajos.type = 'lowshelf';
-                ecualizadorBajos.frequency.setValueAtTime(110, audioContexto.currentTime);
-                ecualizadorBajos.gain.value = 1.2;
+                ecualizadorBajos.frequency.setValueAtTime(p.bajosHz, audioContexto.currentTime);
+                ecualizadorBajos.gain.value = p.bajosDb;
             }
 
             if (!ecualizadorMedios) {
                 ecualizadorMedios = audioContexto.createBiquadFilter();
                 ecualizadorMedios.type = 'peaking';
-                ecualizadorMedios.frequency.setValueAtTime(2500, audioContexto.currentTime);
-                ecualizadorMedios.Q.value = 0.85;
-                ecualizadorMedios.gain.value = 1.0;
+                ecualizadorMedios.frequency.setValueAtTime(p.mediosHz, audioContexto.currentTime);
+                ecualizadorMedios.Q.value = p.mediosQ;
+                ecualizadorMedios.gain.value = p.mediosDb;
             }
 
             if (!deEsser) {
                 deEsser = audioContexto.createBiquadFilter();
                 deEsser.type = 'peaking';
-                deEsser.frequency.setValueAtTime(6200, audioContexto.currentTime);
-                deEsser.Q.value = 2.2;
-                deEsser.gain.value = -2.5;
+                deEsser.frequency.setValueAtTime(p.deEsserHz, audioContexto.currentTime);
+                deEsser.Q.value = p.deEsserQ;
+                deEsser.gain.value = p.deEsserDb;
             }
 
             if (!ecualizadorBrillo) {
                 ecualizadorBrillo = audioContexto.createBiquadFilter();
                 ecualizadorBrillo.type = 'highshelf';
-                ecualizadorBrillo.frequency.setValueAtTime(9000, audioContexto.currentTime);
-                ecualizadorBrillo.gain.value = 0.4;
+                ecualizadorBrillo.frequency.setValueAtTime(p.brilloHz, audioContexto.currentTime);
+                ecualizadorBrillo.gain.value = p.brilloDb;
             }
 
             if (!soundTouchNode && SoundTouchNodeClass) {
@@ -394,34 +474,33 @@
 
             if (!compressor) {
                 compressor = audioContexto.createDynamicsCompressor();
-                compressor.threshold.value = -22.0;
-                compressor.knee.value      = 10.0;
-                compressor.ratio.value     = 3.0;
-                compressor.attack.value    = 0.012;
-                compressor.release.value   = 0.18;
+                compressor.threshold.value = p.compThreshold;
+                compressor.knee.value      = p.compKnee;
+                compressor.ratio.value     = p.compRatio;
+                compressor.attack.value    = p.compAttack;
+                compressor.release.value   = p.compRelease;
+            }
+
+            if (!limiter) {
+                limiter = audioContexto.createDynamicsCompressor();
+                limiter.threshold.value = p.limiterThreshold;
+                limiter.knee.value      = 0;
+                limiter.ratio.value     = p.limiterRatio;
+                limiter.attack.value    = 0.002;
+                limiter.release.value   = 0.08;
             }
 
             if (!gainFinal) {
                 gainFinal = audioContexto.createGain();
-                gainFinal.gain.value = 1.0;
+                gainFinal.gain.value = p.gainSalida;
             }
 
             try {
-                conectarCadenaPrincipal(true);
+                conectarCadenaPrincipal(usarSoundTouchEnCadena());
             } catch (e) {
                 console.warn('[Audio] SoundTouch falló, cadena sin pitch:', e);
                 soundTouchNode = null;
-                try {
-                    gainNormalizacion.disconnect();
-                    analizadorNorm.disconnect();
-                    hpFilter.disconnect();
-                    ecualizadorBajos.disconnect();
-                    ecualizadorMedios.disconnect();
-                    deEsser.disconnect();
-                    ecualizadorBrillo.disconnect();
-                    compressor.disconnect();
-                    gainFinal.disconnect();
-                } catch (err) {}
+                desconectarSalidaProcesamiento();
                 conectarCadenaPrincipal(false);
             }
         }
