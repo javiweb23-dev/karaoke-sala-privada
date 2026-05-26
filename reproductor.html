@@ -13,36 +13,30 @@
 </head>
 <body class="flex flex-col justify-center items-center text-white font-sans select-none">
 
-    <!-- Pantalla de activación por clic -->
     <div id="activationWall" class="absolute inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
         <h1 class="text-3xl font-bold text-amber-400 animate-pulse">SALA PRIVADA LISTA</h1>
         <p class="text-zinc-500 mt-2 text-lg">Haz un clic para iniciar el sistema</p>
     </div>
 
-    <!-- Lobby / Cuenta regresiva -->
     <div id="lobbyScreen" class="text-center w-full absolute inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
         <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
         <h3 id="singerName" class="text-2xl font-bold text-emerald-400 mt-4 hidden"></h3>
         <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
     </div>
 
-    <!-- Video -->
     <video id="karaokePlayer" class="relative z-10" crossorigin="anonymous" playsinline></video>
 
-    <!-- Contador de tiempo (abajo derecha) -->
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
         00:00 / 00:00 (Restan: -00:00)
     </div>
 
     <script>
-        // ── CONFIGURACIÓN ─────────────────────────────────────────────────
         const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const canalAdmin = supabaseClient.channel('admin-commands');
 
-        // ── REFERENCIAS DOM ───────────────────────────────────────────────
         const player        = document.getElementById('karaokePlayer');
         const wall          = document.getElementById('activationWall');
         const lobbyScreen   = document.getElementById('lobbyScreen');
@@ -51,14 +45,12 @@
         const countdownText = document.getElementById('countdownText');
         const timeCounter   = document.getElementById('timeCounter');
 
-        // ── ESTADO GENERAL ────────────────────────────────────────────────
         let isPlaying               = false;
         let systemActive            = false;
         let sistemaIniciado         = false;
         let idActual                = null;
         let intentoExtensionAlterna = false;
 
-        // ── ESTADO DE AUDIO ───────────────────────────────────────────────
         let audioIniciado      = false;
         let audioContexto      = null;
         let source             = null;
@@ -76,7 +68,6 @@
         let limiter            = null;
         let gainFinal          = null;
 
-        // Preset cabina (referencia VDJ: presencia vocal, sin barro, nivel uniforme)
         const PRESET_CABINA = {
             hpfHz: 35,
             hpfQ: 0.707,
@@ -105,7 +96,6 @@
             autoVolRampaSeg: 4.0
         };
 
-        // ── ESTADO DE TONO Y NORMALIZACIÓN ───────────────────────────────
         let semitonos           = 0;
         let rampaTonoId         = null;
 
@@ -116,7 +106,6 @@
         let normInterval    = null;
         let medicionesRMS   = [];
 
-        // ── EFECTOS DE SONIDO ─────────────────────────────────────────────
         const efectosSonidos = {
             'aplausos': new Audio('efectos/aplausos.mp3'),
             'buuu':     new Audio('efectos/buuu.mp3'),
@@ -134,7 +123,6 @@
             } catch (e) {}
         }
 
-        // ── FORMATO DE TIEMPO ─────────────────────────────────────────────
         function formatTiempo(s) {
             if (!isFinite(s) || s < 0) s = 0;
             const m = Math.floor(s / 60);
@@ -255,13 +243,6 @@
             }
         }
 
-        // ─────────────────────────────────────────────────────────────────
-        // NORMALIZACIÓN AUTOMÁTICA DE GANANCIA
-        // Mide el RMS real del audio cada 2 segundos.
-        // Promedia las últimas 5 mediciones para estabilidad.
-        // Aplica corrección con rampa de 3 segundos (sin bombeo).
-        // Objetivo tipo cabina: nivel uniforme sin empujar agudos ni saturar.
-        // ─────────────────────────────────────────────────────────────────
         async function asegurarAudioContextoActivo() {
             if (!audioContexto) return false;
             if (audioContexto.state === 'suspended') {
@@ -518,7 +499,6 @@
             iniciarSistema().catch(e => console.error('[Audio] iniciarSistema:', e));
         });
 
-        // ── MANEJO DE ERRORES DE VIDEO ────────────────────────────────────
         function manejarErrorVideo(solicitud) {
             const err = player.error;
             if (!err) return;
@@ -544,7 +524,6 @@
             }
         }
 
-        // ── CONTADOR DE TIEMPO ────────────────────────────────────────────
         player.addEventListener('timeupdate', () => {
             if (!isPlaying || !player.duration || isNaN(player.duration)) return;
             const t = player.currentTime;
@@ -552,7 +531,6 @@
             timeCounter.innerText = `${formatTiempo(t)} / ${formatTiempo(d)} (Restan: -${formatTiempo(d - t)})`;
         });
 
-        // ── BÚSQUEDA Y COLA ───────────────────────────────────────────────
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying) return;
 
@@ -578,14 +556,19 @@
 
         function iniciarCuentaRegresiva(solicitud) {
             isPlaying = true;
-            idActual  = solicitud.id;
+            idActual = solicitud.id;
             let segundos = 5;
 
             resetTono(true);
 
-            lobbyScreen.style.display  = 'flex';
-            lobbyMessage.innerText     = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
-            singerName.innerText       = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
+            const nombre = solicitud.cancion_info;
+            player.crossOrigin = 'anonymous';
+            player.src = `videos_locales/${nombre}.mp4`;
+            player.load();
+
+            lobbyScreen.style.display = 'flex';
+            lobbyMessage.innerText = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
+            singerName.innerText = `🎤 LA CANTA: ${solicitud.nombre_usuario.toUpperCase()}`;
             singerName.classList.remove('hidden');
             countdownText.innerText = segundos;
             countdownText.classList.remove('hidden');
@@ -597,31 +580,22 @@
                 } else {
                     clearInterval(intervalo);
                     countdownText.classList.add('hidden');
-                    reproducirVideo(solicitud);
+                    reproducirVideo(solicitud, nombre);
                 }
             }, 1000);
         }
 
-        async function reproducirVideo(solicitud) {
+        async function reproducirVideo(solicitud, nombre) {
             intentoExtensionAlterna = false;
 
-            // UI
             lobbyScreen.style.display = 'none';
-            player.style.display      = 'block';
+            player.style.display = 'block';
             timeCounter.classList.remove('hidden');
-
-            resetTono(true);
 
             await asegurarAudioContextoActivo();
             iniciarNormalizacion();
 
-            const nombre = solicitud.cancion_info;
-            player.crossOrigin = 'anonymous';
-            player.src = `videos_locales/${nombre}.mp4`;
-            player.load();
-
             try {
-                await asegurarAudioContextoActivo();
                 await player.play();
                 resetTono(true);
             } catch {
@@ -633,7 +607,7 @@
                         await player.play();
                         resetTono(true);
                     } catch (err) {
-                        console.warn('Esperando buffer o interacción...', err);
+                        console.warn('Error playback', err);
                     }
                 }
             }
@@ -650,10 +624,8 @@
             isPlaying = false;
             idActual  = null;
 
-            // Limpiar UI
             timeCounter.classList.add('hidden');
 
-            // Limpiar audio
             detenerNormalizacion();
             resetTono(true);
 
@@ -664,14 +636,12 @@
             buscarSiguienteCancion();
         }
 
-        // ── SUPABASE: NUEVAS SOLICITUDES ──────────────────────────────────
         supabaseClient.channel('cambios-db')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Solicitudes' }, () => {
                 buscarSiguienteCancion();
             })
             .subscribe();
 
-        // ── SUPABASE: COMANDOS DEL ADMIN ──────────────────────────────────
         canalAdmin
             .on('broadcast', { event: 'control' }, ({ payload }) => {
                 switch (payload.accion) {
@@ -699,7 +669,6 @@
                         if (payload.valor) reproducirEfecto(payload.valor);
                         break;
 
-                    // Comandos de tono (enviables desde el panel admin)
                     case 'tono':
                         if (payload.delta !== undefined) cambiarTono(payload.delta);
                         break;
