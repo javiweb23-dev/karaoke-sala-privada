@@ -1,8 +1,5 @@
 {
   "framework": null,
   "buildCommand": "npm run build",
-  "outputDirectory": "public",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/$1" }
-  ]
+  "outputDirectory": "public"
 }
