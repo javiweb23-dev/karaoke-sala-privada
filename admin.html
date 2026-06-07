@@ -282,7 +282,8 @@
                         console.log('Alerta enviada con éxito');
                     } else {
                         const data = await response.json().catch(() => ({}));
-                        console.error('Error al enviar alerta:', response.status, data);
+                        const motivo = data.telegramDescription || data.details?.description || data.error;
+                        console.error('Error al enviar alerta:', response.status, motivo, data);
                     }
                 } catch (error) {
                     console.error('Error crítico de red:', error);
