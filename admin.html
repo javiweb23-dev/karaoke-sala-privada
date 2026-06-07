@@ -275,23 +275,22 @@
             let cooldownTimer = null;
             let segundosRestantes = 0;
 
-            function enviarAlertaTelegram() {
+            async function enviarAlertaTelegram() {
                 const token = '8652995988:AAF_Mq1CLpg_UKx3WyJ4GBlfQ9w-cQrAnhM';
                 const chatId = '6020142516';
-                const mensaje = encodeURIComponent('🚨 Alerta Urgente: La Sala VIP solicita asistencia en el panel.');
-                const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${mensaje}`;
+                const mensaje = encodeURIComponent('🚨 Alerta Urgente: La Sala VIP solicita asistencia.');
+                const url = `https://corsproxy.io/?https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${mensaje}`;
 
-                fetch(url, { method: 'GET' })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.error('Error de red al contactar a Telegram');
-                        } else {
-                            console.log('Alerta enviada con éxito');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Fetch falló por completo:', error);
-                    });
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        console.log('Alerta enviada con éxito mediante Proxy');
+                    } else {
+                        console.error('Error al contactar a Telegram:', response.status);
+                    }
+                } catch (error) {
+                    console.error('Error crítico de red:', error);
+                }
             }
 
             function actualizarTextoCooldown() {
