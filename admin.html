@@ -216,5 +216,143 @@
 
         actualizarCola();
     </script>
+
+    <!-- ── Botón de pánico: operador (módulo aislado) ─────────────────── -->
+    <style>
+        #btnPanicoOperador {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 300;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 1.15rem;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            border-radius: 9999px;
+            background: linear-gradient(135deg, rgba(180, 83, 9, 0.95) 0%, rgba(220, 38, 38, 0.88) 100%);
+            color: #fff7ed;
+            font-size: 0.8125rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+            cursor: pointer;
+            box-shadow: 0 10px 28px rgba(220, 38, 38, 0.35), 0 4px 12px rgba(0, 0, 0, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+            max-width: min(18rem, calc(100vw - 2rem));
+        }
+        #btnPanicoOperador:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(220, 38, 38, 0.42), 0 6px 16px rgba(0, 0, 0, 0.5);
+        }
+        #btnPanicoOperador:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        #btnPanicoOperador:disabled {
+            cursor: not-allowed;
+            opacity: 0.82;
+            background: linear-gradient(135deg, rgba(113, 63, 18, 0.92) 0%, rgba(127, 29, 29, 0.85) 100%);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        }
+        #btnPanicoOperador .panico-icon {
+            font-size: 1.15rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        #btnPanicoOperador .panico-text {
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 380px) {
+            #btnPanicoOperador {
+                right: 0.75rem;
+                bottom: 0.75rem;
+                padding: 0.75rem 0.95rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+
+    <button type="button" id="btnPanicoOperador" aria-label="Llamar al operador">
+        <span class="panico-icon" aria-hidden="true">🛎️</span>
+        <span class="panico-text" id="btnPanicoOperadorTexto">Llamar al Operador</span>
+    </button>
+
+    <script>
+        (function () {
+            'use strict';
+
+            const TELEGRAM_API_URL = 'https://api.telegram.org/bot8652995988:AAF_Mq1CLpg_UKx3WyJ4GBlfQ9w-cQrAnhM/sendMessage';
+            const TELEGRAM_CHAT_ID = '6020142516';
+            const TELEGRAM_MENSAJE = '🚨 *Alerta Urgente:* La Sala VIP está solicitando asistencia desde el panel de control.';
+            const COOLDOWN_SEGUNDOS = 180;
+            const TEXTO_NORMAL = 'Llamar al Operador';
+
+            const btnPanico = document.getElementById('btnPanicoOperador');
+            const btnPanicoTexto = document.getElementById('btnPanicoOperadorTexto');
+            let cooldownTimer = null;
+            let segundosRestantes = 0;
+
+            async function enviarAlertaTelegram() {
+                const response = await fetch(TELEGRAM_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: TELEGRAM_MENSAJE
+                    })
+                });
+
+                if (!response.ok) {
+                    const detalle = await response.text().catch(() => '');
+                    throw new Error(detalle || `HTTP ${response.status}`);
+                }
+
+                return response.json();
+            }
+
+            function actualizarTextoCooldown() {
+                btnPanicoTexto.textContent = `Operador Notificado... (${segundosRestantes} s)`;
+            }
+
+            function iniciarCooldown() {
+                segundosRestantes = COOLDOWN_SEGUNDOS;
+                btnPanico.disabled = true;
+                actualizarTextoCooldown();
+
+                if (cooldownTimer) clearInterval(cooldownTimer);
+
+                cooldownTimer = setInterval(() => {
+                    segundosRestantes -= 1;
+                    if (segundosRestantes <= 0) {
+                        clearInterval(cooldownTimer);
+                        cooldownTimer = null;
+                        btnPanico.disabled = false;
+                        btnPanicoTexto.textContent = TEXTO_NORMAL;
+                        return;
+                    }
+                    actualizarTextoCooldown();
+                }, 1000);
+            }
+
+            btnPanico.addEventListener('click', async () => {
+                if (btnPanico.disabled) return;
+
+                btnPanico.disabled = true;
+                btnPanicoTexto.textContent = 'Enviando alerta...';
+
+                try {
+                    await enviarAlertaTelegram();
+                    iniciarCooldown();
+                } catch (err) {
+                    console.error('[Panico] Error al enviar alerta Telegram:', err);
+                    btnPanico.disabled = false;
+                    btnPanicoTexto.textContent = TEXTO_NORMAL;
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
