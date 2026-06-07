@@ -276,17 +276,13 @@
             let segundosRestantes = 0;
 
             async function enviarAlertaTelegram() {
-                const token = '8652995988:AAF_Mq1CLpg_UKx3WyJ4GBlfQ9w-cQrAnhM';
-                const chatId = '6020142516';
-                const mensaje = encodeURIComponent('🚨 Alerta Urgente: La Sala VIP solicita asistencia.');
-                const url = `https://corsproxy.io/?https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${mensaje}`;
-
                 try {
-                    const response = await fetch(url);
+                    const response = await fetch('/api/alerta-operador', { method: 'POST' });
                     if (response.ok) {
-                        console.log('Alerta enviada con éxito mediante Proxy');
+                        console.log('Alerta enviada con éxito');
                     } else {
-                        console.error('Error al contactar a Telegram:', response.status);
+                        const data = await response.json().catch(() => ({}));
+                        console.error('Error al enviar alerta:', response.status, data);
                     }
                 } catch (error) {
                     console.error('Error crítico de red:', error);
