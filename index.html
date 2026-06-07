@@ -72,6 +72,7 @@
         let miNombre = localStorage.getItem('karaoke_nombre');
         let cancionesPopulares = [];
         let generoActivo = 'Todos';
+        let pedidoEnCurso = false;
 
         const CHIP_GENERO_INACTIVO = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-all active:scale-95';
         const CHIP_GENERO_ACTIVO   = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-amber-500 border border-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all active:scale-95';
@@ -389,7 +390,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
-                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero);
+                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero, btn);
 
                 card.appendChild(portada);
                 card.appendChild(info);
@@ -446,25 +447,74 @@
             }
         }
 
-        async function pedirCancion(nombreArchivo, titulo, artista, genero) {
+        async function pedirCancion(nombreArchivo, titulo, artista, genero, btn) {
             if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
+            if (pedidoEnCurso) return;
 
-            const { data: dups } = await supabaseClient.from('Solicitudes').select('id').eq('estado', 'pendiente').eq('cancion_info', nombreArchivo);
-            if (dups && dups.length > 0) return mostrarAlerta("❌ Esta canción ya está en la cola.", true);
+            pedidoEnCurso = true;
+            const textoBtn = btn ? btn.textContent : 'Pedir';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '...';
+            }
 
-            const { count: misTemas } = await supabaseClient.from('Solicitudes').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente').eq('nombre_usuario', miNombre);
-            if (misTemas >= 3) return mostrarAlerta("⚠️ Canta primero las 3 que tienes en cola para seguir pidiendo.", true);
+            try {
+                const { data: dups, error: errDups } = await supabaseClient
+                    .from('Solicitudes')
+                    .select('id, nombre_usuario')
+                    .eq('estado', 'pendiente')
+                    .eq('cancion_info', nombreArchivo);
 
-            const { count: totalCola } = await supabaseClient.from('Solicitudes').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente');
-            
-            const { error } = await supabaseClient.from('Solicitudes').insert([{
-                nombre_usuario: miNombre,
-                cancion_info: nombreArchivo,
-                genero: genero || null,
-                estado: 'pendiente'
-            }]);
+                if (errDups) {
+                    console.error('Error al verificar duplicados:', errDups);
+                    return mostrarAlerta("❌ Error al verificar la cola. Intenta de nuevo.", true);
+                }
 
-            if (!error) {
+                if (dups && dups.length > 0) {
+                    const yaLaPedí = dups.some(d => d.nombre_usuario === miNombre);
+                    if (yaLaPedí) {
+                        return mostrarAlerta("ℹ️ Ya agregaste esta canción a la lista.", true);
+                    }
+                    return mostrarAlerta("❌ Esta canción ya está en la cola.", true);
+                }
+
+                const { count: misTemas, error: errMisTemas } = await supabaseClient
+                    .from('Solicitudes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('estado', 'pendiente')
+                    .eq('nombre_usuario', miNombre);
+
+                if (errMisTemas) {
+                    console.error('Error al contar temas del usuario:', errMisTemas);
+                    return mostrarAlerta("❌ Error al verificar tu cola. Intenta de nuevo.", true);
+                }
+
+                if (misTemas >= 3) {
+                    return mostrarAlerta("⚠️ Canta primero las 3 que tienes en cola para seguir pidiendo.", true);
+                }
+
+                const { count: totalCola, error: errTotalCola } = await supabaseClient
+                    .from('Solicitudes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('estado', 'pendiente');
+
+                if (errTotalCola) {
+                    console.error('Error al contar cola total:', errTotalCola);
+                    return mostrarAlerta("❌ Error al enviar. Intenta de nuevo.", true);
+                }
+
+                const { error } = await supabaseClient.from('Solicitudes').insert([{
+                    nombre_usuario: miNombre,
+                    cancion_info: nombreArchivo,
+                    genero: genero || null,
+                    estado: 'pendiente'
+                }]);
+
+                if (error) {
+                    console.error('Error al insertar solicitud:', error);
+                    return mostrarAlerta("❌ No se pudo agregar la canción. Intenta de nuevo.", true);
+                }
+
                 await registrarPopularidad(titulo, artista);
 
                 if (totalCola === 0) {
@@ -474,6 +524,12 @@
                     mostrarAlerta(`✅ ¡En cola! Tienes ${totalCola} canción(es) por delante (Aprox ${minsAprox} min).`);
                 }
                 actualizarCola();
+            } finally {
+                pedidoEnCurso = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = textoBtn;
+                }
             }
         }
 
