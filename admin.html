@@ -281,8 +281,17 @@
                 const mensaje = encodeURIComponent('🚨 Alerta Urgente: La Sala VIP solicita asistencia en el panel.');
                 const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${mensaje}`;
 
-                const img = new Image();
-                img.src = url;
+                fetch(url, { method: 'GET' })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Error de red al contactar a Telegram');
+                        } else {
+                            console.log('Alerta enviada con éxito');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fetch falló por completo:', error);
+                    });
             }
 
             function actualizarTextoCooldown() {
