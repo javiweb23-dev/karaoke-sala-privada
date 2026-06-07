@@ -96,6 +96,13 @@
                 </button>
             </div>
         </div>
+
+        <div class="pt-4 mt-2 border-t border-zinc-800">
+            <button type="button" id="btnPanicoOperador" class="btn-panico-operador" aria-label="Llamar al operador">
+                <span class="panico-icon" aria-hidden="true">🛎️</span>
+                <span class="panico-text" id="btnPanicoOperadorTexto">Llamar al Operador</span>
+            </button>
+        </div>
     </div>
 
     <script>
@@ -217,76 +224,49 @@
         actualizarCola();
     </script>
 
-    <!-- ── Botón de pánico: operador (módulo aislado) ─────────────────── -->
+    <!-- ── Alerta operador (módulo aislado) ─────────────────────────────── -->
     <style>
-        #btnPanicoOperador {
-            position: fixed;
-            right: 1rem;
-            bottom: 1rem;
-            z-index: 300;
-            display: inline-flex;
+        .btn-panico-operador {
+            display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            padding: 0.85rem 1.15rem;
-            border: 1px solid rgba(251, 191, 36, 0.45);
-            border-radius: 9999px;
-            background: linear-gradient(135deg, rgba(180, 83, 9, 0.95) 0%, rgba(220, 38, 38, 0.88) 100%);
-            color: #fff7ed;
-            font-size: 0.8125rem;
-            font-weight: 800;
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 1px solid rgba(127, 29, 29, 0.55);
+            border-radius: 0.75rem;
+            background: linear-gradient(180deg, rgba(69, 10, 10, 0.92) 0%, rgba(120, 53, 15, 0.88) 100%);
+            color: #fecaca;
+            font-size: 0.875rem;
+            font-weight: 700;
             letter-spacing: 0.02em;
-            line-height: 1.2;
             cursor: pointer;
-            box-shadow: 0 10px 28px rgba(220, 38, 38, 0.35), 0 4px 12px rgba(0, 0, 0, 0.45);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
-            max-width: min(18rem, calc(100vw - 2rem));
+            transition: background 0.15s ease, transform 0.12s ease, opacity 0.2s ease;
         }
-        #btnPanicoOperador:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 32px rgba(220, 38, 38, 0.42), 0 6px 16px rgba(0, 0, 0, 0.5);
+        .btn-panico-operador:hover:not(:disabled) {
+            background: linear-gradient(180deg, rgba(91, 15, 15, 0.96) 0%, rgba(146, 64, 14, 0.92) 100%);
+            color: #fff7ed;
         }
-        #btnPanicoOperador:active:not(:disabled) {
-            transform: scale(0.97);
+        .btn-panico-operador:active:not(:disabled) {
+            transform: scale(0.98);
         }
-        #btnPanicoOperador:disabled {
+        .btn-panico-operador:disabled {
             cursor: not-allowed;
-            opacity: 0.82;
-            background: linear-gradient(135deg, rgba(113, 63, 18, 0.92) 0%, rgba(127, 29, 29, 0.85) 100%);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+            opacity: 0.75;
+            background: rgba(39, 39, 42, 0.95);
+            border-color: rgba(63, 63, 70, 0.8);
+            color: #a1a1aa;
         }
-        #btnPanicoOperador .panico-icon {
-            font-size: 1.15rem;
+        .btn-panico-operador .panico-icon {
+            font-size: 1.1rem;
             line-height: 1;
-            flex-shrink: 0;
-        }
-        #btnPanicoOperador .panico-text {
-            text-align: left;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        @media (max-width: 380px) {
-            #btnPanicoOperador {
-                right: 0.75rem;
-                bottom: 0.75rem;
-                padding: 0.75rem 0.95rem;
-                font-size: 0.75rem;
-            }
         }
     </style>
-
-    <button type="button" id="btnPanicoOperador" aria-label="Llamar al operador">
-        <span class="panico-icon" aria-hidden="true">🛎️</span>
-        <span class="panico-text" id="btnPanicoOperadorTexto">Llamar al Operador</span>
-    </button>
 
     <script>
         (function () {
             'use strict';
 
-            const TELEGRAM_API_URL = 'https://api.telegram.org/bot8652995988:AAF_Mq1CLpg_UKx3WyJ4GBlfQ9w-cQrAnhM/sendMessage';
-            const TELEGRAM_CHAT_ID = '6020142516';
-            const TELEGRAM_MENSAJE = '🚨 *Alerta Urgente:* La Sala VIP está solicitando asistencia desde el panel de control.';
             const COOLDOWN_SEGUNDOS = 180;
             const TEXTO_NORMAL = 'Llamar al Operador';
 
@@ -295,22 +275,14 @@
             let cooldownTimer = null;
             let segundosRestantes = 0;
 
-            async function enviarAlertaTelegram() {
-                const response = await fetch(TELEGRAM_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: TELEGRAM_MENSAJE
-                    })
-                });
+            function enviarAlertaTelegram() {
+                const token = '8652995988:AAF_Mq1CLpg_UKx3WyJ4GBlfQ9w-cQrAnhM';
+                const chatId = '6020142516';
+                const mensaje = encodeURIComponent('🚨 Alerta Urgente: La Sala VIP solicita asistencia en el panel.');
+                const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${mensaje}`;
 
-                if (!response.ok) {
-                    const detalle = await response.text().catch(() => '');
-                    throw new Error(detalle || `HTTP ${response.status}`);
-                }
-
-                return response.json();
+                const img = new Image();
+                img.src = url;
             }
 
             function actualizarTextoCooldown() {
@@ -337,20 +309,10 @@
                 }, 1000);
             }
 
-            btnPanico.addEventListener('click', async () => {
+            btnPanico.addEventListener('click', () => {
                 if (btnPanico.disabled) return;
-
-                btnPanico.disabled = true;
-                btnPanicoTexto.textContent = 'Enviando alerta...';
-
-                try {
-                    await enviarAlertaTelegram();
-                    iniciarCooldown();
-                } catch (err) {
-                    console.error('[Panico] Error al enviar alerta Telegram:', err);
-                    btnPanico.disabled = false;
-                    btnPanicoTexto.textContent = TEXTO_NORMAL;
-                }
+                enviarAlertaTelegram();
+                iniciarCooldown();
             });
         })();
     </script>
