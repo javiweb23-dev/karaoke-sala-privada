@@ -25,7 +25,7 @@
         <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
     </div>
 
-    <video id="karaokePlayer" class="relative z-10" crossorigin="anonymous" playsinline></video>
+    <video id="karaokePlayer" class="relative z-10" playsinline></video>
 
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
         00:00 / 00:00 (Restan: -00:00)
@@ -181,13 +181,14 @@
 
         function aplicarTonoSuave(destino) {
             destino = Math.max(-6, Math.min(6, destino));
-            if (!soundTouchNode || !audioContexto) {
-                semitonos = destino;
+            semitonos = destino;
+            asegurarCadenaParaTono(Math.abs(destino) > 0.01);
+
+            if (!soundTouchNode || !audioContexto || !cadenaConPitch) {
                 return;
             }
 
             const inicio = obtenerPitchActual();
-            semitonos = destino;
 
             if (Math.abs(inicio - destino) < 0.01) {
                 soundTouchNode.pitchSemitones.value = destino;
@@ -322,6 +323,20 @@
             medicionesRMS = [];
         }
 
+        let cadenaConPitch = false;
+
+        function desconectarCadenaAudio() {
+            const nodos = [
+                source, gainNormalizacion, analizadorNorm, hpFilter,
+                ecualizadorBajos, ecualizadorMedios, deEsser, ecualizadorBrillo,
+                soundTouchNode, compressor, limiter, gainFinal
+            ];
+            for (const n of nodos) {
+                if (!n) continue;
+                try { n.disconnect(); } catch (e) {}
+            }
+        }
+
         function conectarCadenaPrincipal(usarPitch) {
             source.connect(gainNormalizacion);
             gainNormalizacion.connect(hpFilter);
@@ -333,14 +348,30 @@
             if (usarPitch && soundTouchNode) {
                 ecualizadorBrillo.connect(soundTouchNode);
                 soundTouchNode.connect(compressor);
+                cadenaConPitch = true;
                 console.log('[Audio] Cadena: fuente→gain→HPF→EQ→SoundTouch→comp→limit→out');
             } else {
                 ecualizadorBrillo.connect(compressor);
+                cadenaConPitch = false;
                 console.log('[Audio] Cadena: fuente→gain→HPF→EQ→comp→limit→out (sin SoundTouch)');
             }
             compressor.connect(limiter);
             limiter.connect(gainFinal);
             gainFinal.connect(audioContexto.destination);
+        }
+
+        function asegurarCadenaParaTono(necesitaPitch) {
+            if (!source || !audioContexto) return;
+            if (necesitaPitch === cadenaConPitch) return;
+            if (necesitaPitch && !soundTouchNode) return;
+            try {
+                desconectarCadenaAudio();
+                conectarCadenaPrincipal(!!necesitaPitch);
+            } catch (e) {
+                console.warn('[Audio] Reconnect pitch falló, audio sin pitch:', e);
+                try { desconectarCadenaAudio(); } catch (err) {}
+                conectarCadenaPrincipal(false);
+            }
         }
 
         function conectarCadenaAudio() {
@@ -400,12 +431,19 @@
             }
 
             if (!soundTouchNode && SoundTouchNodeClass) {
-                soundTouchNode = new SoundTouchNodeClass({ context: audioContexto });
-                soundTouchNode.playbackRate.value = 1;
-                soundTouchNode.pitchSemitones.value = semitonos;
-                configurarSoundTouchCalidad(soundTouchNode);
+                try {
+                    soundTouchNode = new SoundTouchNodeClass({ context: audioContexto });
+                    soundTouchNode.playbackRate.value = 1;
+                    soundTouchNode.pitchSemitones.value = semitonos;
+                    configurarSoundTouchCalidad(soundTouchNode);
+                } catch (e) {
+                    console.warn('[Audio] No se pudo crear SoundTouchNode:', e);
+                    soundTouchNode = null;
+                }
             }
 
+            player.muted = false;
+            player.volume = 1;
             player.preservesPitch = false;
 
             if (!compressor) {
@@ -431,24 +469,14 @@
                 gainFinal.gain.value = p.gainSalida;
             }
 
+            // Por defecto SIN SoundTouch: así hay audio seguro.
+            // SoundTouch solo se inserta cuando el admin cambia el tono.
             try {
-                conectarCadenaPrincipal(!!soundTouchNode);
+                desconectarCadenaAudio();
+                conectarCadenaPrincipal(false);
             } catch (e) {
-                console.warn('[Audio] SoundTouch falló, cadena sin pitch:', e);
-                soundTouchNode = null;
-                try {
-                    source.disconnect();
-                    gainNormalizacion.disconnect();
-                    analizadorNorm.disconnect();
-                    hpFilter.disconnect();
-                    ecualizadorBajos.disconnect();
-                    ecualizadorMedios.disconnect();
-                    deEsser.disconnect();
-                    ecualizadorBrillo.disconnect();
-                    compressor.disconnect();
-                    limiter.disconnect();
-                    gainFinal.disconnect();
-                } catch (err) {}
+                console.warn('[Audio] Cadena falló, reintento simple:', e);
+                try { desconectarCadenaAudio(); } catch (err) {}
                 conectarCadenaPrincipal(false);
             }
         }
@@ -460,7 +488,12 @@
             }
             audioIniciado = true;
 
-            player.crossOrigin = 'anonymous';
+            // Misma origen (videos_locales): NO usar crossOrigin anonymous.
+            // Con anonymous sin CORS el video se ve pero MediaElementSource queda mudo.
+            try { player.removeAttribute('crossorigin'); } catch (e) {}
+            player.crossOrigin = null;
+            player.muted = false;
+            player.volume = 1;
 
             audioContexto = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -476,9 +509,15 @@
                 console.log('[Audio] SoundTouch listo');
             } catch (e) {
                 console.error('[Audio] No se pudo cargar SoundTouch:', e);
+                SoundTouchNodeClass = null;
             }
 
-            conectarCadenaAudio();
+            try {
+                conectarCadenaAudio();
+            } catch (e) {
+                console.error('[Audio] Falló cadena de audio:', e);
+            }
+
             player.addEventListener('playing', () => { asegurarAudioContextoActivo(); });
 
             if (audioContexto.state === 'suspended') {
