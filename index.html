@@ -12,6 +12,7 @@
         .genre-slider-wrap::-webkit-scrollbar { display: none; }
     </style>
     <script src="canciones.js"></script>
+    <script src="videos_disponibles.js"></script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 h-screen overflow-hidden flex flex-col font-sans select-none relative">
 
@@ -278,9 +279,25 @@
             return cancionesPopulares.includes(`${titulo} - ${artista}`);
         }
 
+        function claveArchivoCancion(song) {
+            return `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
+        }
+
+        function cancionTieneVideo(song) {
+            if (typeof VIDEOS_DISPONIBLES === 'undefined' || !VIDEOS_DISPONIBLES) return true;
+            const clave = claveArchivoCancion(song);
+            if (VIDEOS_DISPONIBLES[clave]) return true;
+            if (typeof VIDEOS_DISPONIBLES_NORM !== 'undefined' && VIDEOS_DISPONIBLES_NORM) {
+                const norm = sinAcentos(clave).toUpperCase();
+                if (VIDEOS_DISPONIBLES_NORM[norm]) return true;
+            }
+            return false;
+        }
+
         function obtenerGenerosUnicos() {
             const generos = new Set();
             for (const c of cancionesREAL) {
+                if (!cancionTieneVideo(c)) continue;
                 const g = (c.genero || '').trim();
                 if (g) generos.add(g);
             }
@@ -303,6 +320,7 @@
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
             return cancionesREAL.filter(c => {
+                if (!cancionTieneVideo(c)) return false;
                 const coincideGenero = generoActivo === 'Todos'
                     || sinAcentos(c.genero) === sinAcentos(generoActivo);
                 if (!coincideGenero) return false;

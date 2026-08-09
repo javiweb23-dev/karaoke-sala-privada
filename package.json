@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/verify-deploy.js",
-    "postinstall": "node scripts/copy-soundtouch-lib.js"
+    "postinstall": "node scripts/copy-soundtouch-lib.js",
+    "videos:index": "node scripts/generate-videos-disponibles.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

@@ -9,10 +9,16 @@ const required = [
   'index.html',
   'admin.html',
   'reproductor.html',
-  'canciones.js'
+  'canciones.js',
+  'videos_disponibles.js'
 ];
 
 const optional = ['logo.png', 'carteles_qr_sala_privada.html'];
+
+const genVideos = path.join(root, 'scripts', 'generate-videos-disponibles.js');
+if (fs.existsSync(genVideos)) {
+  execSync('node scripts/generate-videos-disponibles.js', { cwd: root, stdio: 'inherit' });
+}
 
 for (const file of required) {
   if (!fs.existsSync(path.join(root, file))) {

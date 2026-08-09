@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>KARAOKE VIP - Códigos QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 40px; }
+        .container { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin-top: 40px; }
+        .card { background-color: #1a1a1a; border: 2px solid #333; border-radius: 15px; padding: 40px; width: 350px; box-shadow: 0 10px 30px rgba(255, 102, 0, 0.2); }
+        h1 { color: #ff6600; font-size: 3em; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        h2 { color: white; font-size: 1.6em; margin-bottom: 10px; }
+        p { color: #888; font-size: 1.1em; margin-bottom: 30px; }
+        .qr-box { background: white; padding: 20px; border-radius: 10px; display: inline-block; margin-bottom: 20px; }
+        .url { color: #ff6600; font-weight: bold; word-break: break-all; margin-top: 15px; font-size: 1.1em; }
+        .btn-print { margin-top: 50px; background-color: #ff6600; color: white; padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .btn-print:hover { background-color: #e65c00; }
+        @media print {
+            body { background-color: white; color: black; padding: 0; }
+            .card { background-color: white; border: 2px solid #ccc; box-shadow: none; break-inside: avoid; }
+            h1, .url { color: black; }
+            .btn-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 KARAOKE VIP</h1>
+    <p style="color:#ccc; font-size:1.4em;">Accesos Oficiales de la Sala Privada</p>
+
+    <div class="container">
+        <!-- Tarjeta Cliente -->
+        <div class="card">
+            <h2>PIDE TU CANCIÓN</h2>
+            <p>📱 Escanea para abrir el catálogo</p>
+            <div class="qr-box" id="qr-cliente"></div>
+            <div class="url">https://karaoke-sala-privada.vercel.app/index.html</div>
+        </div>
+
+        <!-- Tarjeta Admin -->
+        <div class="card">
+            <h2>CONTROL REMOTO</h2>
+            <p>🎛️ Acceso exclusivo Staff (Con PIN)</p>
+            <div class="qr-box" id="qr-admin"></div>
+            <div class="url">https://karaoke-sala-privada.vercel.app/admin.html</div>
+        </div>
+    </div>
+
+    <div>
+        <h2 style="margin-top: 50px; color:#ff6600;">📺 URL DEL REPRODUCTOR (TV LOCAL)</h2>
+        <p style="font-size:1.3em;">http://127.0.0.1:5500/reproductor.html</p>
+        <p style="font-size:0.9em; color:#666;">(Este enlace solo funciona en la PC de la sala conectada a la TV)</p>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Carteles QR</button>
+
+    <script>
+        // Generar QR Cliente
+        new QRCode(document.getElementById("qr-cliente"), {
+            text: "https://karaoke-sala-privada.vercel.app/index.html",
+            width: 250,
+            height: 250,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        // Generar QR Admin
+        new QRCode(document.getElementById("qr-admin"), {
+            text: "https://karaoke-sala-privada.vercel.app/admin.html",
+            width: 250,
+            height: 250,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    </script>
+</body>
+</html>
