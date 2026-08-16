@@ -4,7 +4,8 @@
   "scripts": {
     "build": "node scripts/verify-deploy.js",
     "postinstall": "node scripts/copy-soundtouch-lib.js",
-    "videos:index": "node scripts/generate-videos-disponibles.js"
+    "videos:index": "node scripts/sync-catalogo-desde-videos.js && node scripts/generate-videos-disponibles.js",
+    "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

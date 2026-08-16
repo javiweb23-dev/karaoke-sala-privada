@@ -8,24 +8,43 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="videos_disponibles.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: contain; display: none; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            overflow: hidden;
+        }
+        /* Siempre visible y a pantalla completa.
+           display:none + play() deja el video en negro en Chrome. */
+        #karaokePlayer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            object-fit: contain;
+            background: #000;
+            display: block;
+            z-index: 10;
+        }
     </style>
 </head>
-<body class="flex flex-col justify-center items-center text-white font-sans select-none">
+<body class="text-white font-sans select-none">
 
-    <div id="activationWall" class="absolute inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
+    <div id="activationWall" class="fixed inset-0 bg-zinc-950 flex flex-col justify-center items-center z-50 cursor-pointer">
         <h1 class="text-3xl font-bold text-amber-400 animate-pulse">SALA PRIVADA LISTA</h1>
         <p class="text-zinc-500 mt-2 text-lg">Haz un clic para iniciar el sistema</p>
     </div>
 
-    <div id="lobbyScreen" class="text-center w-full absolute inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
+    <div id="lobbyScreen" class="text-center w-full fixed inset-0 flex flex-col justify-center items-center bg-zinc-950 z-40">
         <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
         <h3 id="singerName" class="text-2xl font-bold text-emerald-400 mt-4 hidden"></h3>
         <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
     </div>
 
-    <video id="karaokePlayer" class="relative z-10" playsinline></video>
+    <video id="karaokePlayer" playsinline webkit-playsinline></video>
 
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
         00:00 / 00:00 (Restan: -00:00)
@@ -666,7 +685,6 @@
                 lobbyMessage.innerText    = "ESPERANDO SOLICITUDES...";
                 singerName.classList.add('hidden');
                 countdownText.classList.add('hidden');
-                player.style.display = 'none';
                 timeCounter.classList.add('hidden');
                 return;
             }
@@ -684,7 +702,6 @@
 
             resetTono(true);
 
-            player.style.display = 'none';
             timeCounter.classList.add('hidden');
             lobbyScreen.style.display = 'flex';
             lobbyMessage.innerText = `PRÓXIMO TEMA:\n${solicitud.cancion_info}`;
@@ -713,7 +730,6 @@
             lobbyMessage.innerText = `CARGANDO:\n${nombre}`;
             singerName.classList.remove('hidden');
             countdownText.classList.add('hidden');
-            player.style.display = 'none';
             timeCounter.classList.add('hidden');
 
             try {
@@ -729,7 +745,6 @@
                 resetTono(true);
 
                 lobbyScreen.style.display = 'none';
-                player.style.display = 'block';
                 timeCounter.classList.remove('hidden');
 
                 player.onended = () => {
@@ -772,7 +787,6 @@
             idActual  = null;
 
             timeCounter.classList.add('hidden');
-            player.style.display = 'none';
 
             detenerNormalizacion();
             resetTono(true);
