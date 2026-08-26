@@ -997,7 +997,8 @@
         const codigoSala      = document.getElementById('codigoSala');
         const codigoSalaValor = document.getElementById('codigoSalaValor');
 
-        let sesionActual = null;
+        let sesionActual   = null;
+        let pinReintentado = false;
 
         function pinOperadorTv(forzar) {
             let pin = localStorage.getItem('karaoke_pin_operador');
@@ -1028,6 +1029,16 @@
                 if (!data.ok) {
                     if (data.error === 'PIN incorrecto') {
                         localStorage.removeItem('karaoke_pin_operador');
+
+                        // Volver a preguntarlo en el momento, sin obligar a
+                        // recargar. Solo una vez por carga: este refresco corre
+                        // cada 15 s y seria insoportable un prompt cada vez.
+                        if (!pinReintentado) {
+                            pinReintentado = true;
+                            if (pinOperadorTv(true)) return refrescarSesion();
+                        }
+                    } else {
+                        console.warn('[Sesion]', data.error || 'error desconocido');
                     }
                     sesionActual = null;
                     codigoSala.classList.add('hidden');
