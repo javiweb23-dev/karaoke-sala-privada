@@ -55,6 +55,44 @@
 
     <video id="karaokePlayer" playsinline webkit-playsinline></video>
 
+    <!-- Pantalla de despedida. Va aparte del lobby porque no es un mensaje mas:
+         es lo ultimo que ve el grupo y lo que queda puesto mientras recogen.
+         Tamaños pensados para leerse desde el otro lado de la sala. -->
+    <div id="despedidaScreen" class="hidden fixed inset-0 z-50 bg-zinc-950 flex flex-col justify-center items-center text-center px-10">
+        <p class="text-zinc-500 text-2xl font-bold tracking-[0.35em] uppercase mb-6">Sesión finalizada</p>
+
+        <h1 class="text-6xl md:text-7xl font-black text-amber-400 leading-tight mb-14">
+            ¡Gracias por visitarnos!
+        </h1>
+
+        <div class="flex items-center gap-5 bg-zinc-900/80 border border-zinc-800 rounded-3xl px-10 py-6">
+            <svg viewBox="0 0 24 24" class="w-16 h-16 shrink-0" aria-hidden="true">
+                <defs>
+                    <linearGradient id="igGradTv" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%"   stop-color="#FEDA75"/>
+                        <stop offset="25%"  stop-color="#FA7E1E"/>
+                        <stop offset="50%"  stop-color="#D62976"/>
+                        <stop offset="75%"  stop-color="#962FBF"/>
+                        <stop offset="100%" stop-color="#4F5BD5"/>
+                    </linearGradient>
+                </defs>
+                <rect x="2" y="2" width="20" height="20" rx="5.5"
+                      fill="none" stroke="url(#igGradTv)" stroke-width="2"/>
+                <circle cx="12" cy="12" r="4.2"
+                        fill="none" stroke="url(#igGradTv)" stroke-width="2"/>
+                <circle cx="17.4" cy="6.6" r="1.3" fill="url(#igGradTv)"/>
+            </svg>
+            <div class="text-left">
+                <p class="text-zinc-400 text-xl font-medium leading-snug">
+                    Recuerden etiquetarnos y seguirnos
+                </p>
+                <p class="text-white text-4xl font-black tracking-tight mt-1">
+                    @mikaraokelatino
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- Reloj de la sesion. Arriba a la izquierda, que es la esquina que
          estaba libre: el contador de la cancion vive abajo a la derecha. -->
     <div id="relojSesion" class="fixed top-4 left-4 z-50 pointer-events-none hidden">
@@ -765,6 +803,7 @@
 
         const codigoSala      = document.getElementById('codigoSala');
         const codigoSalaValor = document.getElementById('codigoSalaValor');
+        const despedidaScreen = document.getElementById('despedidaScreen');
         const relojSesion     = document.getElementById('relojSesion');
         const relojSesionValor = document.getElementById('relojSesionValor');
         const avisoSesion     = document.getElementById('avisoSesion');
@@ -825,6 +864,7 @@
                 avisosVistos = {};
                 faseSesion = null;
                 detenerMusicaCierre();
+                despedidaScreen.classList.add('hidden');
 
                 if (sistemaIniciado) {
                     systemActive = true;
@@ -855,14 +895,18 @@
             codigoSala.classList.add('hidden');
             timeCounter.classList.add('hidden');
 
-            lobbyScreen.style.display = 'flex';
-            // Si venimos de agotar el tiempo, se deja la despedida puesta: es
-            // mas amable que un "SALA CERRADA" seco justo al terminar.
-            lobbyMessage.innerText = cerrandoPorTiempo
-                ? 'SESIÓN FINALIZADA\n\n¡Gracias por visitarnos!'
-                : 'SALA CERRADA\n\nEsperando al operador';
             singerName.classList.add('hidden');
             countdownText.classList.add('hidden');
+
+            // Si venimos de agotar el tiempo se deja la despedida puesta: es
+            // mas amable que un "SALA CERRADA" seco justo al terminar.
+            if (cerrandoPorTiempo) {
+                despedidaScreen.classList.remove('hidden');
+            } else {
+                despedidaScreen.classList.add('hidden');
+                lobbyScreen.style.display = 'flex';
+                lobbyMessage.innerText = 'SALA CERRADA\n\nEsperando al operador';
+            }
         }
 
         // El servidor manda los segundos que quedan cada 15 s; entre medias se
@@ -984,10 +1028,9 @@
             if (relojIntervalo) { clearInterval(relojIntervalo); relojIntervalo = null; }
             relojSesion.classList.add('hidden');
 
-            lobbyScreen.style.display = 'flex';
-            lobbyMessage.innerText = 'SESIÓN FINALIZADA\n\n¡Gracias por visitarnos!';
             singerName.classList.add('hidden');
             countdownText.classList.add('hidden');
+            despedidaScreen.classList.remove('hidden');
 
             iniciarMusicaCierre();
             cerrarSesionPorTiempo();
