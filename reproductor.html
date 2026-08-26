@@ -891,7 +891,27 @@
             const codigo = evento.data;
             const motivo = ERRORES_YT[codigo] || ('codigo ' + codigo);
             console.warn('[YT] error de reproduccion:', codigo, motivo);
-            if (ytEsperando) ytEsperando.fallo(motivo);
+            if (ytEsperando) ytEsperando.fallo(motivo, codigo);
+        }
+
+        // Estos codigos significan que el video no sirve y no va a servir
+        // nunca: no tiene sentido volver a ofrecerlo en futuras busquedas.
+        const CODIGOS_PARA_VETAR = [100, 101, 150];
+
+        async function vetarVideo(videoId, motivo, consulta) {
+            const pin = localStorage.getItem('karaoke_pin_operador');
+            if (!pin) return;
+
+            try {
+                await fetch(`${API_BASE}/api/vetar-video`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin, video_id: videoId, motivo, consulta })
+                });
+                console.info('[YT] video vetado para futuras busquedas:', videoId);
+            } catch (e) {
+                console.warn('[YT] no se pudo vetar:', e.message);
+            }
         }
 
         function mostrarYouTube(visible) {
@@ -925,11 +945,13 @@
                         limpiar();
                         resolve();
                     },
-                    fallo: (motivo) => {
+                    fallo: (motivo, codigo) => {
                         if (resuelto) return;
                         resuelto = true;
                         limpiar();
-                        reject(new Error(motivo));
+                        const err = new Error(motivo);
+                        err.codigo = codigo;
+                        reject(err);
                     }
                 };
 
@@ -972,6 +994,12 @@
                 } catch (err) {
                     ultimoError = err;
                     console.warn('[YT] fallo el video', id, '-', err.message);
+
+                    // Se apunta para que no vuelva a salir en las busquedas.
+                    // La API lo daba por bueno; solo la TV descubre la verdad.
+                    if (CODIGOS_PARA_VETAR.includes(err.codigo)) {
+                        vetarVideo(id, err.message, solicitud.cancion_info);
+                    }
                 }
             }
 

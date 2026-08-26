@@ -28,6 +28,12 @@ async function leerCache(consultaNorm) {
     return filas && filas.length ? filas[0].resultados : null;
 }
 
+// Videos que ya reventaron en la TV. Son pocos, asi que se traen enteros.
+async function leerVetados() {
+    const filas = await supabaseFetch('videos_vetados?select=video_id&limit=2000');
+    return new Set((filas || []).map((f) => f.video_id));
+}
+
 async function guardarCache(consultaNorm, resultados) {
     await supabaseFetch('youtube_cache?on_conflict=consulta_norm', {
         method: 'POST',
@@ -74,17 +80,25 @@ module.exports = async (req, res) => {
     const region = sanitizeEnv(process.env.KARAOKE_REGION) || 'VE';
 
     try {
+        const vetados = await leerVetados();
+
         const cacheado = await leerCache(consultaNorm);
         if (cacheado) {
-            return res.status(200).json({
-                ok: true,
-                configurado: true,
-                desdeCache: true,
-                candidatos: cacheado
-            });
+            // El cache dura 60 dias, asi que puede tener videos que se vetaron
+            // despues de guardarlo. Se filtran al vuelo.
+            const limpios = cacheado.filter((c) => !vetados.has(c.videoId));
+            if (limpios.length > 0) {
+                return res.status(200).json({
+                    ok: true,
+                    configurado: true,
+                    desdeCache: true,
+                    candidatos: limpios
+                });
+            }
+            // Si el veto se llevo todos, se vuelve a buscar de verdad.
         }
 
-        const candidatos = await resolverKaraoke(consulta, { apiKey, region });
+        const candidatos = await resolverKaraoke(consulta, { apiKey, region, vetados });
 
         // Se cachea incluso el resultado vacio: si esa busqueda no da nada,
         // no tiene sentido gastar 100 unidades otra vez mañana.

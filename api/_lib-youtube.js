@@ -233,8 +233,15 @@ async function detallarVideos(ids, apiKey, region) {
 }
 
 // Busca, valida y devuelve los mejores candidatos ya ordenados.
-async function resolverKaraoke(consulta, { apiKey, region, maxCandidatos = 4 }) {
+//
+// `vetados` son IDs que ya fallaron al reproducirse en la TV. YouTube los
+// declara embeddable=true igual, asi que este filtro es la unica defensa.
+async function resolverKaraoke(consulta, { apiKey, region, maxCandidatos = 4, vetados }) {
     const consultaNorm = norm(consulta);
+    const vetadosSet = vetados instanceof Set
+        ? vetados
+        : new Set(Array.isArray(vetados) ? vetados : []);
+
     const crudos = await buscarEnYouTube(consulta, apiKey, region);
     if (crudos.length === 0) return [];
 
@@ -243,6 +250,7 @@ async function resolverKaraoke(consulta, { apiKey, region, maxCandidatos = 4 }) 
 
     return crudos
         .map((v) => {
+            if (vetadosSet.has(v.videoId)) return null;
             const d = detalles.get(v.videoId);
             if (!d) return null;
             if (!d.embebible || !d.publico || d.bloqueado) return null;
