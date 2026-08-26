@@ -2133,7 +2133,6 @@ const cancionesREAL = [
 { id: 2186, artista: "USHER", titulo: "YOU MAKE ME WANNA", genero: "POP", idioma: "INGLES" },
 { id: 2187, artista: "VANILLA ICE", titulo: "ICE ICE BABY", genero: "POP", idioma: "INGLES" },
 { id: 1720, artista: "VARIOS", titulo: "ALEJANDRA GUZMAN -VOLVERTE A AMAR", genero: "POP", idioma: "ESPAÑOL" },
-{ id: 1721, artista: "VARIOS", titulo: "KAREN_MARTELLO_REBOBINANDO_A_-_CAMILO_SESTO", genero: "POP", idioma: "ESPAÑOL" },
 { id: 1722, artista: "VENEZUELA HABLA GAITEANDO", titulo: "LA VOY A TOCAR A PIE", genero: "GAITA", idioma: "ESPAÑOL" },
 { id: 2188, artista: "VENGABOYS", titulo: "BOOM BOOM BOOM", genero: "POP", idioma: "ESPAÑOL" },
 { id: 2189, artista: "VENGABOYS", titulo: "WE LIKE TO PARTY", genero: "POP", idioma: "INGLES" },
