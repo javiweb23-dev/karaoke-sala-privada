@@ -29,6 +29,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { crearXlsx } = require('./lib-xlsx');
 
 const root = path.join(__dirname, '..');
 const catalogFile = path.join(root, 'canciones.js');
@@ -41,11 +42,14 @@ function opcion(nombre, porDefecto) {
     return found.slice(nombre.length + 3).replace(/^["']|["']$/g, '');
 }
 
-const MIN_CANCIONES = Number(opcion('min', 2));
+// Por defecto entran TODOS los artistas, incluidos los que solo tienen una
+// cancion tuya: ahi es justo donde mas falta hace (Palito Ortega tiene una
+// sola en el catalogo y muchos temas conocidos que no estan).
+const MIN_CANCIONES = Number(opcion('min', 1));
 const LIMITE_ARTISTAS = Number(opcion('limite', 60));
 const MAX_SUGERENCIAS = Number(opcion('max', 6));
 const SOLO_ARTISTA = opcion('solo', '');
-const SALIDA = path.join(root, opcion('salida', 'SUGERENCIAS.md'));
+const SALIDA = path.join(root, opcion('salida', 'SUGERENCIAS.xlsx'));
 
 // Deezer permite unas 50 peticiones cada 5 segundos. Vamos muy por debajo.
 const PAUSA_MS = 350;
@@ -329,8 +333,7 @@ async function main() {
     }
 
     // El informe se arma con TODO lo cacheado, no solo con lo de esta corrida.
-    const bloques = [];
-    let totalSugerencias = 0;
+    const filas = [];
 
     for (const artista of artistas) {
         const datos = cache[norm(artista.nombre)];
@@ -339,43 +342,45 @@ async function main() {
         const faltantes = faltantesDe(datos, artista.titulos);
         if (faltantes.length === 0) continue;
 
-        totalSugerencias += faltantes.length;
-
-        // Si Deezer resolvio a otro nombre, se avisa: puede ser un acierto
-        // (Adolescent's Orquesta) o una confusion que conviene revisar.
-        const aclaracion = norm(datos.nombreDeezer) !== norm(artista.nombre)
-            ? ` <sub>· en Deezer: ${datos.nombreDeezer}</sub>`
+        // Si Deezer resolvio a otro nombre puede ser un acierto (Adolescent's
+        // Orquesta) o una confusion. Va en su columna para poder revisarlo.
+        const otroNombre = norm(datos.nombreDeezer) !== norm(artista.nombre)
+            ? datos.nombreDeezer
             : '';
 
-        bloques.push(
-            `## ${artista.nombre}${aclaracion}`,
-            `<sub>ya tienes ${artista.titulos.size} suyas</sub>`,
-            '',
-            ...faltantes.map(
-                (f) => `- [ ] **${f.titulo}**  <sub>${estrellas(f.rank)}</sub>`
-            ),
-            ''
-        );
+        for (const f of faltantes) {
+            filas.push([
+                artista.nombre,
+                f.titulo,
+                estrellas(f.rank),
+                f.rank,
+                artista.titulos.size,
+                `${artista.nombre} - ${f.titulo}.mp4`,
+                otroNombre,
+                ''   // columna vacia para ir marcando lo descargado
+            ]);
+        }
     }
 
-    const cabecera = [
-        '# Canciones que te faltan',
-        '',
-        `**${totalSugerencias} sugerencias** de artistas que ya tienes en el catálogo.`,
-        '',
-        'Ordenadas por popularidad real (Deezer). Las de ★★★★★ son himnos:',
-        'empieza por esas.',
-        '',
-        `Generado por \`npm run sugerencias\` — ${new Date().toLocaleDateString('es')}`,
-        '',
-        '---',
-        ''
+    // Las mas famosas arriba: es el orden en que conviene descargarlas.
+    // En Excel se puede reordenar por artista con un clic en el filtro.
+    filas.sort((a, b) => b[3] - a[3]);
+
+    const cabeceras = [
+        'Artista', 'Canción', 'Popularidad', 'Puntos', 'Ya tengo',
+        'Nombre para el archivo', 'Ojo: en Deezer es', 'Descargada'
     ];
 
-    fs.writeFileSync(SALIDA, cabecera.concat(bloques).join('\n'), 'utf8');
+    fs.writeFileSync(
+        SALIDA,
+        crearXlsx(cabeceras, filas, {
+            nombreHoja: 'Por descargar',
+            anchos: [26, 38, 13, 9, 9, 52, 22, 12]
+        })
+    );
 
-    console.log(`\n${totalSugerencias} sugerencias.`);
-    console.log(`Informe: ${path.basename(SALIDA)}`);
+    console.log(`\n${filas.length} canciones sugeridas.`);
+    console.log(`Excel: ${path.basename(SALIDA)}`);
 
     const quedan = pendientes.length - aConsultar.length;
     if (quedan > 0) {

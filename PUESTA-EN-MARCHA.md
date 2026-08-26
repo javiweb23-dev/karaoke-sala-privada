@@ -57,19 +57,37 @@ npm run sugerencias
 ```
 
 Para cada artista que **ya tienes**, busca sus canciones más populares que te
-faltan y las deja en `SUGERENCIAS.md`, con casillas para ir marcando.
+faltan y genera **`SUGERENCIAS.xlsx`**, listo para abrir en Excel.
 
 Usa la API pública de Deezer (gratis, sin clave), que publica un ranking de
 popularidad real. Las de ★★★★★ son himnos: empieza por esas.
+
+Columnas de la hoja:
+
+| Columna | Para qué |
+|---|---|
+| Artista / Canción | Lo que hay que buscar |
+| Popularidad | ★ a ★★★★★, de un vistazo |
+| Puntos | El número exacto, por si quieres ordenar fino |
+| Ya tengo | Cuántas suyas hay en el catálogo |
+| **Nombre para el archivo** | Cópialo tal cual al renombrar el MP4 |
+| Ojo: en Deezer es | Solo si resolvió a otro nombre — ahí revisa |
+| Descargada | Vacía, para que marques |
+
+La fila de títulos viene congelada y con filtros: puedes ordenar por artista,
+por popularidad, o filtrar los que ya descargaste, sin tocar nada.
 
 Opciones útiles:
 
 | Opción | Para qué |
 |---|---|
-| `--min=5` | Solo artistas de los que ya tengas 5+ canciones |
 | `--limite=60` | Cuántos artistas consultar por corrida |
 | `--solo="GUACO"` | Un solo artista |
-| `--max=10` | Cuántas sugerencias por artista |
+| `--max=10` | Cuántas sugerencias por artista (por defecto 6) |
+| `--min=4` | Solo artistas de los que ya tengas 4+ canciones |
+
+> Por defecto entran **todos** los artistas, incluidos los que solo tienen una
+> canción tuya. Ahí está el mayor margen: tienes 440 artistas así.
 
 Va guardando lo consultado, así que puedes cortarlo con Ctrl+C y relanzarlo:
 sigue donde quedó. Cuando diga *"Quedan N artistas"*, vuelve a correr lo mismo.
