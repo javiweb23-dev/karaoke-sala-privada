@@ -90,7 +90,9 @@ function comparaSecreto(a, b) {
 function pinValido(pinRecibido) {
     const esperado = sanitizeEnv(process.env.ADMIN_PIN);
     if (!esperado) return false;
-    return comparaSecreto(pinRecibido, esperado);
+    // Se recorta tambien lo que llega: un espacio de mas al teclearlo en el
+    // celular no deberia parecer un PIN equivocado.
+    return comparaSecreto(String(pinRecibido || '').trim(), esperado);
 }
 
 function hayPinConfigurado() {
