@@ -53,6 +53,23 @@
 
     <video id="karaokePlayer" playsinline webkit-playsinline></video>
 
+    <!-- Reloj de la sesion. Arriba a la izquierda, que es la esquina que
+         estaba libre: el contador de la cancion vive abajo a la derecha. -->
+    <div id="relojSesion" class="fixed top-4 left-4 z-50 pointer-events-none hidden">
+        <div class="bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 rounded-xl px-4 py-2.5 shadow-lg shadow-black/50">
+            <p class="text-zinc-500 text-[10px] uppercase tracking-[0.2em] leading-none mb-1.5">Tiempo restante</p>
+            <div id="relojSesionValor" class="text-2xl font-mono font-black text-emerald-400 leading-none">--:--</div>
+        </div>
+    </div>
+
+    <!-- Aviso grande de fin de sesion, encima de todo. -->
+    <div id="avisoSesion" class="fixed inset-x-0 top-0 z-[60] hidden">
+        <div id="avisoSesionCaja" class="mx-auto mt-6 max-w-3xl bg-amber-500 text-black rounded-2xl px-8 py-5 shadow-2xl text-center">
+            <p id="avisoSesionTitulo" class="text-3xl font-black tracking-tight"></p>
+            <p id="avisoSesionTexto" class="text-lg font-bold mt-1.5 leading-snug"></p>
+        </div>
+    </div>
+
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
         00:00 / 00:00 (Restan: -00:00)
     </div>
@@ -718,9 +735,143 @@
 
         const codigoSala      = document.getElementById('codigoSala');
         const codigoSalaValor = document.getElementById('codigoSalaValor');
+        const relojSesion     = document.getElementById('relojSesion');
+        const relojSesionValor = document.getElementById('relojSesionValor');
+        const avisoSesion     = document.getElementById('avisoSesion');
+        const avisoSesionCaja = document.getElementById('avisoSesionCaja');
+        const avisoSesionTitulo = document.getElementById('avisoSesionTitulo');
+        const avisoSesionTexto  = document.getElementById('avisoSesionTexto');
 
         let sesionActual   = null;
         let pinReintentado = false;
+
+        // El servidor manda los segundos que quedan cada 15 s; entre medias se
+        // descuenta aqui para que el reloj avance suave. Asi el reloj de la TV
+        // puede estar desajustado sin que la cuenta salga mal.
+        let segundosRestantes = null;
+        let faseSesion        = null;
+        let avisosVistos      = {};
+        let relojIntervalo    = null;
+
+        function formatReloj(seg) {
+            const negativo = seg < 0;
+            const s = Math.abs(seg);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const ss = Math.floor(s % 60);
+            const cuerpo = h > 0
+                ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
+                : `${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+            return negativo ? `-${cuerpo}` : cuerpo;
+        }
+
+        function mostrarAvisoSesion(titulo, texto, color, segundos) {
+            avisoSesionTitulo.innerText = titulo;
+            avisoSesionTexto.innerText = texto;
+            avisoSesionCaja.className =
+                `mx-auto mt-6 max-w-3xl ${color} rounded-2xl px-8 py-5 shadow-2xl text-center`;
+            avisoSesion.classList.remove('hidden');
+
+            if (segundos) {
+                setTimeout(() => avisoSesion.classList.add('hidden'), segundos * 1000);
+            }
+        }
+
+        // Calcula la fase aqui y no en el servidor para que el cambio ocurra
+        // en el segundo exacto, sin esperar al siguiente refresco.
+        function faseDe(seg) {
+            if (seg === null) return null;
+            const gracia = (sesionActual && sesionActual.segundos_gracia) || 600;
+            if (seg <= -gracia) return 'terminada';
+            if (seg <= 0) return 'cortesia';
+            if (seg <= 15 * 60) return 'por_terminar';
+            return 'corriendo';
+        }
+
+        function pintarReloj() {
+            if (segundosRestantes === null) {
+                relojSesion.classList.add('hidden');
+                return;
+            }
+
+            relojSesion.classList.remove('hidden');
+            relojSesionValor.innerText = formatReloj(segundosRestantes);
+
+            const fase = faseDe(segundosRestantes);
+            relojSesionValor.className = 'text-2xl font-mono font-black leading-none ' + (
+                fase === 'corriendo'    ? 'text-emerald-400' :
+                fase === 'por_terminar' ? 'text-amber-400' :
+                fase === 'cortesia'     ? 'text-orange-400' :
+                                          'text-red-500'
+            );
+
+            if (fase !== faseSesion) {
+                faseSesion = fase;
+                alCambiarFase(fase);
+            }
+        }
+
+        function alCambiarFase(fase) {
+            // Cada aviso se enseña una sola vez por sesion.
+            const yaVisto = avisosVistos[fase];
+
+            if (fase === 'por_terminar' && !yaVisto) {
+                avisosVistos[fase] = true;
+                mostrarAvisoSesion(
+                    'QUEDAN 15 MINUTOS',
+                    'Si desean una hora adicional, por favor llamen al operador.',
+                    'bg-amber-500 text-black',
+                    30
+                );
+                reproducirEfecto('corneta');
+            }
+
+            if (fase === 'cortesia' && !yaVisto) {
+                avisosVistos[fase] = true;
+                const min = (sesionActual && sesionActual.minutos_gracia) || 10;
+                mostrarAvisoSesion(
+                    'TIEMPO CUMPLIDO',
+                    `Les regalamos ${min} minutos más. ¡Aprovechen la última!`,
+                    'bg-orange-500 text-black',
+                    45
+                );
+            }
+
+            if (fase === 'terminada') {
+                terminarSesionEnPantalla();
+            }
+        }
+
+        function terminarSesionEnPantalla() {
+            systemActive = false;
+            cancelarCuentaRegresiva();
+
+            try {
+                player.pause();
+                player.removeAttribute('src');
+                player.load();
+            } catch (e) {}
+
+            isPlaying = false;
+            idActual = null;
+            timeCounter.classList.add('hidden');
+            codigoSala.classList.add('hidden');
+            avisoSesion.classList.add('hidden');
+
+            lobbyScreen.style.display = 'flex';
+            lobbyMessage.innerText = 'SESIÓN FINALIZADA\n\n¡Gracias por visitarnos!';
+            singerName.classList.add('hidden');
+            countdownText.classList.add('hidden');
+        }
+
+        function arrancarReloj() {
+            if (relojIntervalo) return;
+            relojIntervalo = setInterval(() => {
+                if (segundosRestantes === null) return;
+                segundosRestantes--;
+                pintarReloj();
+            }, 1000);
+        }
 
         function pinOperadorTv(forzar) {
             let pin = localStorage.getItem('karaoke_pin_operador');
@@ -767,13 +918,36 @@
                     return;
                 }
 
+                const anterior = sesionActual;
                 sesionActual = data.sesion || null;
+
+                // Sesion distinta: se olvidan los avisos ya enseñados y se
+                // vuelve a activar el sistema por si quedo parado del grupo
+                // anterior.
+                if (!anterior || !sesionActual || anterior.id !== sesionActual.id) {
+                    avisosVistos = {};
+                    faseSesion = null;
+                    avisoSesion.classList.add('hidden');
+                    if (sesionActual && sistemaIniciado) systemActive = true;
+                }
 
                 if (sesionActual) {
                     codigoSalaValor.innerText = sesionActual.codigo;
                     codigoSala.classList.remove('hidden');
                 } else {
                     codigoSala.classList.add('hidden');
+                }
+
+                // El servidor manda los segundos que quedan; el reloj local se
+                // reajusta a ese valor en cada refresco.
+                if (sesionActual && sesionActual.programada) {
+                    segundosRestantes = sesionActual.segundos_restantes;
+                    arrancarReloj();
+                    pintarReloj();
+                } else {
+                    segundosRestantes = null;
+                    faseSesion = null;
+                    relojSesion.classList.add('hidden');
                 }
             } catch (e) {
                 console.warn('[Sesion] No se pudo consultar:', e.message);

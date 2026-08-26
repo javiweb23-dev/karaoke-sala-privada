@@ -453,7 +453,20 @@
                 if (i) cuenta.set(i, (cuenta.get(i) || 0) + 1);
             }
             // De mas a menos canciones: el idioma principal queda primero.
-            return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+            return [...cuenta.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .map(([idioma, total]) => ({ idioma, total }));
+        }
+
+        // Con la bandera al lado, tres letras bastan y dejan sitio al conteo.
+        function abreviarIdioma(idioma) {
+            const t = sinAcentos(idioma).toUpperCase();
+            if (t.startsWith('ESP')) return 'ESP';
+            if (t.startsWith('ING')) return 'ING';
+            if (t.startsWith('ITA')) return 'ITA';
+            if (t.startsWith('POR')) return 'POR';
+            if (t.startsWith('FRA')) return 'FRA';
+            return t.slice(0, 3);
         }
 
         function banderaDe(idioma) {
@@ -484,11 +497,13 @@
                 cont.appendChild(b);
             };
 
-            crear('Todos', '🌐 Todos');
-            for (const i of idiomas) {
-                // Solo la primera letra en mayuscula: "ESPAÑOL" grita de más.
-                const bonito = i.charAt(0).toUpperCase() + i.slice(1).toLowerCase();
-                crear(i, `${banderaDe(i)} ${bonito}`);
+            const total = idiomas.reduce((s, x) => s + x.total, 0);
+            crear('Todos', `🌐 ${total}`);
+
+            // El conteo sirve a los dos lados: el cliente ve cuanto hay de lo
+            // suyo, y tu ves de un vistazo que idioma conviene ir engordando.
+            for (const { idioma, total: n } of idiomas) {
+                crear(idioma, `${banderaDe(idioma)} ${abreviarIdioma(idioma)} ${n}`);
             }
         }
 

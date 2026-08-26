@@ -240,10 +240,108 @@
                 <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Código en pantalla</p>
                 <div class="text-5xl font-black text-amber-400 tracking-[0.25em] mb-1">${data.sesion.codigo}</div>
                 <p class="text-zinc-600 text-[11px] mb-4">Abierta desde las ${hora}</p>
+                <div id="panelTiempo" class="border-t border-zinc-800 pt-4 mb-4"></div>
                 <button onclick="cerrarSesion()"
                     class="w-full bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 text-red-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
                     ■ Cerrar sesión
                 </button>`;
+
+            pintarPanelTiempo(data.sesion);
+        }
+
+        // ------------------------------------------------------------------
+        // Tiempo contratado
+        // ------------------------------------------------------------------
+
+        function formatRestante(seg) {
+            const s = Math.abs(seg);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const txt = h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
+            return seg < 0 ? `-${txt}` : txt;
+        }
+
+        function pintarPanelTiempo(sesion) {
+            const cont = document.getElementById('panelTiempo');
+            if (!cont) return;
+
+            // Todavia sin programar: se pide hora de inicio y horas pagadas.
+            if (!sesion.programada) {
+                const ahora = new Date();
+                const hhmm = String(ahora.getHours()).padStart(2, '0') + ':' +
+                             String(ahora.getMinutes()).padStart(2, '0');
+
+                cont.innerHTML = `
+                    <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-3">Tiempo contratado</p>
+                    <div class="flex items-center gap-2 mb-3">
+                        <input type="time" id="inicioSesion" value="${hhmm}"
+                            class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg py-2 px-2 text-zinc-100 text-sm text-center">
+                        <input type="number" id="horasSesion" value="3" min="0.5" max="24" step="0.5"
+                            class="w-20 bg-zinc-900 border border-zinc-700 rounded-lg py-2 px-2 text-zinc-100 text-sm text-center">
+                        <span class="text-zinc-500 text-xs">horas</span>
+                    </div>
+                    <button onclick="programarTiempo()"
+                        class="w-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-bold py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                        ⏱ Iniciar conteo
+                    </button>`;
+                return;
+            }
+
+            const seg = sesion.segundos_restantes;
+            const fin = new Date(sesion.fin_previsto)
+                .toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+
+            let color = 'text-emerald-400';
+            let nota = `Termina a las ${fin}`;
+            if (sesion.fase === 'por_terminar') {
+                color = 'text-amber-400';
+                nota = `Termina a las ${fin} — avisando en la TV`;
+            } else if (sesion.fase === 'cortesia') {
+                color = 'text-orange-400';
+                nota = `Tiempo agotado · cortesía de ${sesion.minutos_gracia} min`;
+            } else if (sesion.fase === 'terminada') {
+                color = 'text-red-400';
+                nota = 'Sesión finalizada en la TV';
+            }
+
+            cont.innerHTML = `
+                <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Tiempo restante</p>
+                <div class="text-3xl font-black ${color} mb-1">${formatRestante(seg)}</div>
+                <p class="text-zinc-600 text-[11px] mb-3">${nota}</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="extenderTiempo(30)"
+                        class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">+30 min</button>
+                    <button onclick="extenderTiempo(60)"
+                        class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">+1 hora</button>
+                    <button onclick="extenderTiempo(-15)"
+                        class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-500 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">−15 min</button>
+                </div>`;
+        }
+
+        async function programarTiempo() {
+            const hhmm = document.getElementById('inicioSesion').value;
+            const horas = Number(document.getElementById('horasSesion').value);
+            if (!hhmm || !(horas > 0)) return;
+
+            const [h, m] = hhmm.split(':').map(Number);
+            const inicio = new Date();
+            inicio.setHours(h, m, 0, 0);
+
+            // Si la hora ya paso hace mucho, es de la madrugada siguiente:
+            // a las 00:30 poner "23:00" significa anoche, no dentro de 22h.
+            const doceHoras = 12 * 3600000;
+            if (Date.now() - inicio.getTime() > doceHoras) {
+                inicio.setDate(inicio.getDate() + 1);
+            }
+
+            pintarPanelSesion(await llamarSesion('programar', {
+                inicio: inicio.toISOString(),
+                horas
+            }));
+        }
+
+        async function extenderTiempo(minutos) {
+            pintarPanelSesion(await llamarSesion('extender', { minutos }));
         }
 
         async function refrescarPanelSesion(forzarPin) {
