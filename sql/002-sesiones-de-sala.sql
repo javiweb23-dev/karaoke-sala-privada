@@ -1,5 +1,4 @@
 -- Ejecutar una sola vez en Supabase (SQL Editor > New query > Run).
--- Depende de 001-youtube-y-busquedas.sql.
 --
 -- IDEA: no hay que saber DONDE esta el cliente, sino que esta AQUI Y AHORA.
 -- El codigo solo se ve en la pantalla de la sala, asi que verlo ya demuestra

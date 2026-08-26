@@ -13,11 +13,7 @@ const required = [
   'videos_disponibles.js'
 ];
 
-const optional = [
-  'logo.png',
-  'carteles_qr_sala_privada.html',
-  'canciones_youtube.js'   // lo genera scripts/resolver-faltantes.js
-];
+const optional = ['logo.png', 'carteles_qr_sala_privada.html'];
 
 const genVideos = path.join(root, 'scripts', 'generate-videos-disponibles.js');
 if (fs.existsSync(genVideos)) {

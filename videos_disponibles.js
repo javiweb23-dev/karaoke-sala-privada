@@ -1,5 +1,5 @@
 // Generado por scripts/generate-videos-disponibles.js — no editar a mano
-// Archivos: 2195 — 2026-08-26T11:24:55.620Z
+// Archivos: 2195 — 2026-08-26T13:11:33.068Z
 window.VIDEOS_DISPONIBLES = {
   "A.CINCO - ACURRUCAME LA VIDA": "A.CINCO - ACURRUCAME LA VIDA.mp4",
   "ABBA - CHIQUITITA": "ABBA - CHIQUITITA.mp4",

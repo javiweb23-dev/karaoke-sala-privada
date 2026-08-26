@@ -1,184 +1,126 @@
-# Puesta en marcha — YouTube y efectos nuevos
+# Puesta en marcha
 
-Los cambios están hechos y el sistema **sigue funcionando igual sin configurar nada**.
-Todo lo de YouTube está apagado hasta que hagas los pasos 2 y 3.
+El sistema reproduce **solo tus videos descargados** de `videos_locales/`.
+Hay dos funciones opcionales encima: efectos de sonido nuevos y control de sala
+por código en pantalla.
 
 ---
 
 ## 1. Efectos nuevos (ya funciona, no requiere nada)
 
-Se agregaron cuatro sonidos sintetizados: **gato, fracaso (trombón triste),
-grillos y redoble**. Aparecen como botones nuevos en el admin.
+Cuatro sonidos añadidos a los cuatro que ya tenías: **gato, fracaso (trombón
+triste), grillos y redoble**. Aparecen como botones en el admin.
 
-Para regenerarlos o retocarlos:
+Para regenerarlos:
 
 ```bash
 npm run efectos:generar
 ```
 
-Son audio original generado por código (`scripts/generar-efectos.js`), no
-descargas. Eso importa para vender el sistema: los `.mp3` que ya tenías vienen
-de terceros, estos cuatro son tuyos y no arrastran licencias.
-
-Si algún sonido no te convence, dime cuál y lo ajusto — están hechos de
+Son audio original generado por código ([scripts/generar-efectos.js](scripts/generar-efectos.js)),
+no descargas. Si algún sonido no te convence se puede ajustar: están hechos de
 parámetros (tono, duración, filtros), no de un archivo fijo.
 
-**De paso se arregló un fallo:** `efectos/` no se copiaba a `public/`, así que
-en el deploy de Vercel los sonidos daban 404 y solo funcionaban en local.
+**Arreglo incluido:** `efectos/` no se copiaba a `public/`, así que en el deploy
+los sonidos daban 404 y solo funcionaban en local.
 
 ---
 
-## 2. Base de datos (una sola vez)
+## 2. Registro de búsquedas fallidas
 
-En Supabase → **SQL Editor** → **New query**, pega y ejecuta el contenido de:
+Anota en silencio lo que tus clientes buscan y **no tienes**. El cliente no ve
+nada distinto; a ti te queda una lista de qué vale la pena descargar, basada en
+lo que te piden de verdad.
 
-```
-sql/001-youtube-y-busquedas.sql
-```
+**Configuración:** ejecuta [sql/001-busquedas-fallidas.sql](sql/001-busquedas-fallidas.sql)
+en Supabase → SQL Editor → New query → Run.
 
-Crea `busquedas_fallidas`, `youtube_cache` y agrega cuatro columnas a
-`Solicitudes`. Todo es aditivo: las filas que ya existen quedan como `local` y
-se comportan exactamente igual que hoy.
-
-Después de este paso ya funciona el **paso 1** (registro de lo que la gente
-busca y no encuentra), aunque todavía no tengas API key de YouTube.
+**Para consultarla:** Supabase → Table Editor → `busquedas_fallidas`, ordenando
+por la columna `veces` de mayor a menor. Arriba están las más pedidas.
 
 ---
 
-## 3. Clave de YouTube (para la búsqueda en vivo)
+## 3. Control de sala por código
 
-1. Entra a <https://console.cloud.google.com/>
-2. Crea un proyecto → **APIs y servicios** → habilita **YouTube Data API v3**
-3. **Credenciales** → **Crear credenciales** → **Clave de API**
-4. Restringe la clave a *YouTube Data API v3* (importante)
+Evita que quien vino ayer siga pidiendo canciones desde su casa, sin GPS y sin
+contraseñas para el cliente.
 
-En Vercel → tu proyecto → **Settings** → **Environment Variables**:
+**Cómo funciona:** abres una sesión → sale un código de 4 dígitos en la TV → el
+cliente lo teclea una vez → puede pedir. Al cerrar la sesión, ese código muere.
 
-| Variable | Valor | Obligatoria |
-|---|---|---|
-| `YOUTUBE_API_KEY` | la clave del paso anterior | sí |
-| `SUPABASE_URL` | `https://mefrjbmjfdphdqndpzcw.supabase.co` | sí |
-| `SUPABASE_SERVICE_KEY` | la clave **secreta** de Supabase (no la publishable) | sí |
-| `KARAOKE_REGION` | tu país en dos letras, ej. `VE` | no |
-| `KARAOKE_CANALES_OK` | canales de karaoke buenos, separados por coma | no |
-
-> La `SERVICE_KEY` solo vive en Vercel, nunca en el HTML. Es la que permite
-> escribir el caché.
-
-Vuelve a desplegar y listo.
-
----
-
-## 4. El agente nocturno
-
-Convierte lo que la gente no encontró en canciones listas del catálogo.
-
-```bash
-node scripts/resolver-faltantes.js --seco
-```
-
-`--seco` simula sin escribir nada: úsalo la primera vez para ver qué haría.
-Cuando estés conforme, córrelo de verdad:
-
-```bash
-node scripts/resolver-faltantes.js --limite=20
-```
-
-Genera `canciones_youtube.js`. Ese archivo hay que subirlo con el próximo
-deploy para que las canciones aparezcan en la lista de los clientes.
-
-Necesita las mismas variables del paso 3 en tu terminal.
-
----
-
-## 5. Control de sala (código en pantalla)
-
-Resuelve lo del cliente de ayer pidiendo canciones desde su casa, sin GPS y sin
-contraseñas.
-
-**Cómo funciona:** el operador abre una sesión → aparece un código de 4 dígitos
-en la TV → el cliente lo teclea una vez → puede pedir. Al cerrar la sesión,
-todos los códigos mueren. El de ayer queda fuera solo.
-
-El código **solo se puede ver estando en la sala**. Eso es el control: no hace
-falta saber dónde está el cliente, solo que está aquí y ahora.
+El código **solo se ve estando en la sala**. Eso es el control: no hace falta
+saber dónde está el cliente, solo que está ahí.
 
 ### Configuración
 
-1. Ejecuta `sql/002-sesiones-de-sala.sql` en Supabase (igual que el paso 2)
-2. En Vercel, agrega una variable más:
+1. Ejecuta [sql/002-sesiones-de-sala.sql](sql/002-sesiones-de-sala.sql) en Supabase
+2. En Vercel → Settings → Environment Variables, con **Production** marcado:
 
 | Variable | Valor |
 |---|---|
-| `ADMIN_PIN` | invéntate un PIN (ej. `Karaoke2026!`) |
+| `ADMIN_PIN` | el que elijas tú |
+| `SUPABASE_URL` | `https://mefrjbmjfdphdqndpzcw.supabase.co` |
+| `SUPABASE_SERVICE_KEY` | la clave **secreta** de Supabase (`sb_secret_...`) |
 
-3. La primera vez que abras `admin.html` y `reproductor.html`, te pide el PIN.
-   Queda guardado en ese dispositivo y no lo vuelve a pedir.
+3. **Deployments → ⋯ → Redeploy.** Las variables no se aplican sin esto.
+
+### Los tres valores que se teclean (no los confundas)
+
+| Quién | Dónde | Qué escribe |
+|---|---|---|
+| Tú | Reproductor (TV) | El `ADMIN_PIN` |
+| Tú | Admin (tu celular) | El `ADMIN_PIN` |
+| Los clientes | Su celular | Los 4 números de la TV |
+
+El PIN es el mismo en la TV y en el admin, y **no cambia nunca** en el día a
+día. Los 4 números **se generan solos** cada vez que abres sesión: no tocas
+Vercel para eso.
+
+Cada dispositivo guarda el PIN por separado (el admin está en `vercel.app` y el
+reproductor en `localhost`, y para el navegador son sitios distintos).
 
 ### Uso diario
 
-- Entra un grupo → en el admin, **Abrir sesión** (puedes ponerle nombre: "Mesa 4")
-- El código aparece solo en la pantalla de espera de la TV
+- Entra un grupo → admin → **Abrir sesión** (puedes ponerle nombre: "Mesa 4")
 - Se va el grupo → **Cerrar sesión**
 
-**Es opcional.** Si no abres sesión, no se le pide código a nadie y todo
-funciona exactamente como hoy. Puedes usarlo solo los días que te haga falta.
+**Es opcional.** Sin sesión abierta no se le pide código a nadie y todo funciona
+como siempre. Úsalo los días que haga falta.
 
 ### Dónde se hace el control de verdad
 
-No solo en el modal del celular (eso es la puerta), sino **en el reproductor**:
-con sesión abierta, la TV solo reproduce canciones pedidas en esa sesión. Aunque
-alguien lograra colar una solicitud, si no es de la sesión actual nunca suena.
+En el reproductor: con sesión abierta, la TV solo reproduce lo pedido en esa
+sesión. Al cerrarla, lo que quedó en cola se limpia solo.
 
-Un detalle que ganas gratis: al cerrar la sesión, lo que quedó en cola de ese
-grupo se limpia solo. No más restos de anoche.
+No es seguridad criptográfica: un usuario técnico con la consola del navegador
+podría forzar una solicitud, porque el envío va directo a Supabase con la clave
+publishable. Para el problema real —el cliente de ayer, el colado casual— sobra.
 
-### Lo que esto NO es
-
-No es seguridad criptográfica. Un usuario técnico con la consola del navegador
-abierta podría forzar una solicitud, porque el envío va directo a Supabase con
-la clave publishable. Para el problema real — el cliente de ayer, el colado
-casual — sobra. Para blindarlo de verdad hay que hacer que los pedidos pasen por
-un endpoint que valide en el servidor, y eso es lo que toca cuando vendas a
-varios locales (junto con `sala_id` y políticas RLS).
-
-**Ojo con esto:** hoy `admin.html` no tiene ninguna autenticación. Cualquiera
-con la URL controla tu reproductor. El `ADMIN_PIN` protege las sesiones, pero
-no el resto de los botones. Vale la pena ponerle login antes de vender.
+**Ojo:** `admin.html` no tiene login. Cualquiera con la URL controla tu
+reproductor. El `ADMIN_PIN` protege las sesiones, no los demás botones.
 
 ---
 
-## Cuota: lo único que hay que vigilar
+## La URL de Vercel en el reproductor
 
-YouTube da **10.000 unidades al día gratis**:
+En [reproductor.html](reproductor.html) hay una constante:
 
-- Una búsqueda nueva cuesta **101** → unas **99 búsquedas nuevas al día**
-- Una búsqueda repetida cuesta **0** (sale del caché, dura 60 días)
+```javascript
+const URL_VERCEL = 'https://karaoke-sala-privada.vercel.app';
+```
 
-Por eso el `--limite=20` del agente nocturno: deja ~80 para las búsquedas en
-vivo del día. En una sala sola te sobra muchísimo.
-
-**Cuando vendas a varios locales:** que cada local ponga su propia
-`YOUTUBE_API_KEY`. La cuota es de ellos, es gratis, y tú no pagas nada.
+Hace falta porque el reproductor se abre con Live Server (`localhost`, para
+llegar a `videos_locales/`) pero los endpoints `/api/*` viven en Vercel. Si
+cambias de dominio, actualízala o el código de sala no aparecerá en la TV.
 
 ---
 
-## Lo que hay que tener claro
+## Si alguna vez quitas también el control de sala
 
-**El tono no funciona en canciones de YouTube.** No es un bug ni se puede
-arreglar: el audio va dentro de un iframe de otro origen y jamás entra al
-procesador de audio de la TV. Por eso:
+Las variables `YOUTUBE_API_KEY`, `KARAOKE_REGION` y `KARAOKE_CANALES_OK` ya no
+se usan: puedes borrarlas de Vercel.
 
-- La pantalla muestra un aviso `▶ YouTube · sin ajuste de tono`
-- Los botones de tono del admin se apagan solos durante esas canciones
-- El cliente lo ve advertido antes de pedirla
-
-Es la razón por la que YouTube es el **plan B**: tu archivo local siempre gana,
-porque permite cambiar el tono y no depende del internet del local.
-
-**Van a salir anuncios.** No se pueden saltar por código. Como YouTube solo
-entra cuando el catálogo falla, deberían ser pocas canciones.
-
-**Modera.** El filtro rechaza lo que no parece karaoke de verdad (incluidos los
-videos oficiales del artista, que llevarían la voz original), pero el botón de
-saltar del admin sigue siendo tu red de seguridad.
+Y si quieres dejar la base de datos ordenada, hay un
+[sql/003-quitar-youtube.sql](sql/003-quitar-youtube.sql) **opcional** que borra
+las tablas y columnas que quedaron sin uso. No hace falta ejecutarlo — dejarlas
+no rompe nada.

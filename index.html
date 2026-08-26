@@ -13,9 +13,6 @@
     </style>
     <script src="canciones.js"></script>
     <script src="videos_disponibles.js"></script>
-    <!-- Canciones resueltas por scripts/resolver-faltantes.js: no estan
-         descargadas, se reproducen con el player oficial de YouTube. -->
-    <script src="canciones_youtube.js"></script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 h-screen overflow-hidden flex flex-col font-sans select-none relative">
 
@@ -334,11 +331,7 @@
         }
 
         async function cargarPortadaLazy(portadaSlot, song) {
-            // Las de YouTube ya traen su propia miniatura: sale gratis y evita
-            // consultarle a iTunes por un "artista" que es un canal.
-            const url = song.fuente === 'youtube' && song.video_id
-                ? `https://i.ytimg.com/vi/${encodeURIComponent(song.video_id)}/mqdefault.jpg`
-                : await obtenerPortadaItunes(song);
+            const url = await obtenerPortadaItunes(song);
             if (!portadaSlot?.isConnected) return;
 
             if (!url) return;
@@ -413,17 +406,7 @@
             return `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
         }
 
-        // El catalogo local mas lo que el agente nocturno fue resolviendo.
-        function catalogoCompleto() {
-            const extra = (typeof window !== 'undefined' && Array.isArray(window.CANCIONES_YOUTUBE))
-                ? window.CANCIONES_YOUTUBE
-                : [];
-            return extra.length ? cancionesREAL.concat(extra) : cancionesREAL;
-        }
-
         function cancionTieneVideo(song) {
-            // Las de YouTube no tienen archivo, y no hace falta: tienen video_id.
-            if (song.fuente === 'youtube') return Boolean(song.video_id);
             if (typeof VIDEOS_DISPONIBLES === 'undefined' || !VIDEOS_DISPONIBLES) return true;
             const clave = claveArchivoCancion(song);
             if (VIDEOS_DISPONIBLES[clave]) return true;
@@ -436,7 +419,7 @@
 
         function obtenerGenerosUnicos() {
             const generos = new Set();
-            for (const c of catalogoCompleto()) {
+            for (const c of cancionesREAL) {
                 if (!cancionTieneVideo(c)) continue;
                 const g = (c.genero || '').trim();
                 if (g) generos.add(g);
@@ -459,7 +442,7 @@
 
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
-            return catalogoCompleto().filter(c => {
+            return cancionesREAL.filter(c => {
                 if (!cancionTieneVideo(c)) return false;
                 const coincideGenero = generoActivo === 'Todos'
                     || sinAcentos(c.genero) === sinAcentos(generoActivo);
@@ -477,28 +460,13 @@
         }
 
         // ------------------------------------------------------------------
-        // Canciones que no estan en el catalogo
+        // Registro de lo que la gente busca y no encuentra
+        //
+        // No cambia nada para el cliente: es una nota silenciosa que dice que
+        // canciones vale la pena descargar, con datos de gente real en vez de
+        // suposiciones. Se consulta en la tabla busquedas_fallidas de Supabase.
         // ------------------------------------------------------------------
 
-        // Los titulos de YouTube son texto de terceros: nunca van crudos al DOM.
-        function escaparHtml(texto) {
-            return String(texto == null ? '' : texto)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        function formatDuracion(seg) {
-            const s = Number(seg) || 0;
-            const m = Math.floor(s / 60);
-            return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-        }
-
-        // PASO 1: dejar constancia de lo que la gente pide y no tenemos.
-        // Corre siempre, aunque la busqueda en YouTube no este configurada:
-        // es lo que alimenta el catalogo mas adelante.
         async function registrarBusquedaFallida(consulta) {
             try {
                 await supabaseClient.rpc('registrar_busqueda_fallida', {
@@ -509,174 +477,6 @@
             } catch (e) {
                 console.warn('No se pudo registrar la busqueda:', e);
             }
-        }
-
-        function htmlSinResultados() {
-            const q = document.getElementById('searchBar').value.trim();
-
-            if (!q) {
-                return `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
-            }
-
-            return `
-                <div class="text-center py-10 px-4">
-                    <p class="text-zinc-400 text-[15px] font-medium mb-1.5">
-                        No tenemos <span class="text-zinc-200">"${escaparHtml(q)}"</span> en el catálogo
-                    </p>
-                    <p class="text-zinc-600 text-xs mb-6 leading-relaxed">
-                        Podemos buscarla en YouTube y ponerla igual
-                    </p>
-                    <button id="btnBuscarYoutube"
-                        class="bg-red-600 hover:bg-red-500 text-white font-bold px-6 py-3.5 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-red-900/30">
-                        🔎 Buscarla en YouTube
-                    </button>
-                </div>`;
-        }
-
-        async function buscarEnYouTube() {
-            const consulta = document.getElementById('searchBar').value.trim();
-            if (consulta.length < 3) return;
-
-            const songList = document.getElementById('songList');
-            const btn = document.getElementById('btnBuscarYoutube');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Buscando...';
-            }
-
-            // El registro va primero y no bloquea: aunque YouTube falle,
-            // el dato de "esto lo pidieron y no lo teniamos" queda guardado.
-            registrarBusquedaFallida(consulta);
-
-            let data;
-            try {
-                const res = await fetch('/api/buscar-youtube', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ consulta })
-                });
-                data = await res.json();
-            } catch (e) {
-                console.error('Error buscando en YouTube:', e);
-                data = { ok: false };
-            }
-
-            if (!data || !data.ok) {
-                const msg = data && data.motivo === 'quotaExceeded'
-                    ? 'Se agotaron las búsquedas de hoy. Avísale al operador.'
-                    : 'No se pudo buscar ahora mismo.';
-                songList.innerHTML = htmlAvisoBusqueda(consulta, msg);
-                return;
-            }
-
-            // Todavía sin API key: el paso 1 igual cumplió su función.
-            if (data.configurado === false) {
-                songList.innerHTML = htmlAvisoBusqueda(
-                    consulta,
-                    '✅ Anotada. La agregamos al catálogo pronto.'
-                );
-                return;
-            }
-
-            if (!data.candidatos || data.candidatos.length === 0) {
-                songList.innerHTML = htmlAvisoBusqueda(
-                    consulta,
-                    'No encontramos un karaoke decente de esa canción. Quedó anotada.'
-                );
-                return;
-            }
-
-            renderizarCandidatos(consulta, data.candidatos);
-        }
-
-        function htmlAvisoBusqueda(consulta, mensaje) {
-            return `
-                <div class="text-center py-10 px-4">
-                    <p class="text-zinc-300 text-[15px] font-medium mb-2">${escaparHtml(mensaje)}</p>
-                    <p class="text-zinc-600 text-xs mb-6">"${escaparHtml(consulta)}"</p>
-                    <button onclick="volverAlCatalogo()"
-                        class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all">
-                        ← Volver al catálogo
-                    </button>
-                </div>`;
-        }
-
-        function volverAlCatalogo() {
-            document.getElementById('searchBar').value = '';
-            aplicarFiltros();
-        }
-
-        function renderizarCandidatos(consulta, candidatos) {
-            const songList = document.getElementById('songList');
-            songList.innerHTML = '';
-
-            const cabecera = document.createElement('div');
-            cabecera.className = 'mb-4 px-1';
-            cabecera.innerHTML = `
-                <div class="flex items-center justify-between gap-3 mb-1">
-                    <h3 class="text-zinc-200 font-bold text-sm">Encontrado en YouTube</h3>
-                    <button onclick="volverAlCatalogo()"
-                        class="text-zinc-500 hover:text-zinc-300 text-xs font-medium shrink-0">
-                        ← Catálogo
-                    </button>
-                </div>
-                <p class="text-zinc-600 text-[11px] leading-relaxed">
-                    Elige la versión que prefieras. En estas canciones no se puede ajustar el tono.
-                </p>`;
-            songList.appendChild(cabecera);
-
-            candidatos.forEach((c, idx) => {
-                const card = document.createElement('div');
-                card.className = 'bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-3 rounded-2xl flex items-center gap-3 transition-all shadow-sm mb-3';
-
-                const miniatura = c.miniatura
-                    ? `<img src="${escaparHtml(c.miniatura)}" alt="" class="w-full h-full object-cover" loading="lazy">`
-                    : '<div class="w-full h-full bg-zinc-800"></div>';
-
-                const info = document.createElement('div');
-                info.className = 'flex-1 min-w-0';
-                info.innerHTML = `
-                    <h4 class="font-semibold text-zinc-50 text-[13px] leading-snug line-clamp-2">${escaparHtml(c.titulo)}</h4>
-                    <p class="text-[11px] text-zinc-500 mt-1 truncate">${escaparHtml(c.canal)} · ${formatDuracion(c.duracion)}</p>
-                    ${idx === 0 ? '<span class="inline-block mt-1.5 text-[9px] uppercase tracking-widest bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Recomendada</span>' : ''}`;
-
-                const thumb = document.createElement('div');
-                thumb.className = 'flex-shrink-0 w-20 h-[45px] rounded-lg overflow-hidden bg-zinc-800';
-                thumb.innerHTML = miniatura;
-
-                const btn = document.createElement('button');
-                btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-2.5 rounded-xl text-xs active:scale-95 transition-all';
-                btn.textContent = 'Pedir';
-                btn.onclick = () => pedirDesdeYouTube(consulta, c, candidatos, btn);
-
-                card.appendChild(thumb);
-                card.appendChild(info);
-                card.appendChild(btn);
-                songList.appendChild(card);
-            });
-        }
-
-        async function pedirDesdeYouTube(consulta, candidato, todos, btn) {
-            // Los demas candidatos viajan como respaldo: si el primero falla en
-            // vivo, el reproductor salta al siguiente sin cortar la fiesta.
-            const respaldos = todos
-                .filter((c) => c.videoId !== candidato.videoId)
-                .slice(0, 3)
-                .map((c) => c.videoId);
-
-            await pedirCancion(
-                candidato.titulo.slice(0, 120),
-                candidato.titulo,
-                candidato.canal,
-                'YOUTUBE',
-                btn,
-                {
-                    fuente: 'youtube',
-                    video_id: candidato.videoId,
-                    respaldo_ids: respaldos,
-                    duracion_seg: candidato.duracion
-                }
-            );
         }
 
         function renderizarSliderGeneros() {
@@ -718,9 +518,8 @@
             songList.innerHTML = '';
             
             if (lista.length === 0) {
-                songList.innerHTML = htmlSinResultados();
-                const btnYt = document.getElementById('btnBuscarYoutube');
-                if (btnYt) btnYt.onclick = () => buscarEnYouTube();
+                songList.innerHTML = `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
+                anotarBusquedaSinResultados();
                 return;
             }
 
@@ -753,17 +552,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
-                btn.onclick = () => pedirCancion(
-                    nombreFormateado, song.titulo, song.artista, song.genero, btn,
-                    song.fuente === 'youtube'
-                        ? {
-                            fuente: 'youtube',
-                            video_id: song.video_id,
-                            respaldo_ids: song.respaldo_ids || [],
-                            duracion_seg: song.duracion_seg || null
-                          }
-                        : undefined
-                );
+                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero, btn);
 
                 card.appendChild(portada);
                 card.appendChild(info);
@@ -773,28 +562,18 @@
                 observerPortadas.observe(card);
             });
 
-            agregarPieYouTube(songList);
         }
 
-        // Tener resultados no significa tener LA que buscaban: de un artista
-        // puede haber una sola cancion en el catalogo y querer otra. Por eso
-        // la opcion de YouTube va al final de toda busqueda, no solo cuando
-        // no hay ningun resultado.
-        function agregarPieYouTube(songList) {
-            const q = document.getElementById('searchBar').value.trim();
-            if (q.length < 3) return;
+        // Se anota la busqueda solo cuando el cliente deja de teclear: sin esto
+        // "bad bunny" quedaria registrado nueve veces, una por cada letra.
+        let anotarBusquedaId = null;
 
-            const pie = document.createElement('div');
-            pie.className = 'mt-2 mb-4 pt-5 border-t border-zinc-800/80 text-center';
-            pie.innerHTML = `
-                <p class="text-zinc-600 text-xs mb-3">¿No está la que buscas?</p>
-                <button type="button"
-                    class="bg-red-600/90 hover:bg-red-500 text-white font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-red-900/25">
-                    🔎 Buscar "${escaparHtml(q)}" en YouTube
-                </button>`;
-
-            pie.querySelector('button').onclick = () => buscarEnYouTube();
-            songList.appendChild(pie);
+        function anotarBusquedaSinResultados() {
+            clearTimeout(anotarBusquedaId);
+            anotarBusquedaId = setTimeout(() => {
+                const q = document.getElementById('searchBar').value.trim();
+                if (q.length >= 3) registrarBusquedaFallida(q);
+            }, 1800);
         }
 
         document.getElementById('searchBar').addEventListener('input', () => aplicarFiltros());
@@ -843,9 +622,7 @@
             }
         }
 
-        // `extra` trae los campos de YouTube (fuente, video_id, respaldos).
-        // Si no viene, la solicitud queda como 'local' igual que siempre.
-        async function pedirCancion(nombreArchivo, titulo, artista, genero, btn, extra) {
+        async function pedirCancion(nombreArchivo, titulo, artista, genero, btn) {
             if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
             if (pedidoEnCurso) return;
 
@@ -908,11 +685,10 @@
                     estado: 'pendiente'
                 };
 
-                // Las columnas nuevas solo se mandan si de verdad hacen falta.
-                // Asi el sistema sigue pidiendo canciones aunque el SQL de
-                // sql/ todavia no se haya ejecutado y las columnas no existan.
+                // Solo se manda si de verdad hay sesion abierta. Asi el sistema
+                // sigue pidiendo canciones aunque el SQL de sql/ todavia no se
+                // haya ejecutado y la columna no exista.
                 if (sesionSalaId) solicitud.sesion_id = sesionSalaId;
-                Object.assign(solicitud, extra || {});
 
                 const { error } = await supabaseClient
                     .from('Solicitudes')
@@ -923,11 +699,7 @@
                     return mostrarAlerta("❌ No se pudo agregar la canción. Intenta de nuevo.", true);
                 }
 
-                // La lista de populares se mide sobre el catalogo propio; meterle
-                // nombres de canales de YouTube la ensuciaria.
-                if (!extra || extra.fuente !== 'youtube') {
-                    await registrarPopularidad(titulo, artista);
-                }
+                await registrarPopularidad(titulo, artista);
 
                 if (totalCola === 0) {
                     mostrarAlerta("✅ ¡Enviada! Comenzará en unos segundos.");

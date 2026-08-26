@@ -148,20 +148,6 @@
             gainLabel.innerText = `${db >= 0 ? '+' : ''}${db} dB`;
         }
 
-        // En canciones de YouTube el audio va dentro de un iframe ajeno y no
-        // pasa por el procesador de la TV: el tono no se puede tocar. Mejor
-        // apagar los botones que dejar que el operador crea que no funcionan.
-        function aplicarFuenteEnControles(fuente) {
-            const esYoutube = fuente === 'youtube';
-            document.querySelectorAll('.btn-tono').forEach((b) => {
-                b.disabled = esYoutube;
-                b.style.opacity = esYoutube ? '0.3' : '';
-                b.style.pointerEvents = esYoutube ? 'none' : '';
-            });
-            tonoDisplay.innerText = esYoutube ? 'YT' : (semitonosAdmin > 0 ? `+${semitonosAdmin}` : `${semitonosAdmin}`);
-            tonoDisplay.style.opacity = esYoutube ? '0.5' : '';
-        }
-
         // ------------------------------------------------------------------
         // Sesiones de sala
         //
@@ -363,9 +349,6 @@
                 if (payload.accion === 'sync_tono') {
                     semitonosAdmin = payload.valor ?? 0;
                     actualizarDisplayTono();
-                }
-                if (payload.accion === 'sync_fuente') {
-                    aplicarFuenteEnControles(payload.valor);
                 }
             })
             .subscribe();
