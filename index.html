@@ -772,6 +772,29 @@
 
                 observerPortadas.observe(card);
             });
+
+            agregarPieYouTube(songList);
+        }
+
+        // Tener resultados no significa tener LA que buscaban: de un artista
+        // puede haber una sola cancion en el catalogo y querer otra. Por eso
+        // la opcion de YouTube va al final de toda busqueda, no solo cuando
+        // no hay ningun resultado.
+        function agregarPieYouTube(songList) {
+            const q = document.getElementById('searchBar').value.trim();
+            if (q.length < 3) return;
+
+            const pie = document.createElement('div');
+            pie.className = 'mt-2 mb-4 pt-5 border-t border-zinc-800/80 text-center';
+            pie.innerHTML = `
+                <p class="text-zinc-600 text-xs mb-3">¿No está la que buscas?</p>
+                <button type="button"
+                    class="bg-red-600/90 hover:bg-red-500 text-white font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-red-900/25">
+                    🔎 Buscar "${escaparHtml(q)}" en YouTube
+                </button>`;
+
+            pie.querySelector('button').onclick = () => buscarEnYouTube();
+            songList.appendChild(pie);
         }
 
         document.getElementById('searchBar').addEventListener('input', () => aplicarFiltros());

@@ -1066,11 +1066,17 @@
                 .select('*')
                 .eq('estado', 'pendiente');
 
-            // Con sesion abierta solo suena lo pedido en ESTA sesion. Aqui es
-            // donde el control se hace de verdad: aunque alguien lograra colar
-            // una solicitud, si no es de la sesion actual no llega a la TV.
+            // Con sesion abierta suena lo pedido en ESTA sesion. Aqui es donde
+            // el control se hace de verdad: una solicitud de la sesion de ayer
+            // no llega a la TV.
+            //
+            // Tambien entran las que no tienen sesion: son las que se pidieron
+            // ANTES de que el operador abriera la sesion. Sin esto se quedaban
+            // invisibles y colgadas en la cola para siempre.
             if (sesionActual) {
-                consulta = consulta.eq('sesion_id', sesionActual.id);
+                consulta = consulta.or(
+                    `sesion_id.eq.${sesionActual.id},sesion_id.is.null`
+                );
             }
 
             const { data, error } = await consulta

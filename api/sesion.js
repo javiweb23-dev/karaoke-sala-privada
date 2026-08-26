@@ -46,8 +46,11 @@ async function cerrarAbiertas() {
 
     // Lo que quedo en cola de ese grupo ya no tiene sentido: el grupo se fue.
     // Se marca como completada para que el admin no vea restos de anoche.
+    // Se incluyen las que no tienen sesion (pedidas antes de abrirla), que si
+    // no quedarian colgadas en la cola indefinidamente.
     await supabaseFetchEstricto(
-        `Solicitudes?estado=eq.pendiente&sesion_id=eq.${abierta.id}`,
+        `Solicitudes?estado=eq.pendiente` +
+        `&or=(sesion_id.eq.${abierta.id},sesion_id.is.null)`,
         {
             method: 'PATCH',
             headers: { Prefer: 'return=minimal' },
