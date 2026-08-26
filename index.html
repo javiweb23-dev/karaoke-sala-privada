@@ -69,6 +69,8 @@
                     <span class="absolute left-4 top-3.5 text-zinc-500">🔍</span>
                 </div>
 
+                <div id="idiomaFiltro" class="flex items-center justify-center gap-1.5"></div>
+
                 <div class="flex items-center gap-1.5">
                     <button type="button" id="genreScrollPrev" aria-label="Géneros anteriores"
                         class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white active:scale-95 transition-all text-sm font-bold">&lt;</button>
@@ -92,8 +94,25 @@
         let miNombre = localStorage.getItem('karaoke_nombre');
         let cancionesPopulares = [];
         let generoActivo = 'Todos';
+        let idiomaActivo = 'Todos';
         let pedidoEnCurso = false;
         let busquedaFueAproximada = false;
+
+        // Banderas por idioma. Lo que no este aqui sale con una nota musical.
+        const BANDERAS = {
+            'ESPAÑOL': '🇪🇸',
+            'ESPANOL': '🇪🇸',
+            'INGLES': '🇺🇸',
+            'INGLÉS': '🇺🇸',
+            'ITALIANO': '🇮🇹',
+            'PORTUGUES': '🇧🇷',
+            'PORTUGUÉS': '🇧🇷',
+            'FRANCES': '🇫🇷',
+            'FRANCÉS': '🇫🇷'
+        };
+
+        const CHIP_IDIOMA_INACTIVO = 'idioma-chip shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold tracking-wide whitespace-nowrap bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all active:scale-95';
+        const CHIP_IDIOMA_ACTIVO   = 'idioma-chip shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold tracking-wide whitespace-nowrap bg-zinc-700 border border-zinc-500 text-white transition-all active:scale-95';
 
         const CHIP_GENERO_INACTIVO = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-all active:scale-95';
         const CHIP_GENERO_ACTIVO   = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-amber-500 border border-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all active:scale-95';
@@ -418,9 +437,90 @@
             return false;
         }
 
+        // ------------------------------------------------------------------
+        // Filtro por idioma
+        //
+        // Va aparte del genero porque responde otra pregunta: el que solo
+        // canta en ingles no quiere recorrer 2.000 canciones en español para
+        // encontrar las 215 suyas.
+        // ------------------------------------------------------------------
+
+        function obtenerIdiomasUnicos() {
+            const cuenta = new Map();
+            for (const c of cancionesREAL) {
+                if (!cancionTieneVideo(c)) continue;
+                const i = (c.idioma || '').trim();
+                if (i) cuenta.set(i, (cuenta.get(i) || 0) + 1);
+            }
+            // De mas a menos canciones: el idioma principal queda primero.
+            return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+        }
+
+        function banderaDe(idioma) {
+            return BANDERAS[sinAcentos(idioma).toUpperCase()]
+                || BANDERAS[(idioma || '').toUpperCase()]
+                || '🎵';
+        }
+
+        function renderizarIdiomas() {
+            const cont = document.getElementById('idiomaFiltro');
+            const idiomas = obtenerIdiomasUnicos();
+
+            // Con un solo idioma el filtro no aporta nada: se oculta.
+            if (idiomas.length < 2) {
+                cont.classList.add('hidden');
+                return;
+            }
+            cont.classList.remove('hidden');
+            cont.innerHTML = '';
+
+            const crear = (valor, etiqueta) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.dataset.idioma = valor;
+                b.textContent = etiqueta;
+                b.className = idiomaActivo === valor ? CHIP_IDIOMA_ACTIVO : CHIP_IDIOMA_INACTIVO;
+                b.onclick = () => seleccionarIdioma(valor);
+                cont.appendChild(b);
+            };
+
+            crear('Todos', '🌐 Todos');
+            for (const i of idiomas) {
+                // Solo la primera letra en mayuscula: "ESPAÑOL" grita de más.
+                const bonito = i.charAt(0).toUpperCase() + i.slice(1).toLowerCase();
+                crear(i, `${banderaDe(i)} ${bonito}`);
+            }
+        }
+
+        function actualizarChipsIdioma() {
+            document.querySelectorAll('.idioma-chip').forEach((chip) => {
+                chip.className = chip.dataset.idioma === idiomaActivo
+                    ? CHIP_IDIOMA_ACTIVO
+                    : CHIP_IDIOMA_INACTIVO;
+            });
+        }
+
+        function seleccionarIdioma(idioma) {
+            idiomaActivo = idioma;
+            actualizarChipsIdioma();
+
+            // Al cambiar de idioma, el genero elegido puede quedarse sin
+            // canciones. Se vuelve a "Todos" y se rehacen los generos, que
+            // ahora solo muestran los que existen en ese idioma.
+            generoActivo = 'Todos';
+            renderizarSliderGeneros();
+            aplicarFiltros();
+        }
+
+        function coincideIdioma(song) {
+            if (idiomaActivo === 'Todos') return true;
+            return (song.idioma || '').trim() === idiomaActivo;
+        }
+
         function obtenerGenerosUnicos() {
             const generos = new Set();
             for (const c of cancionesREAL) {
+                if (!coincideIdioma(c)) continue;
                 if (!cancionTieneVideo(c)) continue;
                 const g = (c.genero || '').trim();
                 if (g) generos.add(g);
@@ -502,18 +602,32 @@
             });
         }
 
+        // El catalogo NO viene ordenado: sync-catalogo agrega las canciones
+        // nuevas al final del archivo, asi que canciones.js tiene dos tandas
+        // alfabeticas seguidas (va de la A a la Z y vuelve a empezar). Sin
+        // esto, dos canciones del mismo artista podian salir separadas por
+        // 1.700 posiciones y parecia que faltaban.
+        function ordenarCatalogo(lista) {
+            return lista.slice().sort((a, b) => {
+                const aa = sinAcentos(a.artista), ba = sinAcentos(b.artista);
+                if (aa !== ba) return aa.localeCompare(ba, 'es');
+                return sinAcentos(a.titulo).localeCompare(sinAcentos(b.titulo), 'es');
+            });
+        }
+
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
 
             const porGenero = cancionesREAL.filter(c => {
                 if (!cancionTieneVideo(c)) return false;
+                if (!coincideIdioma(c)) return false;
                 return generoActivo === 'Todos'
                     || sinAcentos(c.genero) === sinAcentos(generoActivo);
             });
 
             if (!q) {
                 busquedaFueAproximada = false;
-                return porGenero;
+                return ordenarCatalogo(porGenero);
             }
 
             const exactas = porGenero.filter(c =>
@@ -525,7 +639,7 @@
 
             if (exactas.length > 0) {
                 busquedaFueAproximada = false;
-                return exactas;
+                return ordenarCatalogo(exactas);
             }
 
             // Sin coincidencias exactas se prueba tolerando erratas. Escribir
@@ -536,7 +650,7 @@
             const palabras = q.split(/\s+/).filter((p) => p.length >= 2);
             if (palabras.length === 0) {
                 busquedaFueAproximada = false;
-                return exactas;
+                return ordenarCatalogo(exactas);
             }
 
             const aproximadas = porGenero.filter(c =>
@@ -544,7 +658,7 @@
             );
 
             busquedaFueAproximada = aproximadas.length > 0;
-            return aproximadas;
+            return ordenarCatalogo(aproximadas);
         }
 
         function aplicarFiltros() {
@@ -945,6 +1059,7 @@
             if (puedePasar) mostrarGateNombre();
 
             await cargarCancionesPopulares();
+            renderizarIdiomas();
             renderizarSliderGeneros();
             configurarScrollGeneros();
             aplicarFiltros();

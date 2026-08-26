@@ -8,7 +8,8 @@
     "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js",
     "efectos:generar": "node scripts/generar-efectos.js",
     "sugerencias": "node scripts/sugerir-canciones.js",
-    "catalogo:limpiar": "node scripts/limpiar-catalogo.js"
+    "catalogo:limpiar": "node scripts/limpiar-catalogo.js",
+    "catalogo:reconstruir": "node scripts/reconstruir-catalogo.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"
