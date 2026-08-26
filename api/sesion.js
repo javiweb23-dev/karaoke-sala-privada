@@ -119,6 +119,30 @@ module.exports = async (req, res) => {
         return res.status(400).json({ ok: false, error: 'Accion no valida' });
     } catch (err) {
         console.error('[sesion]', err);
-        return res.status(500).json({ ok: false, error: 'Error al manejar la sesion' });
+        const texto = String(err.message || '');
+
+        // Un 500 generico obliga a adivinar. Estas dos son las causas reales
+        // en la practica, y cada una se arregla de una forma distinta.
+        if (/PGRST205|42P01|does not exist|Could not find the table/i.test(texto)) {
+            return res.status(503).json({
+                ok: false,
+                error: 'Falta ejecutar sql/002-sesiones-de-sala.sql en Supabase.',
+                faltaSql: true
+            });
+        }
+
+        if (/Faltan SUPABASE_URL|SUPABASE_SERVICE_KEY/i.test(texto)) {
+            return res.status(503).json({
+                ok: false,
+                error: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en Vercel.',
+                sinConfigurar: true
+            });
+        }
+
+        return res.status(500).json({
+            ok: false,
+            error: 'Error al manejar la sesion',
+            detalle: texto.slice(0, 200)
+        });
     }
 };

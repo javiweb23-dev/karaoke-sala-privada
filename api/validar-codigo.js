@@ -61,6 +61,15 @@ module.exports = async (req, res) => {
         });
     } catch (err) {
         console.error('[validar-codigo]', err);
+        const texto = String(err.message || '');
+
+        // Si la tabla no existe, el control de sala simplemente no esta
+        // montado todavia: se deja pasar en vez de dejar a los clientes
+        // encerrados fuera por un SQL sin ejecutar.
+        if (/PGRST205|42P01|does not exist|Could not find the table/i.test(texto)) {
+            return res.status(200).json({ ok: true, sinControl: true });
+        }
+
         return res.status(500).json({ ok: false, error: 'No se pudo validar el codigo' });
     }
 };
