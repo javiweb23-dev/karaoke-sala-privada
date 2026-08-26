@@ -93,6 +93,7 @@
         let cancionesPopulares = [];
         let generoActivo = 'Todos';
         let pedidoEnCurso = false;
+        let busquedaFueAproximada = false;
 
         const CHIP_GENERO_INACTIVO = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-all active:scale-95';
         const CHIP_GENERO_ACTIVO   = 'genre-chip shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap bg-amber-500 border border-amber-400 text-black shadow-sm shadow-amber-500/20 transition-all active:scale-95';
@@ -440,19 +441,110 @@
             aplicarFiltros();
         }
 
+        // Distancia de edicion con corte: en cuanto pasa del margen se rinde,
+        // que es lo que la hace barata sobre 2000 canciones.
+        //
+        // Cuenta el intercambio de dos letras seguidas como UN error, no dos.
+        // Es la errata mas frecuente al teclear rapido ("jaun" por "juan") y
+        // sin esto se quedaba fuera.
+        function distanciaTexto(a, b, margen) {
+            if (a === b) return 0;
+            if (Math.abs(a.length - b.length) > margen) return margen + 1;
+
+            let anterior2 = null;
+            let anterior = Array.from({ length: b.length + 1 }, (_, j) => j);
+
+            for (let i = 1; i <= a.length; i++) {
+                const actual = [i];
+                let mejor = i;
+
+                for (let j = 1; j <= b.length; j++) {
+                    let v = Math.min(
+                        anterior[j] + 1,                 // borrar
+                        actual[j - 1] + 1,               // insertar
+                        anterior[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)  // cambiar
+                    );
+
+                    // Intercambio de dos letras contiguas.
+                    if (i > 1 && j > 1 &&
+                        a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                        v = Math.min(v, anterior2[j - 2] + 1);
+                    }
+
+                    actual[j] = v;
+                    if (v < mejor) mejor = v;
+                }
+
+                if (mejor > margen) return margen + 1;
+                anterior2 = anterior;
+                anterior = actual;
+            }
+
+            return anterior[b.length];
+        }
+
+        // Cuanto mas larga la palabra, mas errores se perdonan. Con palabras
+        // de 3 letras o menos no se perdona nada: cambiarian de significado.
+        function margenPorLargo(palabra) {
+            if (palabra.length >= 7) return 2;
+            if (palabra.length >= 4) return 1;
+            return 0;
+        }
+
+        // Todas las palabras escritas deben aparecer, exactas o casi.
+        function coincideAproximado(texto, palabras) {
+            const tokens = texto.split(/\s+/).filter(Boolean);
+            return palabras.every((p) => {
+                if (texto.includes(p)) return true;
+                const margen = margenPorLargo(p);
+                if (margen === 0) return false;
+                return tokens.some((t) => distanciaTexto(p, t, margen) <= margen);
+            });
+        }
+
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
-            return cancionesREAL.filter(c => {
+
+            const porGenero = cancionesREAL.filter(c => {
                 if (!cancionTieneVideo(c)) return false;
-                const coincideGenero = generoActivo === 'Todos'
+                return generoActivo === 'Todos'
                     || sinAcentos(c.genero) === sinAcentos(generoActivo);
-                if (!coincideGenero) return false;
-                if (!q) return true;
-                return sinAcentos(c.artista).includes(q)
-                    || sinAcentos(c.titulo).includes(q)
-                    || sinAcentos(c.genero).includes(q)
-                    || sinAcentos(c.idioma).includes(q);
             });
+
+            if (!q) {
+                busquedaFueAproximada = false;
+                return porGenero;
+            }
+
+            const exactas = porGenero.filter(c =>
+                sinAcentos(c.artista).includes(q)
+                || sinAcentos(c.titulo).includes(q)
+                || sinAcentos(c.genero).includes(q)
+                || sinAcentos(c.idioma).includes(q)
+            );
+
+            if (exactas.length > 0) {
+                busquedaFueAproximada = false;
+                return exactas;
+            }
+
+            // Sin coincidencias exactas se prueba tolerando erratas. Escribir
+            // "morrisette" en vez de "morissette" no deberia dejar sin cantar
+            // a nadie: en la sala se teclea rapido y en un celular.
+            // Solo corre cuando la busqueda normal no dio nada, asi que no
+            // ralentiza el caso habitual.
+            const palabras = q.split(/\s+/).filter((p) => p.length >= 2);
+            if (palabras.length === 0) {
+                busquedaFueAproximada = false;
+                return exactas;
+            }
+
+            const aproximadas = porGenero.filter(c =>
+                coincideAproximado(sinAcentos(`${c.artista} ${c.titulo}`), palabras)
+            );
+
+            busquedaFueAproximada = aproximadas.length > 0;
+            return aproximadas;
         }
 
         function aplicarFiltros() {
@@ -532,6 +624,15 @@
                 anotarBusquedaSinResultados();
                 agregarPieSugerencia(songList);
                 return;
+            }
+
+            // Si hubo que corregir la ortografia, se avisa: asi el cliente
+            // entiende por que salen esos resultados y no otros.
+            if (busquedaFueAproximada) {
+                const nota = document.createElement('p');
+                nota.className = 'text-zinc-500 text-xs text-center py-2 mb-1';
+                nota.textContent = '¿Quisiste decir esto?';
+                songList.appendChild(nota);
             }
 
             lista.forEach(song => {

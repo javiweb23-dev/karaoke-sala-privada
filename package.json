@@ -7,7 +7,8 @@
     "videos:index": "node scripts/sync-catalogo-desde-videos.js && node scripts/generate-videos-disponibles.js",
     "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js",
     "efectos:generar": "node scripts/generar-efectos.js",
-    "sugerencias": "node scripts/sugerir-canciones.js"
+    "sugerencias": "node scripts/sugerir-canciones.js",
+    "catalogo:limpiar": "node scripts/limpiar-catalogo.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"
