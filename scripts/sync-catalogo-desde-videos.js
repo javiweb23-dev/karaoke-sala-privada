@@ -86,14 +86,20 @@ function inferirMeta(artista, titulo, porArtista) {
   const key = sinAcentosUpper(artista);
   const conocidos = porArtista.get(key);
   if (conocidos) {
+    // Del artista ya hay canciones: se copia lo que tienen. Esto acierta
+    // casi siempre, porque lo normal es ir sumando temas de gente que ya esta.
     return {
       genero: modo(conocidos.map((c) => c.genero)) || 'POP',
-      idioma: modo(conocidos.map((c) => c.idioma)) || 'ESPAÑOL'
+      idioma: modo(conocidos.map((c) => c.idioma)) || 'ESPAÑOL',
+      seguro: true
     };
   }
+  // Artista nuevo: no hay de donde deducir el genero. POP es solo un relleno
+  // y hay que revisarlo a mano.
   return {
     genero: 'POP',
-    idioma: pareceIngles(artista + ' ' + titulo) ? 'INGLES' : 'ESPAÑOL'
+    idioma: pareceIngles(artista + ' ' + titulo) ? 'INGLES' : 'ESPAÑOL',
+    seguro: false
   };
 }
 
@@ -135,7 +141,8 @@ for (const file of files) {
     artista: parsed.artista,
     titulo: parsed.titulo,
     genero: meta.genero,
-    idioma: meta.idioma
+    idioma: meta.idioma,
+    seguro: meta.seguro
   });
 }
 
@@ -161,3 +168,25 @@ fs.writeFileSync(catalogFile, header.concat(body, footer).join('\n'), 'utf8');
 
 console.log(`Catálogo actualizado: ${songs.length} existentes + ${agregadas.length} nuevas = ${finalSongs.length}`);
 console.log(`Videos en carpeta: ${files.length}`);
+
+// Las de artistas ya conocidos heredan su género y suelen quedar bien.
+// Las de artistas nuevos se quedan en POP porque no hay de dónde deducirlo:
+// esas son las únicas que hay que mirar.
+const heredadas = agregadas.filter((s) => s.seguro);
+const porRevisar = agregadas.filter((s) => !s.seguro);
+
+if (heredadas.length) {
+  console.log(`\n${heredadas.length} nueva(s) de artistas que ya tenías (género heredado):`);
+  heredadas.slice(0, 15).forEach((s) =>
+    console.log(`   ${s.artista} - ${s.titulo}   [${s.genero}]`));
+  if (heredadas.length > 15) console.log(`   ... y ${heredadas.length - 15} más`);
+}
+
+if (porRevisar.length) {
+  console.log(`\n⚠  ${porRevisar.length} de artistas NUEVOS — quedaron en POP, revísalas:`);
+  porRevisar.forEach((s) =>
+    console.log(`   ${s.artista} - ${s.titulo}   [${s.genero} / ${s.idioma}]`));
+  console.log('\nPara corregir cada una:');
+  console.log(`   npm run genero -- "${porRevisar[0].artista}" GENERO`);
+  console.log('   npm run genero -- --generos     (ver los géneros que ya usas)');
+}

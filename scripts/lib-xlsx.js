@@ -221,4 +221,109 @@ ${cols}
     return crearZip(archivos);
 }
 
-module.exports = { crearXlsx };
+// ------------------------------------------------------------------ lectura
+
+const fs = require('fs');
+
+function descomprimirEntrada(buf, objetivo) {
+    let i = 0;
+    while ((i = buf.indexOf('PK\x03\x04', i)) !== -1) {
+        const lenNombre = buf.readUInt16LE(i + 26);
+        const lenExtra = buf.readUInt16LE(i + 28);
+        const nombre = buf.slice(i + 30, i + 30 + lenNombre).toString();
+        const metodo = buf.readUInt16LE(i + 8);
+        const comp = buf.readUInt32LE(i + 18);
+        const inicio = i + 30 + lenNombre + lenExtra;
+        const datos = buf.slice(inicio, inicio + comp);
+
+        if (nombre === objetivo) {
+            return metodo === 8 ? zlib.inflateRawSync(datos) : datos;
+        }
+        i += 4;
+    }
+    return null;
+}
+
+function desescaparXml(texto) {
+    return String(texto)
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+        .replace(/&amp;/g, '&');
+}
+
+// "B12" -> 1  (indice de columna, empezando en cero)
+function indiceColumna(ref) {
+    const letras = String(ref || '').replace(/[0-9]/g, '');
+    let n = 0;
+    for (let i = 0; i < letras.length; i++) {
+        n = n * 26 + (letras.charCodeAt(i) - 64);
+    }
+    return n - 1;
+}
+
+/**
+ * Lee la primera hoja de un .xlsx y devuelve una matriz de filas.
+ *
+ * Usa la referencia de cada celda (r="B12") para saber en que columna va, en
+ * vez de contarlas en orden: Excel se salta las celdas vacias, y contando se
+ * desplazan las columnas y los datos acaban en el campo equivocado.
+ */
+function leerXlsx(ruta) {
+    const buf = fs.readFileSync(ruta);
+
+    const ssBuf = descomprimirEntrada(buf, 'xl/sharedStrings.xml');
+    const compartidas = [];
+    if (ssBuf) {
+        const ss = ssBuf.toString('utf8');
+        for (const si of ss.matchAll(/<si>([\s\S]*?)<\/si>/g)) {
+            // Un <si> puede venir partido en varios <t> si lleva formato.
+            const trozos = [...si[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)]
+                .map((m) => desescaparXml(m[1]));
+            compartidas.push(trozos.join(''));
+        }
+    }
+
+    const hojaBuf = descomprimirEntrada(buf, 'xl/worksheets/sheet1.xml');
+    if (!hojaBuf) throw new Error('El archivo no tiene una hoja legible.');
+    const hoja = hojaBuf.toString('utf8');
+
+    const filas = [];
+    for (const filaM of hoja.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
+        const fila = [];
+        for (const celdaM of filaM[1].matchAll(/<c\s([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+            const attrs = celdaM[1] || '';
+            const cuerpo = celdaM[2] || '';
+
+            const refM = attrs.match(/r="([A-Z]+\d+)"/);
+            const col = refM ? indiceColumna(refM[1]) : fila.length;
+            const tipo = (attrs.match(/t="([^"]+)"/) || [])[1];
+
+            let valor = '';
+            if (tipo === 'inlineStr') {
+                valor = [...cuerpo.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)]
+                    .map((m) => desescaparXml(m[1])).join('');
+            } else {
+                // Si la celda es una formula se ignora el <f> y se toma el
+                // <v>, que es el resultado que Excel dejo calculado.
+                const v = cuerpo.match(/<v>([\s\S]*?)<\/v>/);
+                if (v) {
+                    valor = tipo === 's'
+                        ? (compartidas[Number(v[1])] || '')
+                        : desescaparXml(v[1]);
+                }
+            }
+
+            fila[col] = valor;
+        }
+
+        for (let i = 0; i < fila.length; i++) if (fila[i] === undefined) fila[i] = '';
+        filas.push(fila);
+    }
+
+    return filas;
+}
+
+module.exports = { crearXlsx, leerXlsx };
