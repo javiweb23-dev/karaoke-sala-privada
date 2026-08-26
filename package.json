@@ -5,7 +5,9 @@
     "build": "node scripts/verify-deploy.js",
     "postinstall": "node scripts/copy-soundtouch-lib.js",
     "videos:index": "node scripts/sync-catalogo-desde-videos.js && node scripts/generate-videos-disponibles.js",
-    "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js"
+    "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js",
+    "efectos:generar": "node scripts/generar-efectos.js",
+    "catalogo:resolver": "node scripts/resolver-faltantes.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

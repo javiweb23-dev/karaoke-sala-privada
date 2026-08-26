@@ -29,6 +29,41 @@
             display: block;
             z-index: 10;
         }
+        /* Motor 2: YouTube. Solo se muestra cuando toca una cancion que no
+           esta en videos_locales. Se monta encima del <video> nativo.
+           Ojo: se hace visible ANTES de cargar el video, porque un iframe
+           oculto no arranca solo. */
+        #ytContainer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: none;
+            z-index: 20;
+        }
+        #ytContainer iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        /* Tapa la barra de titulo y el boton de "ver en YouTube": en una sala
+           privada nadie debe poder navegar fuera del video. */
+        #ytEscudo {
+            position: fixed;
+            inset: 0;
+            z-index: 21;
+            display: none;
+            pointer-events: auto;
+            background: transparent;
+        }
+        #ytAviso {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 22;
+            display: none;
+        }
     </style>
 </head>
 <body class="text-white font-sans select-none">
@@ -42,9 +77,22 @@
         <h2 id="lobbyMessage" class="text-4xl font-extrabold text-zinc-300 tracking-wide">ESPERANDO SOLICITUDES...</h2>
         <h3 id="singerName" class="text-2xl font-bold text-emerald-400 mt-4 hidden"></h3>
         <h1 id="countdownText" class="text-9xl font-black text-amber-400 mt-6 hidden">5</h1>
+
+        <!-- El codigo de sala. Solo se ve aqui dentro: eso es lo que prueba
+             que quien lo teclea esta en la sala. -->
+        <div id="codigoSala" class="hidden mt-12 text-center">
+            <p class="text-zinc-500 text-sm uppercase tracking-[0.3em] mb-2">Código para pedir canciones</p>
+            <div id="codigoSalaValor" class="text-7xl font-black text-amber-400 tracking-[0.3em]"></div>
+        </div>
     </div>
 
     <video id="karaokePlayer" playsinline webkit-playsinline></video>
+
+    <div id="ytContainer"><div id="ytFrame"></div></div>
+    <div id="ytEscudo"></div>
+    <div id="ytAviso" class="bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-400 text-xs font-bold px-3 py-2 rounded-lg pointer-events-none tracking-wide">
+        ▶ YouTube · sin ajuste de tono
+    </div>
 
     <div id="timeCounter" class="fixed bottom-4 right-4 bg-zinc-950/90 backdrop-blur-sm border border-zinc-700/80 text-zinc-100 text-base font-mono font-black px-4 py-2.5 rounded-xl shadow-lg shadow-black/50 z-50 pointer-events-none hidden tracking-wide">
         00:00 / 00:00 (Restan: -00:00)
@@ -56,6 +104,20 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const canalAdmin = supabaseClient.channel('admin-commands');
+
+        // ⚠️ PON AQUI LA URL DE TU DESPLIEGUE EN VERCEL ⚠️
+        //
+        // Esta pantalla se abre con Live Server desde VS Code (localhost),
+        // porque necesita la carpeta videos_locales/ que no se despliega.
+        // Pero los endpoints /api/* viven en Vercel. Sin esta URL, el codigo
+        // de sala no puede aparecer en la TV.
+        //
+        // Si algun dia mueves el reproductor a Vercel, dejalo en '' y usara
+        // su propio origen.
+        const URL_VERCEL = 'https://karaoke-sala-privada.vercel.app';
+
+        const enLocal = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+        const API_BASE = enLocal ? URL_VERCEL : '';
 
         const player        = document.getElementById('karaokePlayer');
         const wall          = document.getElementById('activationWall');
@@ -128,11 +190,17 @@
         let normInterval    = null;
         let medicionesRMS   = [];
 
+        // Los .wav los genera scripts/generar-efectos.js (audio sintetizado,
+        // libre de derechos). Los .mp3 son los originales de siempre.
         const efectosSonidos = {
             'aplausos': new Audio('efectos/aplausos.mp3'),
             'buuu':     new Audio('efectos/buuu.mp3'),
             'corneta':  new Audio('efectos/corneta.mp3'),
-            'chacal':   new Audio('efectos/chacal.mp3')
+            'chacal':   new Audio('efectos/chacal.mp3'),
+            'gato':     new Audio('efectos/gato.wav'),
+            'trombon':  new Audio('efectos/trombon.wav'),
+            'grillos':  new Audio('efectos/grillos.wav'),
+            'redoble':  new Audio('efectos/redoble.wav')
         };
 
         function reproducirEfecto(valor) {
@@ -246,6 +314,12 @@
         }
 
         function cambiarTono(delta) {
+            // El audio de YouTube viene dentro de un iframe de otro origen:
+            // no pasa por el AudioContext, asi que no hay nada que transponer.
+            if (fuenteActual === 'youtube') {
+                console.info('[Tono] No disponible en canciones de YouTube.');
+                return;
+            }
             aplicarTonoSuave(semitonos + delta);
         }
 
@@ -283,6 +357,18 @@
             gainNormalizacion.gain.setValueAtTime(actual, t);
             gainNormalizacion.gain.exponentialRampToValueAtTime(ganancia, t + PRESET_CABINA.autoVolRampaSeg);
             notificarAutoVolAdmin(ganancia);
+        }
+
+        // Le dice al admin desde que motor esta sonando, para que atenue los
+        // controles de tono cuando no sirven de nada.
+        function notificarFuenteAdmin(fuente) {
+            try {
+                canalAdmin.send({
+                    type: 'broadcast',
+                    event: 'control',
+                    payload: { accion: 'sync_fuente', valor: fuente }
+                });
+            } catch (e) {}
         }
 
         function notificarAutoVolAdmin(ganancia) {
@@ -553,6 +639,15 @@
             systemActive    = true;
 
             await iniciarAudio();
+
+            // El PIN se pide una sola vez por TV y queda guardado. Si se
+            // cancela, el sistema sigue funcionando sin control de sala.
+            pinOperadorTv(false);
+            await refrescarSesion();
+
+            // Detecta que el operador abrio o cerro sesion desde el admin.
+            setInterval(refrescarSesion, 15000);
+
             buscarSiguienteCancion();
         }
 
@@ -663,6 +758,225 @@
             throw ultimoError || new Error('sin fuente de video');
         }
 
+        // ==================================================================
+        // MOTOR 2: YouTube
+        //
+        // Para las canciones que no estan en videos_locales. Se reproduce con
+        // el IFrame Player API oficial: nada de descargar ni proxear.
+        //
+        // Limitacion conocida y asumida: el audio del iframe es de otro origen
+        // y NUNCA entra al AudioContext, asi que aqui no hay cambio de tono ni
+        // normalizacion. Por eso YouTube es el plan B, no el motor principal.
+        // ==================================================================
+
+        const ytContainer = document.getElementById('ytContainer');
+        const ytEscudo    = document.getElementById('ytEscudo');
+        const ytAviso     = document.getElementById('ytAviso');
+
+        let ytPlayer         = null;
+        let ytApiPromesa     = null;
+        let ytPlayerPromesa  = null;
+        let ytEsperando      = null;   // handlers de la carga en curso
+        let ytIntervalTiempo = null;
+        let fuenteActual     = 'local';
+
+        function cargarApiYouTube() {
+            if (ytApiPromesa) return ytApiPromesa;
+
+            ytApiPromesa = new Promise((resolve, reject) => {
+                if (window.YT && window.YT.Player) return resolve();
+
+                const timer = setTimeout(
+                    () => reject(new Error('timeout cargando API de YouTube')),
+                    15000
+                );
+
+                const anterior = window.onYouTubeIframeAPIReady;
+                window.onYouTubeIframeAPIReady = () => {
+                    if (typeof anterior === 'function') anterior();
+                    clearTimeout(timer);
+                    resolve();
+                };
+
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                tag.onerror = () => {
+                    clearTimeout(timer);
+                    reject(new Error('no se pudo cargar la API de YouTube'));
+                };
+                document.head.appendChild(tag);
+            });
+
+            return ytApiPromesa;
+        }
+
+        function crearPlayerYouTube() {
+            if (ytPlayerPromesa) return ytPlayerPromesa;
+
+            ytPlayerPromesa = new Promise((resolve, reject) => {
+                const timer = setTimeout(
+                    () => reject(new Error('timeout creando player de YouTube')),
+                    15000
+                );
+
+                ytPlayer = new YT.Player('ytFrame', {
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,          // los controles los da el admin
+                        disablekb: 1,
+                        modestbranding: 1,
+                        rel: 0,
+                        iv_load_policy: 3,    // sin anotaciones encima de la letra
+                        fs: 0,
+                        playsinline: 1,
+                        cc_load_policy: 0
+                    },
+                    events: {
+                        onReady: () => { clearTimeout(timer); resolve(ytPlayer); },
+                        onStateChange: manejarEstadoYt,
+                        onError: manejarErrorYt
+                    }
+                });
+            });
+
+            return ytPlayerPromesa;
+        }
+
+        function manejarEstadoYt(evento) {
+            // PLAYING tambien se dispara durante un anuncio previo, que es lo
+            // que queremos: significa que el video existe y va a sonar.
+            if (evento.data === YT.PlayerState.PLAYING) {
+                if (ytEsperando) ytEsperando.ok();
+                return;
+            }
+
+            if (evento.data === YT.PlayerState.ENDED) {
+                if (fuenteActual === 'youtube' && idActual !== null) {
+                    marcarComoCompletada(idActual);
+                }
+            }
+        }
+
+        function manejarErrorYt(evento) {
+            // 101 y 150 = el dueño no permite embeber. 100 = borrado o privado.
+            const codigo = evento.data;
+            console.warn('[YT] error de reproduccion, codigo', codigo);
+            if (ytEsperando) ytEsperando.fallo('codigo ' + codigo);
+        }
+
+        function mostrarYouTube(visible) {
+            ytContainer.style.display = visible ? 'block' : 'none';
+            ytEscudo.style.display    = visible ? 'block' : 'none';
+            ytAviso.style.display     = visible ? 'block' : 'none';
+        }
+
+        // Intenta un video concreto. Resuelve cuando empieza a sonar de verdad;
+        // rechaza si YouTube devuelve error o si nunca arranca.
+        function intentarVideoYt(videoId) {
+            return new Promise((resolve, reject) => {
+                let resuelto = false;
+
+                const limpiar = () => {
+                    clearTimeout(timer);
+                    ytEsperando = null;
+                };
+
+                const timer = setTimeout(() => {
+                    if (resuelto) return;
+                    resuelto = true;
+                    limpiar();
+                    reject(new Error('timeout'));
+                }, 20000);
+
+                ytEsperando = {
+                    ok: () => {
+                        if (resuelto) return;
+                        resuelto = true;
+                        limpiar();
+                        resolve();
+                    },
+                    fallo: (motivo) => {
+                        if (resuelto) return;
+                        resuelto = true;
+                        limpiar();
+                        reject(new Error(motivo));
+                    }
+                };
+
+                // El contenedor se muestra ANTES de cargar: un iframe oculto
+                // no arranca reproduccion automatica.
+                mostrarYouTube(true);
+                try {
+                    ytPlayer.loadVideoById(videoId);
+                } catch (e) {
+                    ytEsperando.fallo('loadVideoById fallo');
+                }
+            });
+        }
+
+        async function reproducirDesdeYouTube(solicitud) {
+            // El candidato principal mas los respaldos que guardo el cliente:
+            // si el primero esta caido, se salta al siguiente sin que se note.
+            const respaldos = Array.isArray(solicitud.respaldo_ids)
+                ? solicitud.respaldo_ids
+                : [];
+            const ids = [solicitud.video_id, ...respaldos].filter(Boolean);
+
+            if (ids.length === 0) throw new Error('solicitud de YouTube sin video_id');
+
+            await cargarApiYouTube();
+            await crearPlayerYouTube();
+
+            // El <video> nativo se apaga del todo para que no suenen los dos.
+            try {
+                player.pause();
+                player.removeAttribute('src');
+                player.load();
+            } catch (e) {}
+
+            let ultimoError = null;
+            for (const id of ids) {
+                try {
+                    await intentarVideoYt(id);
+                    return id;
+                } catch (err) {
+                    ultimoError = err;
+                    console.warn('[YT] fallo el video', id, '-', err.message);
+                }
+            }
+
+            throw ultimoError || new Error('ningun video de YouTube funciono');
+        }
+
+        function detenerYouTube() {
+            if (ytIntervalTiempo) {
+                clearInterval(ytIntervalTiempo);
+                ytIntervalTiempo = null;
+            }
+            ytEsperando = null;
+            if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+                try { ytPlayer.stopVideo(); } catch (e) {}
+            }
+            mostrarYouTube(false);
+        }
+
+        // El <video> nativo emite 'timeupdate'; el iframe no, hay que preguntarle.
+        function iniciarContadorYt() {
+            if (ytIntervalTiempo) clearInterval(ytIntervalTiempo);
+            ytIntervalTiempo = setInterval(() => {
+                if (fuenteActual !== 'youtube' || !ytPlayer) return;
+                try {
+                    const t = ytPlayer.getCurrentTime();
+                    const d = ytPlayer.getDuration();
+                    if (!d || isNaN(d)) return;
+                    timeCounter.innerText =
+                        `${formatTiempo(t)} / ${formatTiempo(d)} (Restan: -${formatTiempo(d - t)})`;
+                } catch (e) {}
+            }, 500);
+        }
+
         player.addEventListener('timeupdate', () => {
             if (!isPlaying || !player.duration || isNaN(player.duration)) return;
             const t = player.currentTime;
@@ -670,13 +984,85 @@
             timeCounter.innerText = `${formatTiempo(t)} / ${formatTiempo(d)} (Restan: -${formatTiempo(d - t)})`;
         });
 
+        // ==================================================================
+        // Sesion de sala
+        //
+        // El codigo se muestra SOLO en esta pantalla. Verlo exige estar en la
+        // sala, que es justo lo que queriamos comprobar: nada de GPS ni de
+        // contraseñas que el cliente tenga que inventarse.
+        //
+        // Es opcional: sin sesion abierta, todo funciona como siempre.
+        // ==================================================================
+
+        const codigoSala      = document.getElementById('codigoSala');
+        const codigoSalaValor = document.getElementById('codigoSalaValor');
+
+        let sesionActual = null;
+
+        function pinOperadorTv(forzar) {
+            let pin = localStorage.getItem('karaoke_pin_operador');
+            if (!pin || forzar) {
+                pin = prompt('PIN de operador (solo la primera vez en esta TV):');
+                if (!pin) return null;
+                localStorage.setItem('karaoke_pin_operador', pin);
+            }
+            return pin;
+        }
+
+        async function refrescarSesion() {
+            const pin = localStorage.getItem('karaoke_pin_operador');
+            if (!pin) {
+                sesionActual = null;
+                codigoSala.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/sesion`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'estado', pin })
+                });
+                const data = await res.json();
+
+                if (!data.ok) {
+                    if (data.error === 'PIN incorrecto') {
+                        localStorage.removeItem('karaoke_pin_operador');
+                    }
+                    sesionActual = null;
+                    codigoSala.classList.add('hidden');
+                    return;
+                }
+
+                sesionActual = data.sesion || null;
+
+                if (sesionActual) {
+                    codigoSalaValor.innerText = sesionActual.codigo;
+                    codigoSala.classList.remove('hidden');
+                } else {
+                    codigoSala.classList.add('hidden');
+                }
+            } catch (e) {
+                console.warn('[Sesion] No se pudo consultar:', e.message);
+            }
+        }
+
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying || completandoCancion) return;
 
-            const { data, error } = await supabaseClient
+            let consulta = supabaseClient
                 .from('Solicitudes')
                 .select('*')
-                .eq('estado', 'pendiente')
+                .eq('estado', 'pendiente');
+
+            // Con sesion abierta solo suena lo pedido en ESTA sesion. Aqui es
+            // donde el control se hace de verdad: aunque alguien lograra colar
+            // una solicitud, si no es de la sesion actual no llega a la TV.
+            if (sesionActual) {
+                consulta = consulta.eq('sesion_id', sesionActual.id);
+            }
+
+            const { data, error } = await consulta
                 .order('id', { ascending: true })
                 .limit(1);
 
@@ -731,6 +1117,35 @@
             singerName.classList.remove('hidden');
             countdownText.classList.add('hidden');
             timeCounter.classList.add('hidden');
+
+            // Las solicitudes viejas no tienen la columna: se asumen locales.
+            fuenteActual = solicitud.fuente === 'youtube' ? 'youtube' : 'local';
+            notificarFuenteAdmin(fuenteActual);
+
+            if (fuenteActual === 'youtube') {
+                try {
+                    await reproducirDesdeYouTube(solicitud);
+                    if (token !== reproduccionToken || idActual !== solicitud.id) {
+                        detenerYouTube();
+                        return;
+                    }
+
+                    lobbyScreen.style.display = 'none';
+                    timeCounter.classList.remove('hidden');
+                    iniciarContadorYt();
+                } catch (err) {
+                    console.warn('No se pudo reproducir en YouTube:', nombre, err);
+                    detenerYouTube();
+                    if (token === reproduccionToken && idActual === solicitud.id) {
+                        lobbyMessage.innerText = `NO DISPONIBLE:\n${nombre}`;
+                        await new Promise(r => setTimeout(r, 900));
+                        await marcarComoCompletada(solicitud.id);
+                    }
+                }
+                return;
+            }
+
+            mostrarYouTube(false);
 
             try {
                 await cargarFuenteVideo(nombre);
@@ -788,6 +1203,10 @@
 
             timeCounter.classList.add('hidden');
 
+            detenerYouTube();
+            fuenteActual = 'local';
+            notificarFuenteAdmin('local');
+
             detenerNormalizacion();
             resetTono(true);
 
@@ -822,7 +1241,14 @@
                 switch (payload.accion) {
 
                     case 'pausa':
-                        if (player.paused) {
+                        if (fuenteActual === 'youtube') {
+                            if (!ytPlayer) break;
+                            try {
+                                const estado = ytPlayer.getPlayerState();
+                                if (estado === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
+                                else ytPlayer.playVideo();
+                            } catch (e) {}
+                        } else if (player.paused) {
                             try { const p = player.play(); if (p?.catch) p.catch(() => {}); } catch (e) {}
                         } else {
                             player.pause();
@@ -830,7 +1256,14 @@
                         break;
 
                     case 'reiniciar':
-                        if (isPlaying && player.src) {
+                        if (!isPlaying) break;
+                        if (fuenteActual === 'youtube') {
+                            if (!ytPlayer) break;
+                            try {
+                                ytPlayer.seekTo(0, true);
+                                ytPlayer.playVideo();
+                            } catch (e) {}
+                        } else if (player.src) {
                             player.currentTime = 0;
                             try { const p = player.play(); if (p?.catch) p.catch(() => {}); } catch (e) {}
                         }

@@ -28,6 +28,13 @@
             </div>
         </header>
 
+        <div>
+            <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Sesión de sala</h2>
+            <div id="panelSesion" class="bg-zinc-950/95 border border-zinc-700/60 rounded-2xl p-4 text-center">
+                <p class="text-zinc-600 italic text-sm">Cargando...</p>
+            </div>
+        </div>
+
         <div class="text-left">
             <h2 class="text-zinc-400 text-xs font-bold mb-2 uppercase tracking-wider">Canciones en espera</h2>
             <div class="max-h-56 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950/50 p-3">
@@ -94,6 +101,18 @@
                 <button onclick="enviarEfecto('chacal')" class="bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 text-amber-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-amber-900/20">
                     🎺 Chacal
                 </button>
+                <button onclick="enviarEfecto('gato')" class="bg-orange-900/40 hover:bg-orange-800/60 border border-orange-700/50 text-orange-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-orange-900/20">
+                    🐱 Gato
+                </button>
+                <button onclick="enviarEfecto('trombon')" class="bg-sky-900/40 hover:bg-sky-800/60 border border-sky-700/50 text-sky-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-sky-900/20">
+                    🎶 Fracaso
+                </button>
+                <button onclick="enviarEfecto('grillos')" class="bg-lime-900/40 hover:bg-lime-800/60 border border-lime-700/50 text-lime-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-lime-900/20">
+                    🦗 Grillos
+                </button>
+                <button onclick="enviarEfecto('redoble')" class="bg-fuchsia-900/40 hover:bg-fuchsia-800/60 border border-fuchsia-700/50 text-fuchsia-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-fuchsia-900/20">
+                    🥁 Redoble
+                </button>
             </div>
         </div>
 
@@ -127,6 +146,128 @@
                              '#ef4444';
             const db = Math.round(20 * Math.log10(Math.max(0.001, valor)));
             gainLabel.innerText = `${db >= 0 ? '+' : ''}${db} dB`;
+        }
+
+        // En canciones de YouTube el audio va dentro de un iframe ajeno y no
+        // pasa por el procesador de la TV: el tono no se puede tocar. Mejor
+        // apagar los botones que dejar que el operador crea que no funcionan.
+        function aplicarFuenteEnControles(fuente) {
+            const esYoutube = fuente === 'youtube';
+            document.querySelectorAll('.btn-tono').forEach((b) => {
+                b.disabled = esYoutube;
+                b.style.opacity = esYoutube ? '0.3' : '';
+                b.style.pointerEvents = esYoutube ? 'none' : '';
+            });
+            tonoDisplay.innerText = esYoutube ? 'YT' : (semitonosAdmin > 0 ? `+${semitonosAdmin}` : `${semitonosAdmin}`);
+            tonoDisplay.style.opacity = esYoutube ? '0.5' : '';
+        }
+
+        // ------------------------------------------------------------------
+        // Sesiones de sala
+        //
+        // El codigo solo se ve en la TV, asi que teclearlo demuestra estar en
+        // la sala. Al cerrar la sesion, quien vino ayer queda fuera solo.
+        // ------------------------------------------------------------------
+
+        const panelSesion = document.getElementById('panelSesion');
+
+        function pinOperador(forzar) {
+            let pin = localStorage.getItem('karaoke_pin_operador');
+            if (!pin || forzar) {
+                pin = prompt('PIN de operador:');
+                if (!pin) return null;
+                localStorage.setItem('karaoke_pin_operador', pin);
+            }
+            return pin;
+        }
+
+        async function llamarSesion(accion, extra = {}) {
+            const pin = pinOperador(false);
+            if (!pin) return null;
+
+            let data;
+            try {
+                const res = await fetch('/api/sesion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion, pin, ...extra })
+                });
+                data = await res.json();
+            } catch (e) {
+                console.error('Error de red en /api/sesion:', e);
+                return { ok: false, error: 'Sin conexión' };
+            }
+
+            // PIN malo: se borra el guardado para que vuelva a preguntar.
+            if (!data.ok && data.error === 'PIN incorrecto') {
+                localStorage.removeItem('karaoke_pin_operador');
+            }
+            return data;
+        }
+
+        function pintarPanelSesion(data) {
+            if (!data) {
+                panelSesion.innerHTML = `<p class="text-zinc-600 italic text-sm">PIN no ingresado.</p>
+                    <button onclick="refrescarPanelSesion(true)" class="mt-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-4 py-2 rounded-xl text-xs">Ingresar PIN</button>`;
+                return;
+            }
+
+            if (data.sinConfigurar) {
+                panelSesion.innerHTML = `<p class="text-zinc-500 text-xs leading-relaxed">
+                    Sesiones desactivadas.<br>Falta <span class="text-zinc-300 font-mono">ADMIN_PIN</span> en Vercel.</p>`;
+                return;
+            }
+
+            if (!data.ok) {
+                panelSesion.innerHTML = `<p class="text-red-400 text-sm font-bold mb-3">${data.error || 'Error'}</p>
+                    <button onclick="refrescarPanelSesion(true)" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-4 py-2 rounded-xl text-xs">Reintentar</button>`;
+                return;
+            }
+
+            if (!data.sesion) {
+                panelSesion.innerHTML = `
+                    <p class="text-zinc-500 text-xs mb-1">Sin sesión abierta</p>
+                    <p class="text-zinc-600 text-[11px] mb-4 leading-relaxed">
+                        Todos pueden pedir canciones sin código.
+                    </p>
+                    <button onclick="abrirSesion()"
+                        class="w-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                        ▶ Abrir sesión
+                    </button>`;
+                return;
+            }
+
+            const desde = new Date(data.sesion.abierta_en);
+            const hora = desde.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+            const grupo = data.sesion.nombre_grupo
+                ? `<p class="text-zinc-400 text-xs mb-1">${data.sesion.nombre_grupo}</p>` : '';
+
+            panelSesion.innerHTML = `
+                ${grupo}
+                <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Código en pantalla</p>
+                <div class="text-5xl font-black text-amber-400 tracking-[0.25em] mb-1">${data.sesion.codigo}</div>
+                <p class="text-zinc-600 text-[11px] mb-4">Abierta desde las ${hora}</p>
+                <button onclick="cerrarSesion()"
+                    class="w-full bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 text-red-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                    ■ Cerrar sesión
+                </button>`;
+        }
+
+        async function refrescarPanelSesion(forzarPin) {
+            if (forzarPin) pinOperador(true);
+            pintarPanelSesion(await llamarSesion('estado'));
+        }
+
+        async function abrirSesion() {
+            const nombre = prompt('Nombre del grupo (opcional):') || '';
+            pintarPanelSesion(await llamarSesion('abrir', { nombre }));
+        }
+
+        async function cerrarSesion() {
+            if (!confirm('¿Cerrar la sesión? Los clientes tendrán que pedir un código nuevo.')) return;
+            const r = await llamarSesion('cerrar');
+            if (r && r.ok) return refrescarPanelSesion(false);
+            pintarPanelSesion(r);
         }
 
         function actualizarDisplayTono() {
@@ -216,12 +357,16 @@
                     semitonosAdmin = payload.valor ?? 0;
                     actualizarDisplayTono();
                 }
+                if (payload.accion === 'sync_fuente') {
+                    aplicarFuenteEnControles(payload.valor);
+                }
             })
             .subscribe();
 
         supabaseClient.channel('admin-queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
 
         actualizarCola();
+        refrescarPanelSesion(false);
     </script>
 
     <!-- ── Alerta operador (módulo aislado) ─────────────────────────────── -->

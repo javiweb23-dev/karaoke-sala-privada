@@ -13,6 +13,9 @@
     </style>
     <script src="canciones.js"></script>
     <script src="videos_disponibles.js"></script>
+    <!-- Canciones resueltas por scripts/resolver-faltantes.js: no estan
+         descargadas, se reproducen con el player oficial de YouTube. -->
+    <script src="canciones_youtube.js"></script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 h-screen overflow-hidden flex flex-col font-sans select-none relative">
 
@@ -22,6 +25,25 @@
             <p class="text-zinc-400 text-sm mb-6">Ingresa tu nombre para pedir canciones</p>
             <input type="text" id="userNameInput" placeholder="Ej: María, Carlos..." class="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-3 px-4 text-white font-bold text-center mb-4 focus:outline-none focus:border-amber-500">
             <button onclick="guardarNombre()" class="w-full bg-amber-500 text-black font-black py-3 rounded-xl active:scale-95 transition-all">ENTRAR A LA SALA</button>
+        </div>
+    </div>
+
+    <!-- Va por encima del modal de nombre: primero se demuestra estar en la
+         sala, despues se pregunta quien eres. -->
+    <div id="codeModal" class="fixed inset-0 bg-black/95 z-[110] flex flex-col justify-center items-center p-6 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold text-amber-400 mb-2">Código de sala</h2>
+            <p class="text-zinc-400 text-sm mb-6 leading-relaxed">
+                Escribe los 4 números que aparecen en la pantalla del televisor
+            </p>
+            <input type="tel" id="codeInput" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                placeholder="0000" autocomplete="off"
+                class="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-4 px-4 text-white font-black text-4xl text-center tracking-[0.3em] mb-4 focus:outline-none focus:border-amber-500">
+            <button onclick="validarCodigoSala()" id="codeBtn"
+                class="w-full bg-amber-500 text-black font-black py-3 rounded-xl active:scale-95 transition-all">
+                ENTRAR
+            </button>
+            <p id="codeError" class="text-red-400 text-xs font-bold mt-4 h-4"></p>
         </div>
     </div>
 
@@ -85,9 +107,17 @@
                 .toLowerCase();
         }
 
-        if (!miNombre) {
-            document.getElementById('nameModal').classList.remove('hidden');
-        } else {
+        // El modal de nombre ya no se abre solo: primero hay que pasar el
+        // control de sala (si es que hay una sesion abierta).
+        function mostrarGateNombre() {
+            if (!miNombre) {
+                document.getElementById('nameModal').classList.remove('hidden');
+            } else {
+                document.getElementById('displayNombre').innerText = `Cantante: ${miNombre}`;
+            }
+        }
+
+        if (miNombre) {
             document.getElementById('displayNombre').innerText = `Cantante: ${miNombre}`;
         }
 
@@ -99,6 +129,102 @@
                 document.getElementById('displayNombre').innerText = `Cantante: ${miNombre}`;
                 document.getElementById('nameModal').classList.add('hidden');
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Control de sala
+        //
+        // No se pregunta DONDE esta el cliente, sino si esta AQUI Y AHORA: el
+        // codigo solo se ve en la TV de la sala. Cero permisos de GPS, cero
+        // contraseñas que inventar, y quien vino ayer queda fuera solo cuando
+        // el operador cierra la sesion.
+        //
+        // Es opcional: sin sesion abierta no se le pide codigo a nadie y todo
+        // funciona igual que siempre.
+        // ------------------------------------------------------------------
+
+        let sesionSalaId = null;
+
+        async function verificarSesionSala() {
+            let activa = null;
+            try {
+                // La vista solo expone el id: el codigo NO es consultable desde
+                // el navegador, o el control no serviria de nada.
+                const { data, error } = await supabaseClient
+                    .from('sesion_activa')
+                    .select('id')
+                    .limit(1);
+                if (error) throw error;
+                activa = data && data.length ? data[0] : null;
+            } catch (e) {
+                // Si la tabla no existe todavia (SQL sin correr), no bloqueamos
+                // a nadie: el sistema sigue funcionando como antes.
+                console.warn('[Sala] Sin control de sesion:', e.message || e);
+                sesionSalaId = null;
+                return true;
+            }
+
+            if (!activa) {
+                sesionSalaId = null;
+                return true;
+            }
+
+            sesionSalaId = activa.id;
+
+            if (Number(localStorage.getItem('karaoke_sesion_id')) === activa.id) {
+                return true;
+            }
+
+            localStorage.removeItem('karaoke_sesion_id');
+            document.getElementById('codeModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('codeInput').focus(), 100);
+            return false;
+        }
+
+        async function validarCodigoSala() {
+            const input = document.getElementById('codeInput');
+            const btn = document.getElementById('codeBtn');
+            const err = document.getElementById('codeError');
+            const codigo = input.value.replace(/\D/g, '');
+
+            if (codigo.length !== 4) {
+                err.innerText = 'Son 4 números';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'VERIFICANDO...';
+            err.innerText = '';
+
+            let data;
+            try {
+                const res = await fetch('/api/validar-codigo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo })
+                });
+                data = await res.json();
+            } catch (e) {
+                data = { ok: false, error: 'Sin conexión' };
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'ENTRAR';
+
+            if (!data.ok) {
+                err.innerText = data.error || 'Código incorrecto';
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            if (data.sesion_id) {
+                localStorage.setItem('karaoke_sesion_id', String(data.sesion_id));
+                sesionSalaId = data.sesion_id;
+            }
+
+            document.getElementById('codeModal').classList.add('hidden');
+            mostrarGateNombre();
         }
 
         const cachePortadas = new Map();
@@ -208,7 +334,11 @@
         }
 
         async function cargarPortadaLazy(portadaSlot, song) {
-            const url = await obtenerPortadaItunes(song);
+            // Las de YouTube ya traen su propia miniatura: sale gratis y evita
+            // consultarle a iTunes por un "artista" que es un canal.
+            const url = song.fuente === 'youtube' && song.video_id
+                ? `https://i.ytimg.com/vi/${encodeURIComponent(song.video_id)}/mqdefault.jpg`
+                : await obtenerPortadaItunes(song);
             if (!portadaSlot?.isConnected) return;
 
             if (!url) return;
@@ -283,7 +413,17 @@
             return `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
         }
 
+        // El catalogo local mas lo que el agente nocturno fue resolviendo.
+        function catalogoCompleto() {
+            const extra = (typeof window !== 'undefined' && Array.isArray(window.CANCIONES_YOUTUBE))
+                ? window.CANCIONES_YOUTUBE
+                : [];
+            return extra.length ? cancionesREAL.concat(extra) : cancionesREAL;
+        }
+
         function cancionTieneVideo(song) {
+            // Las de YouTube no tienen archivo, y no hace falta: tienen video_id.
+            if (song.fuente === 'youtube') return Boolean(song.video_id);
             if (typeof VIDEOS_DISPONIBLES === 'undefined' || !VIDEOS_DISPONIBLES) return true;
             const clave = claveArchivoCancion(song);
             if (VIDEOS_DISPONIBLES[clave]) return true;
@@ -296,7 +436,7 @@
 
         function obtenerGenerosUnicos() {
             const generos = new Set();
-            for (const c of cancionesREAL) {
+            for (const c of catalogoCompleto()) {
                 if (!cancionTieneVideo(c)) continue;
                 const g = (c.genero || '').trim();
                 if (g) generos.add(g);
@@ -319,7 +459,7 @@
 
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
-            return cancionesREAL.filter(c => {
+            return catalogoCompleto().filter(c => {
                 if (!cancionTieneVideo(c)) return false;
                 const coincideGenero = generoActivo === 'Todos'
                     || sinAcentos(c.genero) === sinAcentos(generoActivo);
@@ -334,6 +474,209 @@
 
         function aplicarFiltros() {
             cargarCanciones(filtrarCanciones());
+        }
+
+        // ------------------------------------------------------------------
+        // Canciones que no estan en el catalogo
+        // ------------------------------------------------------------------
+
+        // Los titulos de YouTube son texto de terceros: nunca van crudos al DOM.
+        function escaparHtml(texto) {
+            return String(texto == null ? '' : texto)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatDuracion(seg) {
+            const s = Number(seg) || 0;
+            const m = Math.floor(s / 60);
+            return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+        }
+
+        // PASO 1: dejar constancia de lo que la gente pide y no tenemos.
+        // Corre siempre, aunque la busqueda en YouTube no este configurada:
+        // es lo que alimenta el catalogo mas adelante.
+        async function registrarBusquedaFallida(consulta) {
+            try {
+                await supabaseClient.rpc('registrar_busqueda_fallida', {
+                    p_consulta: consulta,
+                    p_norm: sinAcentos(consulta).toUpperCase(),
+                    p_usuario: miNombre || null
+                });
+            } catch (e) {
+                console.warn('No se pudo registrar la busqueda:', e);
+            }
+        }
+
+        function htmlSinResultados() {
+            const q = document.getElementById('searchBar').value.trim();
+
+            if (!q) {
+                return `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
+            }
+
+            return `
+                <div class="text-center py-10 px-4">
+                    <p class="text-zinc-400 text-[15px] font-medium mb-1.5">
+                        No tenemos <span class="text-zinc-200">"${escaparHtml(q)}"</span> en el catálogo
+                    </p>
+                    <p class="text-zinc-600 text-xs mb-6 leading-relaxed">
+                        Podemos buscarla en YouTube y ponerla igual
+                    </p>
+                    <button id="btnBuscarYoutube"
+                        class="bg-red-600 hover:bg-red-500 text-white font-bold px-6 py-3.5 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-red-900/30">
+                        🔎 Buscarla en YouTube
+                    </button>
+                </div>`;
+        }
+
+        async function buscarEnYouTube() {
+            const consulta = document.getElementById('searchBar').value.trim();
+            if (consulta.length < 3) return;
+
+            const songList = document.getElementById('songList');
+            const btn = document.getElementById('btnBuscarYoutube');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Buscando...';
+            }
+
+            // El registro va primero y no bloquea: aunque YouTube falle,
+            // el dato de "esto lo pidieron y no lo teniamos" queda guardado.
+            registrarBusquedaFallida(consulta);
+
+            let data;
+            try {
+                const res = await fetch('/api/buscar-youtube', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ consulta })
+                });
+                data = await res.json();
+            } catch (e) {
+                console.error('Error buscando en YouTube:', e);
+                data = { ok: false };
+            }
+
+            if (!data || !data.ok) {
+                const msg = data && data.motivo === 'quotaExceeded'
+                    ? 'Se agotaron las búsquedas de hoy. Avísale al operador.'
+                    : 'No se pudo buscar ahora mismo.';
+                songList.innerHTML = htmlAvisoBusqueda(consulta, msg);
+                return;
+            }
+
+            // Todavía sin API key: el paso 1 igual cumplió su función.
+            if (data.configurado === false) {
+                songList.innerHTML = htmlAvisoBusqueda(
+                    consulta,
+                    '✅ Anotada. La agregamos al catálogo pronto.'
+                );
+                return;
+            }
+
+            if (!data.candidatos || data.candidatos.length === 0) {
+                songList.innerHTML = htmlAvisoBusqueda(
+                    consulta,
+                    'No encontramos un karaoke decente de esa canción. Quedó anotada.'
+                );
+                return;
+            }
+
+            renderizarCandidatos(consulta, data.candidatos);
+        }
+
+        function htmlAvisoBusqueda(consulta, mensaje) {
+            return `
+                <div class="text-center py-10 px-4">
+                    <p class="text-zinc-300 text-[15px] font-medium mb-2">${escaparHtml(mensaje)}</p>
+                    <p class="text-zinc-600 text-xs mb-6">"${escaparHtml(consulta)}"</p>
+                    <button onclick="volverAlCatalogo()"
+                        class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all">
+                        ← Volver al catálogo
+                    </button>
+                </div>`;
+        }
+
+        function volverAlCatalogo() {
+            document.getElementById('searchBar').value = '';
+            aplicarFiltros();
+        }
+
+        function renderizarCandidatos(consulta, candidatos) {
+            const songList = document.getElementById('songList');
+            songList.innerHTML = '';
+
+            const cabecera = document.createElement('div');
+            cabecera.className = 'mb-4 px-1';
+            cabecera.innerHTML = `
+                <div class="flex items-center justify-between gap-3 mb-1">
+                    <h3 class="text-zinc-200 font-bold text-sm">Encontrado en YouTube</h3>
+                    <button onclick="volverAlCatalogo()"
+                        class="text-zinc-500 hover:text-zinc-300 text-xs font-medium shrink-0">
+                        ← Catálogo
+                    </button>
+                </div>
+                <p class="text-zinc-600 text-[11px] leading-relaxed">
+                    Elige la versión que prefieras. En estas canciones no se puede ajustar el tono.
+                </p>`;
+            songList.appendChild(cabecera);
+
+            candidatos.forEach((c, idx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-3 rounded-2xl flex items-center gap-3 transition-all shadow-sm mb-3';
+
+                const miniatura = c.miniatura
+                    ? `<img src="${escaparHtml(c.miniatura)}" alt="" class="w-full h-full object-cover" loading="lazy">`
+                    : '<div class="w-full h-full bg-zinc-800"></div>';
+
+                const info = document.createElement('div');
+                info.className = 'flex-1 min-w-0';
+                info.innerHTML = `
+                    <h4 class="font-semibold text-zinc-50 text-[13px] leading-snug line-clamp-2">${escaparHtml(c.titulo)}</h4>
+                    <p class="text-[11px] text-zinc-500 mt-1 truncate">${escaparHtml(c.canal)} · ${formatDuracion(c.duracion)}</p>
+                    ${idx === 0 ? '<span class="inline-block mt-1.5 text-[9px] uppercase tracking-widest bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Recomendada</span>' : ''}`;
+
+                const thumb = document.createElement('div');
+                thumb.className = 'flex-shrink-0 w-20 h-[45px] rounded-lg overflow-hidden bg-zinc-800';
+                thumb.innerHTML = miniatura;
+
+                const btn = document.createElement('button');
+                btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-4 py-2.5 rounded-xl text-xs active:scale-95 transition-all';
+                btn.textContent = 'Pedir';
+                btn.onclick = () => pedirDesdeYouTube(consulta, c, candidatos, btn);
+
+                card.appendChild(thumb);
+                card.appendChild(info);
+                card.appendChild(btn);
+                songList.appendChild(card);
+            });
+        }
+
+        async function pedirDesdeYouTube(consulta, candidato, todos, btn) {
+            // Los demas candidatos viajan como respaldo: si el primero falla en
+            // vivo, el reproductor salta al siguiente sin cortar la fiesta.
+            const respaldos = todos
+                .filter((c) => c.videoId !== candidato.videoId)
+                .slice(0, 2)
+                .map((c) => c.videoId);
+
+            await pedirCancion(
+                candidato.titulo.slice(0, 120),
+                candidato.titulo,
+                candidato.canal,
+                'YOUTUBE',
+                btn,
+                {
+                    fuente: 'youtube',
+                    video_id: candidato.videoId,
+                    respaldo_ids: respaldos,
+                    duracion_seg: candidato.duracion
+                }
+            );
         }
 
         function renderizarSliderGeneros() {
@@ -375,7 +718,9 @@
             songList.innerHTML = '';
             
             if (lista.length === 0) {
-                songList.innerHTML = `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
+                songList.innerHTML = htmlSinResultados();
+                const btnYt = document.getElementById('btnBuscarYoutube');
+                if (btnYt) btnYt.onclick = () => buscarEnYouTube();
                 return;
             }
 
@@ -408,7 +753,17 @@
                 const btn = document.createElement('button');
                 btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
-                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero, btn);
+                btn.onclick = () => pedirCancion(
+                    nombreFormateado, song.titulo, song.artista, song.genero, btn,
+                    song.fuente === 'youtube'
+                        ? {
+                            fuente: 'youtube',
+                            video_id: song.video_id,
+                            respaldo_ids: song.respaldo_ids || [],
+                            duracion_seg: song.duracion_seg || null
+                          }
+                        : undefined
+                );
 
                 card.appendChild(portada);
                 card.appendChild(info);
@@ -465,7 +820,9 @@
             }
         }
 
-        async function pedirCancion(nombreArchivo, titulo, artista, genero, btn) {
+        // `extra` trae los campos de YouTube (fuente, video_id, respaldos).
+        // Si no viene, la solicitud queda como 'local' igual que siempre.
+        async function pedirCancion(nombreArchivo, titulo, artista, genero, btn, extra) {
             if (!miNombre) return alert("Por favor ingresa tu nombre primero.");
             if (pedidoEnCurso) return;
 
@@ -521,19 +878,33 @@
                     return mostrarAlerta("❌ Error al enviar. Intenta de nuevo.", true);
                 }
 
-                const { error } = await supabaseClient.from('Solicitudes').insert([{
+                const solicitud = {
                     nombre_usuario: miNombre,
                     cancion_info: nombreArchivo,
                     genero: genero || null,
                     estado: 'pendiente'
-                }]);
+                };
+
+                // Las columnas nuevas solo se mandan si de verdad hacen falta.
+                // Asi el sistema sigue pidiendo canciones aunque el SQL de
+                // sql/ todavia no se haya ejecutado y las columnas no existan.
+                if (sesionSalaId) solicitud.sesion_id = sesionSalaId;
+                Object.assign(solicitud, extra || {});
+
+                const { error } = await supabaseClient
+                    .from('Solicitudes')
+                    .insert([solicitud]);
 
                 if (error) {
                     console.error('Error al insertar solicitud:', error);
                     return mostrarAlerta("❌ No se pudo agregar la canción. Intenta de nuevo.", true);
                 }
 
-                await registrarPopularidad(titulo, artista);
+                // La lista de populares se mide sobre el catalogo propio; meterle
+                // nombres de canales de YouTube la ensuciaria.
+                if (!extra || extra.fuente !== 'youtube') {
+                    await registrarPopularidad(titulo, artista);
+                }
 
                 if (totalCola === 0) {
                     mostrarAlerta("✅ ¡Enviada! Comenzará en unos segundos.");
@@ -577,12 +948,24 @@
 
         supabaseClient.channel('queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
 
+        document.getElementById('codeInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') validarCodigoSala();
+        });
+
         async function iniciarPagina() {
+            // El catalogo se carga detras del modal: cuando el cliente teclea
+            // el codigo, la lista ya esta lista y entra de una vez.
+            const puedePasar = await verificarSesionSala();
+            if (puedePasar) mostrarGateNombre();
+
             await cargarCancionesPopulares();
             renderizarSliderGeneros();
             configurarScrollGeneros();
             aplicarFiltros();
             actualizarCola();
+
+            // Si el operador cierra la sesion, el celular se entera solo.
+            setInterval(verificarSesionSala, 30000);
         }
 
         iniciarPagina();
