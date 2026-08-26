@@ -807,6 +807,8 @@
                 document.head.appendChild(tag);
             });
 
+            ytApiPromesa.catch(() => { ytApiPromesa = null; });
+
             return ytApiPromesa;
         }
 
@@ -818,6 +820,11 @@
                     () => reject(new Error('timeout creando player de YouTube')),
                     15000
                 );
+
+                // El contenedor se muestra ANTES de crear el player: con el
+                // iframe oculto, onReady puede no llegar nunca y encima el
+                // navegador bloquea la reproduccion automatica.
+                mostrarYouTube(true);
 
                 ytPlayer = new YT.Player('ytFrame', {
                     width: '100%',
@@ -831,7 +838,12 @@
                         iv_load_policy: 3,    // sin anotaciones encima de la letra
                         fs: 0,
                         playsinline: 1,
-                        cc_load_policy: 0
+                        cc_load_policy: 0,
+                        enablejsapi: 1,
+                        // Sin esto YouTube no sabe a quien contestarle y la API
+                        // se queda muda. Es lo que rompe la reproduccion cuando
+                        // la pagina corre en localhost con Live Server.
+                        origin: window.location.origin
                     },
                     events: {
                         onReady: () => { clearTimeout(timer); resolve(ytPlayer); },
@@ -839,6 +851,14 @@
                         onError: manejarErrorYt
                     }
                 });
+            });
+
+            // Si falla, se descarta la promesa: guardarla rechazada haria que
+            // TODAS las canciones de YouTube siguientes fallaran al instante
+            // sin volver a intentarlo.
+            ytPlayerPromesa.catch(() => {
+                ytPlayerPromesa = null;
+                ytPlayer = null;
             });
 
             return ytPlayerPromesa;
@@ -859,11 +879,19 @@
             }
         }
 
+        const ERRORES_YT = {
+            2:   'ID de video invalido',
+            5:   'el reproductor HTML5 fallo',
+            100: 'video borrado o privado',
+            101: 'el dueño no permite embeberlo',
+            150: 'el dueño no permite embeberlo'
+        };
+
         function manejarErrorYt(evento) {
-            // 101 y 150 = el dueño no permite embeber. 100 = borrado o privado.
             const codigo = evento.data;
-            console.warn('[YT] error de reproduccion, codigo', codigo);
-            if (ytEsperando) ytEsperando.fallo('codigo ' + codigo);
+            const motivo = ERRORES_YT[codigo] || ('codigo ' + codigo);
+            console.warn('[YT] error de reproduccion:', codigo, motivo);
+            if (ytEsperando) ytEsperando.fallo(motivo);
         }
 
         function mostrarYouTube(visible) {
@@ -1154,8 +1182,11 @@
                     console.warn('No se pudo reproducir en YouTube:', nombre, err);
                     detenerYouTube();
                     if (token === reproduccionToken && idActual === solicitud.id) {
-                        lobbyMessage.innerText = `NO DISPONIBLE:\n${nombre}`;
-                        await new Promise(r => setTimeout(r, 900));
+                        // El motivo va en pantalla: sin esto hay que abrir la
+                        // consola del navegador para saber que fallo.
+                        const motivo = (err && err.message) ? err.message : 'error desconocido';
+                        lobbyMessage.innerText = `NO DISPONIBLE:\n${nombre}\n\n(YouTube: ${motivo})`;
+                        await new Promise(r => setTimeout(r, 3500));
                         await marcarComoCompletada(solicitud.id);
                     }
                 }
