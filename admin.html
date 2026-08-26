@@ -20,6 +20,27 @@
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col items-center font-sans p-6 py-8">
 
+    <!-- Puerta del admin. Antes esta pagina no pedia nada: quien tuviera la
+         URL podia pausar, saltar canciones y mover el tono. El PIN es el mismo
+         que ya usas para las sesiones. -->
+    <div id="adminGate" class="fixed inset-0 bg-zinc-950 z-[300] flex flex-col justify-center items-center p-6">
+        <div class="w-full max-w-xs text-center">
+            <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
+            <h2 class="text-lg font-bold text-zinc-200 mb-1">Panel del operador</h2>
+            <p class="text-zinc-500 text-xs mb-6">Introduce el PIN para continuar</p>
+
+            <input type="password" id="adminPinInput" autocomplete="off"
+                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-white font-bold text-center mb-3 focus:outline-none focus:border-amber-500">
+
+            <button type="button" id="adminPinBtn"
+                class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl active:scale-95 transition-all">
+                ENTRAR
+            </button>
+
+            <p id="adminPinError" class="text-red-400 text-xs font-bold mt-4 h-4"></p>
+        </div>
+    </div>
+
     <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-6">
         <header class="flex items-center gap-4 pb-4 border-b border-zinc-800">
             <img src="logo.png" alt="Mi Karaoke Latino" class="h-14 w-auto flex-shrink-0 object-contain">
@@ -478,18 +499,95 @@
             });
         }
 
-        renderizarEfectos();
-        actualizarCola();
-        refrescarPanelSesion(false);
+        // ------------------------------------------------------------------
+        // Puerta del admin
+        //
+        // El PIN se comprueba contra el servidor, no aqui: guardarlo en el
+        // codigo lo dejaria a la vista de cualquiera que mire la pagina.
+        // ------------------------------------------------------------------
 
-        // El panel se refresca solo: si no, el tiempo restante se queda
-        // congelado y los botones de añadir tiempo no llegarian a aparecer
-        // cuando faltan 15 minutos.
-        setInterval(() => {
-            if (localStorage.getItem('karaoke_pin_operador')) {
-                refrescarPanelSesion(false);
+        const adminGate = document.getElementById('adminGate');
+        let adminArrancado = false;
+
+        async function pinAdminCorrecto(pin) {
+            try {
+                const res = await fetch('/api/sesion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'estado', pin })
+                });
+                const data = await res.json();
+
+                // Si falta configuracion en Vercel no se puede comprobar nada:
+                // se deja pasar para no quedarse fuera del propio panel.
+                if (data.sinConfigurar) return true;
+                return data.ok === true;
+            } catch (e) {
+                console.warn('[Admin] No se pudo comprobar el PIN:', e.message);
+                return false;
             }
-        }, 30000);
+        }
+
+        function arrancarAdmin() {
+            if (adminArrancado) return;
+            adminArrancado = true;
+
+            adminGate.classList.add('hidden');
+
+            renderizarEfectos();
+            actualizarCola();
+            refrescarPanelSesion(false);
+
+            // El panel se refresca solo: si no, el tiempo restante se queda
+            // congelado y los botones de añadir tiempo no llegarian a aparecer
+            // cuando faltan 15 minutos.
+            setInterval(() => {
+                if (localStorage.getItem('karaoke_pin_operador')) {
+                    refrescarPanelSesion(false);
+                }
+            }, 30000);
+        }
+
+        async function intentarEntrarAdmin() {
+            const input = document.getElementById('adminPinInput');
+            const btn = document.getElementById('adminPinBtn');
+            const err = document.getElementById('adminPinError');
+            const pin = input.value.trim();
+
+            if (!pin) return;
+
+            btn.disabled = true;
+            btn.textContent = 'COMPROBANDO...';
+            err.innerText = '';
+
+            if (await pinAdminCorrecto(pin)) {
+                localStorage.setItem('karaoke_pin_operador', pin);
+                return arrancarAdmin();
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'ENTRAR';
+            err.innerText = 'PIN incorrecto';
+            input.value = '';
+            input.focus();
+        }
+
+        document.getElementById('adminPinBtn').onclick = intentarEntrarAdmin;
+        document.getElementById('adminPinInput')
+            .addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') intentarEntrarAdmin();
+            });
+
+        // Si ya se entro antes en este telefono, no se vuelve a preguntar.
+        (async () => {
+            const guardado = localStorage.getItem('karaoke_pin_operador');
+            if (guardado && await pinAdminCorrecto(guardado)) {
+                arrancarAdmin();
+            } else {
+                if (guardado) localStorage.removeItem('karaoke_pin_operador');
+                document.getElementById('adminPinInput').focus();
+            }
+        })();
     </script>
 
     <!-- ── Alerta operador (módulo aislado) ─────────────────────────────── -->
