@@ -1,5 +1,49 @@
 # Puesta en marcha
 
+---
+
+## Cómo agregar canciones nuevas
+
+**El archivo `plantillacanciones.xlsx` NO se usa.** Es un resto de un método
+viejo; ningún script lo lee. Puedes ignorarlo o borrarlo.
+
+El método real son tres pasos:
+
+**1.** Nombra el MP4 exactamente así, con espacio-guion-espacio en medio:
+
+```
+ARTISTA - TITULO.mp4
+```
+
+Ejemplo: `PALITO ORTEGA - LA FELICIDAD.mp4`
+
+**2.** Cópialo a la carpeta `videos_locales/`
+
+**3.** Ejecuta:
+
+```bash
+npm run videos:index
+```
+
+Eso hace dos cosas: lee los nombres de archivo y agrega al catálogo
+(`canciones.js`) las canciones que aún no estaban, y regenera el índice
+`videos_disponibles.js` que el reproductor usa para encontrar cada archivo.
+
+El género y el idioma se adivinan solos: si ya tienes otras canciones de ese
+artista, copia las de ellas; si es un artista nuevo, pone `POP` y deduce el
+idioma por las palabras del título. Si alguna queda mal clasificada, edita esa
+línea en `canciones.js` a mano.
+
+**Después haz commit y push**, para que `canciones.js` llegue al celular de tus
+clientes. Los MP4 **no** se suben al repositorio (pesan 131 GB): se quedan en tu
+máquina, que es donde corre el reproductor.
+
+> El separador ` - ` es obligatorio. Si el nombre no lo tiene, la canción entra
+> como artista "VARIOS" y con el nombre completo de archivo como título.
+
+---
+
+
 El sistema reproduce **solo tus videos descargados** de `videos_locales/`.
 Hay dos funciones opcionales encima: efectos de sonido nuevos y control de sala
 por código en pantalla.
@@ -32,11 +76,27 @@ Anota en silencio lo que tus clientes buscan y **no tienes**. El cliente no ve
 nada distinto; a ti te queda una lista de qué vale la pena descargar, basada en
 lo que te piden de verdad.
 
-**Configuración:** ejecuta [sql/001-busquedas-fallidas.sql](sql/001-busquedas-fallidas.sql)
-en Supabase → SQL Editor → New query → Run.
+Además, al final de cada búsqueda aparece un botón discreto **💡 Sugerir una
+canción**: se abre una línea de texto, ya rellenada con lo que estaban buscando,
+y el cliente puede pedirte que la agregues.
+
+**Configuración:** ejecuta en Supabase → SQL Editor → New query → Run:
+
+1. [sql/001-busquedas-fallidas.sql](sql/001-busquedas-fallidas.sql)
+2. [sql/004-sugerencias.sql](sql/004-sugerencias.sql)
 
 **Para consultarla:** Supabase → Table Editor → `busquedas_fallidas`, ordenando
 por la columna `veces` de mayor a menor. Arriba están las más pedidas.
+
+La columna `origen` distingue las dos señales:
+
+| `origen` | Qué significa |
+|---|---|
+| `sugerencia` | Alguien la escribió a propósito para pedírtela |
+| `busqueda` | La buscaron y no apareció |
+
+Las `sugerencia` son la señal fuerte: alguien se tomó la molestia de escribirla.
+Empieza por esas cuando decidas qué descargar.
 
 ---
 

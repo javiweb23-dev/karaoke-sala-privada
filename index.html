@@ -467,16 +467,26 @@
         // suposiciones. Se consulta en la tabla busquedas_fallidas de Supabase.
         // ------------------------------------------------------------------
 
-        async function registrarBusquedaFallida(consulta) {
-            try {
-                await supabaseClient.rpc('registrar_busqueda_fallida', {
-                    p_consulta: consulta,
-                    p_norm: sinAcentos(consulta).toUpperCase(),
-                    p_usuario: miNombre || null
-                });
-            } catch (e) {
-                console.warn('No se pudo registrar la busqueda:', e);
+        async function registrarBusquedaFallida(consulta, origen = 'busqueda') {
+            const base = {
+                p_consulta: consulta,
+                p_norm: sinAcentos(consulta).toUpperCase(),
+                p_usuario: miNombre || null
+            };
+
+            const { error } = await supabaseClient.rpc(
+                'registrar_busqueda_fallida', { ...base, p_origen: origen }
+            );
+            if (!error) return true;
+
+            // Si todavia no se ejecuto sql/004, la funcion solo acepta tres
+            // parametros. Se reintenta sin origen para no perder el dato.
+            const reintento = await supabaseClient.rpc('registrar_busqueda_fallida', base);
+            if (reintento.error) {
+                console.warn('No se pudo registrar:', reintento.error);
+                return false;
             }
+            return true;
         }
 
         function renderizarSliderGeneros() {
@@ -520,6 +530,7 @@
             if (lista.length === 0) {
                 songList.innerHTML = `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
                 anotarBusquedaSinResultados();
+                agregarPieSugerencia(songList);
                 return;
             }
 
@@ -562,6 +573,85 @@
                 observerPortadas.observe(card);
             });
 
+            agregarPieSugerencia(songList);
+        }
+
+        // Pie para sugerir una cancion que no esta en el catalogo.
+        //
+        // Empieza plegado —un boton discreto— para no estorbar a quien solo
+        // quiere cantar. Al abrirlo viene ya escrito lo que buscaba, que en
+        // general es justo lo que quiere sugerir.
+        function agregarPieSugerencia(songList) {
+            const consulta = document.getElementById('searchBar').value.trim();
+            if (!consulta) return;
+
+            const pie = document.createElement('div');
+            pie.className = 'mt-2 mb-4 pt-5 border-t border-zinc-800/80 text-center';
+
+            const btnAbrir = document.createElement('button');
+            btnAbrir.type = 'button';
+            btnAbrir.className = 'text-zinc-500 hover:text-amber-400 text-xs font-bold transition-colors py-2';
+            btnAbrir.textContent = '💡 Sugerir una canción';
+
+            const form = document.createElement('div');
+            form.className = 'hidden';
+
+            const etiqueta = document.createElement('p');
+            etiqueta.className = 'text-zinc-500 text-xs mb-3';
+            etiqueta.textContent = '¿Qué canción te gustaría que agreguemos?';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 80;
+            input.placeholder = 'Artista - Canción';
+            input.className = 'w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm text-center mb-3 focus:outline-none focus:border-amber-500';
+            input.value = consulta;   // por propiedad: nunca se interpreta como HTML
+
+            const btnEnviar = document.createElement('button');
+            btnEnviar.type = 'button';
+            btnEnviar.className = 'w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-sm active:scale-95 transition-all';
+            btnEnviar.textContent = 'ENVIAR SUGERENCIA';
+
+            btnAbrir.onclick = () => {
+                btnAbrir.classList.add('hidden');
+                form.classList.remove('hidden');
+                input.focus();
+                input.select();
+            };
+
+            const enviar = async () => {
+                const texto = input.value.trim();
+                if (texto.length < 3) {
+                    input.focus();
+                    return;
+                }
+
+                btnEnviar.disabled = true;
+                btnEnviar.textContent = 'ENVIANDO...';
+
+                const ok = await registrarBusquedaFallida(texto, 'sugerencia');
+
+                if (!ok) {
+                    btnEnviar.disabled = false;
+                    btnEnviar.textContent = 'ENVIAR SUGERENCIA';
+                    return mostrarAlerta('❌ No se pudo enviar. Intenta de nuevo.', true);
+                }
+
+                form.innerHTML = '<p class="text-emerald-400 text-sm font-bold py-2">✅ ¡Gracias! Tomamos nota.</p>';
+                mostrarAlerta('✅ Sugerencia enviada. ¡Gracias!');
+            };
+
+            btnEnviar.onclick = enviar;
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') enviar();
+            });
+
+            form.appendChild(etiqueta);
+            form.appendChild(input);
+            form.appendChild(btnEnviar);
+            pie.appendChild(btnAbrir);
+            pie.appendChild(form);
+            songList.appendChild(pie);
         }
 
         // Se anota la busqueda solo cuando el cliente deja de teclear: sin esto
