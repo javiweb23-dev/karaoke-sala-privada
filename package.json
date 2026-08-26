@@ -6,7 +6,8 @@
     "postinstall": "node scripts/copy-soundtouch-lib.js",
     "videos:index": "node scripts/sync-catalogo-desde-videos.js && node scripts/generate-videos-disponibles.js",
     "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js",
-    "efectos:generar": "node scripts/generar-efectos.js"
+    "efectos:generar": "node scripts/generar-efectos.js",
+    "sugerencias": "node scripts/sugerir-canciones.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

@@ -1,0 +1,11 @@
+{
+  "// que es esto": "Correcciones manuales para scripts/sugerir-canciones.js, cuando Deezer confunde un artista con otro que se llama parecido.",
+  "// como se usa": "La clave es el nombre tal como esta en tu catalogo. El valor es el id de Deezer, o null para ignorar ese artista.",
+  "// como buscar un id": "Abre https://api.deezer.com/search/artist?q=NOMBRE en el navegador y copia el campo id del artista correcto.",
+
+  "// ojo": "Los tres de abajo fallaban porque el artista equivocado tiene MAS seguidores que el que buscas. Si ves una lista de canciones que no reconoces, es esto.",
+
+  "SELENA": 5644,
+  "FELIPE PIRELA": 290532,
+  "KIARA": 80337552
+}

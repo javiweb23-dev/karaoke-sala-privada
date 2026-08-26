@@ -50,6 +50,48 @@ por código en pantalla.
 
 ---
 
+## Qué descargar: sugerencias automáticas
+
+```bash
+npm run sugerencias
+```
+
+Para cada artista que **ya tienes**, busca sus canciones más populares que te
+faltan y las deja en `SUGERENCIAS.md`, con casillas para ir marcando.
+
+Usa la API pública de Deezer (gratis, sin clave), que publica un ranking de
+popularidad real. Las de ★★★★★ son himnos: empieza por esas.
+
+Opciones útiles:
+
+| Opción | Para qué |
+|---|---|
+| `--min=5` | Solo artistas de los que ya tengas 5+ canciones |
+| `--limite=60` | Cuántos artistas consultar por corrida |
+| `--solo="GUACO"` | Un solo artista |
+| `--max=10` | Cuántas sugerencias por artista |
+
+Va guardando lo consultado, así que puedes cortarlo con Ctrl+C y relanzarlo:
+sigue donde quedó. Cuando diga *"Quedan N artistas"*, vuelve a correr lo mismo.
+
+### Si una lista no cuadra
+
+A veces Deezer confunde artistas homónimos, y el equivocado puede tener **más
+seguidores** que el que buscas (le pasó a Selena, Felipe Pirela y Kiara). Si ves
+canciones que no reconoces bajo un artista, corrígelo en
+[artistas-deezer.json](artistas-deezer.json):
+
+1. Abre `https://api.deezer.com/search/artist?q=NOMBRE` en el navegador
+2. Busca el artista correcto y copia su `id`
+3. Añádelo al archivo: `"NOMBRE COMO LO TIENES": 12345`
+4. Borra ese artista de `.cache-deezer.json` y vuelve a correr
+
+Las líneas que dicen *"· en Deezer: otro nombre"* en el informe son las que
+conviene revisar. La mayoría son aciertos (*Adolescent's Orquesta*, *Bob Marley
+& The Wailers*), pero ahí es donde aparecen los errores.
+
+---
+
 ## 1. Efectos nuevos (ya funciona, no requiere nada)
 
 Cuatro sonidos añadidos a los cuatro que ya tenías: **gato, fracaso (trombón
