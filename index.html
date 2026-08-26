@@ -44,6 +44,18 @@
         </div>
     </div>
 
+    <!-- Sala cerrada: por encima de todo lo demas. Sin sesion abierta no se
+         puede pedir nada, ni siquiera ver el catalogo. -->
+    <div id="salaCerradaModal" class="fixed inset-0 bg-black z-[120] flex flex-col justify-center items-center p-6 hidden">
+        <div class="text-center max-w-sm">
+            <div class="text-6xl mb-5">🎤</div>
+            <h2 class="text-2xl font-bold text-zinc-200 mb-3">La sala está cerrada</h2>
+            <p class="text-zinc-500 text-sm leading-relaxed">
+                Cuando el operador abra la sesión podrás pedir tus canciones.
+            </p>
+        </div>
+    </div>
+
     <div id="statusAlert" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-4 text-center text-sm font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4"></div>
 
     <div id="pageScroll" class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
@@ -163,7 +175,9 @@
         let sesionSalaId = null;
 
         async function verificarSesionSala() {
+            const cerrada = document.getElementById('salaCerradaModal');
             let activa = null;
+
             try {
                 // La vista solo expone el id: el codigo NO es consultable desde
                 // el navegador, o el control no serviria de nada.
@@ -174,18 +188,32 @@
                 if (error) throw error;
                 activa = data && data.length ? data[0] : null;
             } catch (e) {
-                // Si la tabla no existe todavia (SQL sin correr), no bloqueamos
-                // a nadie: el sistema sigue funcionando como antes.
-                console.warn('[Sala] Sin control de sesion:', e.message || e);
-                sesionSalaId = null;
+                const msg = String(e.message || e);
+
+                // Tabla ausente = el control de sala no esta instalado: se deja
+                // pasar, como antes de que existiera.
+                if (/does not exist|schema cache|PGRST205|42P01/i.test(msg)) {
+                    sesionSalaId = null;
+                    cerrada.classList.add('hidden');
+                    return true;
+                }
+
+                // Fallo de red: tampoco se encierra a nadie a mitad de la noche.
+                console.warn('[Sala] No se pudo comprobar la sesion:', msg);
                 return true;
             }
 
+            // Sin sesion abierta la sala esta cerrada de verdad: ni pedir ni
+            // curiosear el catalogo hasta que el operador la abra.
             if (!activa) {
                 sesionSalaId = null;
-                return true;
+                localStorage.removeItem('karaoke_sesion_id');
+                cerrada.classList.remove('hidden');
+                document.getElementById('codeModal').classList.add('hidden');
+                return false;
             }
 
+            cerrada.classList.add('hidden');
             sesionSalaId = activa.id;
 
             if (Number(localStorage.getItem('karaoke_sesion_id')) === activa.id) {
@@ -497,13 +525,9 @@
                 cont.appendChild(b);
             };
 
-            const total = idiomas.reduce((s, x) => s + x.total, 0);
-            crear('Todos', `🌐 ${total}`);
-
-            // El conteo sirve a los dos lados: el cliente ve cuanto hay de lo
-            // suyo, y tu ves de un vistazo que idioma conviene ir engordando.
-            for (const { idioma, total: n } of idiomas) {
-                crear(idioma, `${banderaDe(idioma)} ${abreviarIdioma(idioma)} ${n}`);
+            crear('Todos', '🌐 Todos');
+            for (const { idioma } of idiomas) {
+                crear(idioma, `${banderaDe(idioma)} ${abreviarIdioma(idioma)}`);
             }
         }
 

@@ -13,18 +13,15 @@ const required = [
   'videos_disponibles.js'
 ];
 
-const optional = ['logo.png', 'carteles_qr_sala_privada.html'];
+const optional = ['logo.png', 'carteles_qr_sala_privada.html', 'efectos_disponibles.js'];
 
 // videos_disponibles.js lo genera "npm run actualizar" en la maquina donde
 // estan los MP4, y viaja ya hecho en el repositorio. Aqui no hay carpeta de
 // videos que mirar, asi que no hay nada que regenerar.
 
-// Los efectos sintetizados no se versionan (efectos/ esta en .gitignore),
-// asi que hay que regenerarlos en cada build o el reproductor los pide y da 404.
-const genEfectos = path.join(root, 'scripts', 'generar-efectos.js');
-if (fs.existsSync(genEfectos)) {
-  execSync('node scripts/generar-efectos.js', { cwd: root, stdio: 'inherit' });
-}
+// Los efectos ya no se generan aqui: son los archivos que haya en efectos/,
+// y los pone el operador en su maquina. Regenerarlos aqui recrearia los
+// sinteticos y saldrian botones duplicados.
 
 for (const file of required) {
   if (!fs.existsSync(path.join(root, file))) {

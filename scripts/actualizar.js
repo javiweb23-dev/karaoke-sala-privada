@@ -263,6 +263,49 @@ try {
     excelOk = false;
 }
 
+// --- Efectos de sonido ---------------------------------------------------
+// Se listan los archivos que haya en efectos/ y se genera el indice que leen
+// el admin y el reproductor. Asi basta con soltar un MP3 en la carpeta para
+// que aparezca su boton: no hay que tocar codigo para cambiar los sonidos.
+
+const efectosDir = path.join(root, 'efectos');
+const efectosFile = path.join(root, 'efectos_disponibles.js');
+
+const EMOJIS = {
+    aplausos: '👏', buuu: '👎', corneta: '📯', chacal: '🎺',
+    gato: '🐱', trombon: '🎶', grillos: '🦗', redoble: '🥁',
+    risa: '😂', beso: '💋', silbido: '😗', campana: '🔔',
+    laser: '🔫', explosion: '💥', tambor: '🥁', sirena: '🚨'
+};
+
+let efectos = [];
+if (fs.existsSync(efectosDir)) {
+    efectos = fs.readdirSync(efectosDir)
+        .filter((f) => /\.(mp3|wav|ogg|m4a)$/i.test(f))
+        .sort((a, b) => a.localeCompare(b, 'es'))
+        .map((archivo) => {
+            const base = archivo.replace(/\.[^.]+$/, '');
+            const clave = norm(base).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const etiqueta = base.charAt(0).toUpperCase() + base.slice(1);
+            return {
+                clave,
+                archivo,
+                etiqueta,
+                emoji: EMOJIS[clave] || '🔊'
+            };
+        });
+}
+
+fs.writeFileSync(efectosFile, [
+    '// Generado por scripts/actualizar.js — no editar a mano',
+    `// Archivos en efectos/: ${efectos.length}`,
+    '//',
+    '// Para cambiar los sonidos: suelta el MP3 en efectos/ y vuelve a correr',
+    '// "npm run actualizar". El boton aparece solo, con el nombre del archivo.',
+    'window.EFECTOS = ' + JSON.stringify(efectos, null, 2) + ';',
+    ''
+].join('\n'), 'utf8');
+
 // --- Resumen -------------------------------------------------------------
 
 console.log(`Catalogo:      ${finales.length} canciones\n`);

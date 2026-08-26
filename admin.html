@@ -6,6 +6,7 @@
     <title>Panel de Control Mágnum - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="efectos_disponibles.js"></script>
     <style>
         .btn-tono { transition: transform 0.08s, background 0.15s; }
         .btn-tono:active { transform: scale(0.92); }
@@ -88,32 +89,7 @@
 
         <div>
             <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Efectos Especiales</h2>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="enviarEfecto('aplausos')" class="bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-emerald-900/20">
-                    👏 Aplausos
-                </button>
-                <button onclick="enviarEfecto('buuu')" class="bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 text-red-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-red-900/20">
-                    👎 Buuu
-                </button>
-                <button onclick="enviarEfecto('corneta')" class="bg-violet-900/40 hover:bg-violet-800/60 border border-violet-700/50 text-violet-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-violet-900/20">
-                    📯 Corneta
-                </button>
-                <button onclick="enviarEfecto('chacal')" class="bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 text-amber-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-amber-900/20">
-                    🎺 Chacal
-                </button>
-                <button onclick="enviarEfecto('gato')" class="bg-orange-900/40 hover:bg-orange-800/60 border border-orange-700/50 text-orange-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-orange-900/20">
-                    🐱 Gato
-                </button>
-                <button onclick="enviarEfecto('trombon')" class="bg-sky-900/40 hover:bg-sky-800/60 border border-sky-700/50 text-sky-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-sky-900/20">
-                    🎶 Fracaso
-                </button>
-                <button onclick="enviarEfecto('grillos')" class="bg-lime-900/40 hover:bg-lime-800/60 border border-lime-700/50 text-lime-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-lime-900/20">
-                    🦗 Grillos
-                </button>
-                <button onclick="enviarEfecto('redoble')" class="bg-fuchsia-900/40 hover:bg-fuchsia-800/60 border border-fuchsia-700/50 text-fuchsia-300 font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg shadow-fuchsia-900/20">
-                    🥁 Redoble
-                </button>
-            </div>
+            <div id="panelEfectos" class="grid grid-cols-2 gap-3"></div>
         </div>
 
         <div class="pt-4 mt-2 border-t border-zinc-800">
@@ -240,10 +216,10 @@
                 <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Código en pantalla</p>
                 <div class="text-5xl font-black text-amber-400 tracking-[0.25em] mb-1">${data.sesion.codigo}</div>
                 <p class="text-zinc-600 text-[11px] mb-4">Abierta desde las ${hora}</p>
-                <div id="panelTiempo" class="border-t border-zinc-800 pt-4 mb-4"></div>
+                <div id="panelTiempo" class="border-t border-zinc-800 pt-4 mb-3"></div>
                 <button onclick="cerrarSesion()"
-                    class="w-full bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 text-red-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
-                    ■ Cerrar sesión
+                    class="text-zinc-600 hover:text-red-400 text-[11px] font-bold py-1 transition-colors">
+                    cerrar sesión
                 </button>`;
 
             pintarPanelTiempo(data.sesion);
@@ -304,18 +280,31 @@
                 nota = 'Sesión finalizada en la TV';
             }
 
-            cont.innerHTML = `
-                <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Tiempo restante</p>
-                <div class="text-3xl font-black ${color} mb-1">${formatRestante(seg)}</div>
-                <p class="text-zinc-600 text-[11px] mb-3">${nota}</p>
+            // Los botones de sumar tiempo SOLO aparecen en los ultimos 15
+            // minutos. El admin acaba abierto en el telefono de algun cliente,
+            // y teniendolos siempre a mano cualquiera se regala una hora.
+            // Ademas asi el numero delata: si marca 45 minutos cuando deberia
+            // marcar 15, es que alguien apreto +30.
+            const puedeExtender = sesion.fase !== 'corriendo';
+
+            const botones = puedeExtender ? `
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="extenderTiempo(30)"
                         class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">+30 min</button>
                     <button onclick="extenderTiempo(60)"
                         class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">+1 hora</button>
-                    <button onclick="extenderTiempo(-15)"
-                        class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-500 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">−15 min</button>
-                </div>`;
+                    <button onclick="extenderTiempo(-30)"
+                        class="bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 text-zinc-500 font-bold py-2 rounded-lg text-xs active:scale-95 transition-all">−30 min</button>
+                </div>`
+                : `<p class="text-zinc-700 text-[10px] leading-relaxed">
+                       Podrás añadir tiempo cuando falten 15 minutos.
+                   </p>`;
+
+            cont.innerHTML = `
+                <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">Tiempo restante</p>
+                <div class="text-3xl font-black ${color} mb-1">${formatRestante(seg)}</div>
+                <p class="text-zinc-600 text-[11px] mb-3">${nota}</p>
+                ${botones}`;
         }
 
         async function programarTiempo() {
@@ -453,8 +442,54 @@
 
         supabaseClient.channel('admin-queue-sync').on('postgres_changes', { event: '*', schema: 'public', table: 'Solicitudes' }, actualizarCola).subscribe();
 
+        // Los botones de efectos salen de efectos_disponibles.js, que lista lo
+        // que hay en la carpeta efectos/. Para cambiar un sonido: reemplaza el
+        // archivo y corre "npm run actualizar". No hay que tocar codigo.
+        const COLORES_EFECTO = [
+            'bg-emerald-900/40 hover:bg-emerald-800/60 border-emerald-700/50 text-emerald-300',
+            'bg-red-900/40 hover:bg-red-800/60 border-red-700/50 text-red-300',
+            'bg-violet-900/40 hover:bg-violet-800/60 border-violet-700/50 text-violet-300',
+            'bg-amber-900/40 hover:bg-amber-800/60 border-amber-700/50 text-amber-300',
+            'bg-sky-900/40 hover:bg-sky-800/60 border-sky-700/50 text-sky-300',
+            'bg-lime-900/40 hover:bg-lime-800/60 border-lime-700/50 text-lime-300',
+            'bg-fuchsia-900/40 hover:bg-fuchsia-800/60 border-fuchsia-700/50 text-fuchsia-300',
+            'bg-orange-900/40 hover:bg-orange-800/60 border-orange-700/50 text-orange-300'
+        ];
+
+        function renderizarEfectos() {
+            const cont = document.getElementById('panelEfectos');
+            const lista = window.EFECTOS || [];
+
+            if (lista.length === 0) {
+                cont.innerHTML = `<p class="col-span-2 text-zinc-600 text-xs text-center italic py-3">
+                    No hay sonidos. Pon archivos MP3 en la carpeta efectos/ y corre "npm run actualizar".
+                </p>`;
+                return;
+            }
+
+            cont.innerHTML = '';
+            lista.forEach((e, i) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = `${COLORES_EFECTO[i % COLORES_EFECTO.length]} border font-bold py-3.5 px-3 rounded-xl text-sm active:scale-95 transition-all shadow-lg`;
+                b.textContent = `${e.emoji} ${e.etiqueta}`;
+                b.onclick = () => enviarEfecto(e.clave);
+                cont.appendChild(b);
+            });
+        }
+
+        renderizarEfectos();
         actualizarCola();
         refrescarPanelSesion(false);
+
+        // El panel se refresca solo: si no, el tiempo restante se queda
+        // congelado y los botones de añadir tiempo no llegarian a aparecer
+        // cuando faltan 15 minutos.
+        setInterval(() => {
+            if (localStorage.getItem('karaoke_pin_operador')) {
+                refrescarPanelSesion(false);
+            }
+        }, 30000);
     </script>
 
     <!-- ── Alerta operador (módulo aislado) ─────────────────────────────── -->

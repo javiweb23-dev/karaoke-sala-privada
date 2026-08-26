@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="videos_disponibles.js"></script>
+    <script src="efectos_disponibles.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -166,18 +167,13 @@
         let normInterval    = null;
         let medicionesRMS   = [];
 
-        // Los .wav los genera scripts/generar-efectos.js (audio sintetizado,
-        // libre de derechos). Los .mp3 son los originales de siempre.
-        const efectosSonidos = {
-            'aplausos': new Audio('efectos/aplausos.mp3'),
-            'buuu':     new Audio('efectos/buuu.mp3'),
-            'corneta':  new Audio('efectos/corneta.mp3'),
-            'chacal':   new Audio('efectos/chacal.mp3'),
-            'gato':     new Audio('efectos/gato.wav'),
-            'trombon':  new Audio('efectos/trombon.wav'),
-            'grillos':  new Audio('efectos/grillos.wav'),
-            'redoble':  new Audio('efectos/redoble.wav')
-        };
+        // La lista sale de efectos_disponibles.js, que genera
+        // "npm run actualizar" mirando que hay en la carpeta efectos/.
+        // Para cambiar un sonido basta con reemplazar el archivo.
+        const efectosSonidos = {};
+        for (const e of (window.EFECTOS || [])) {
+            efectosSonidos[e.clave] = new Audio('efectos/' + encodeURIComponent(e.archivo));
+        }
 
         function reproducirEfecto(valor) {
             const audio = efectosSonidos[valor];
@@ -601,10 +597,17 @@
             // El PIN se pide una sola vez por TV y queda guardado. Si se
             // cancela, el sistema sigue funcionando sin control de sala.
             pinOperadorTv(false);
+
+            // El gate va primero: si la sala esta cerrada, no debe llegar a
+            // sonar nada mientras se resuelve lo demas.
+            await comprobarSesionActiva();
             await refrescarSesion();
 
             // Detecta que el operador abrio o cerro sesion desde el admin.
-            setInterval(refrescarSesion, 15000);
+            setInterval(() => {
+                comprobarSesionActiva();
+                refrescarSesion();
+            }, 15000);
 
             buscarSiguienteCancion();
         }
@@ -744,6 +747,87 @@
 
         let sesionActual   = null;
         let pinReintentado = false;
+
+        // Sin sesion abierta la sala esta cerrada: no suena nada y nadie puede
+        // pedir. Se comprueba contra la vista publica sesion_activa y no contra
+        // /api/sesion, porque esa pide PIN y el control tiene que funcionar
+        // aunque la TV no lo tenga puesto.
+        //
+        // null = todavia no se sabe (o no hay tabla). Solo false cierra la sala,
+        // asi un fallo de red no deja a nadie tirado a mitad de la noche.
+        let haySesion      = null;
+        let sesionIdActiva = null;
+        let salaCerradaYa  = false;
+
+        async function comprobarSesionActiva() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('sesion_activa')
+                    .select('id')
+                    .limit(1);
+                if (error) throw error;
+
+                const activa = data && data.length ? data[0] : null;
+                haySesion = Boolean(activa);
+                sesionIdActiva = activa ? activa.id : null;
+            } catch (e) {
+                // Si la tabla no existe, el control de sala no esta instalado:
+                // se deja pasar todo, como antes de que existiera.
+                const msg = String(e.message || e);
+                if (/does not exist|schema cache|PGRST205|42P01/i.test(msg)) {
+                    haySesion = null;
+                    sesionIdActiva = null;
+                } else {
+                    console.warn('[Sala] No se pudo comprobar la sesion:', msg);
+                }
+            }
+
+            aplicarEstadoSala();
+        }
+
+        function aplicarEstadoSala() {
+            if (haySesion === false) {
+                if (!salaCerradaYa) cerrarSalaEnPantalla();
+                return;
+            }
+
+            // Se reabrio: vuelve a funcionar todo.
+            if (salaCerradaYa) {
+                salaCerradaYa = false;
+                if (sistemaIniciado) {
+                    systemActive = true;
+                    lobbyMessage.innerText = 'ESPERANDO SOLICITUDES...';
+                    buscarSiguienteCancion();
+                }
+            }
+        }
+
+        function cerrarSalaEnPantalla() {
+            salaCerradaYa = true;
+            systemActive = false;
+            cancelarCuentaRegresiva();
+
+            try {
+                player.pause();
+                player.removeAttribute('src');
+                player.load();
+            } catch (e) {}
+
+            isPlaying = false;
+            idActual = null;
+
+            segundosRestantes = null;
+            faseSesion = null;
+            relojSesion.classList.add('hidden');
+            avisoSesion.classList.add('hidden');
+            codigoSala.classList.add('hidden');
+            timeCounter.classList.add('hidden');
+
+            lobbyScreen.style.display = 'flex';
+            lobbyMessage.innerText = 'SALA CERRADA\n\nEsperando al operador';
+            singerName.classList.add('hidden');
+            countdownText.classList.add('hidden');
+        }
 
         // El servidor manda los segundos que quedan cada 15 s; entre medias se
         // descuenta aqui para que el reloj avance suave. Asi el reloj de la TV
@@ -956,6 +1040,7 @@
 
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying || completandoCancion) return;
+            if (haySesion === false) return;   // sala cerrada
 
             let consulta = supabaseClient
                 .from('Solicitudes')
@@ -969,9 +1054,9 @@
             // Tambien entran las que no tienen sesion: son las que se pidieron
             // ANTES de que el operador abriera la sesion. Sin esto se quedaban
             // invisibles y colgadas en la cola para siempre.
-            if (sesionActual) {
+            if (sesionIdActiva) {
                 consulta = consulta.or(
-                    `sesion_id.eq.${sesionActual.id},sesion_id.is.null`
+                    `sesion_id.eq.${sesionIdActiva},sesion_id.is.null`
                 );
             }
 

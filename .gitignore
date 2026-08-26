@@ -2,7 +2,7 @@
 *.MP4
 node_modules/
 public/
-efectos/
+efectos/*
 videos_locales/
 ~$*
 .cache-deezer.json
