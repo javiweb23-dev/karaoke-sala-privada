@@ -15,10 +15,9 @@ const required = [
 
 const optional = ['logo.png', 'carteles_qr_sala_privada.html'];
 
-const genVideos = path.join(root, 'scripts', 'generate-videos-disponibles.js');
-if (fs.existsSync(genVideos)) {
-  execSync('node scripts/generate-videos-disponibles.js', { cwd: root, stdio: 'inherit' });
-}
+// videos_disponibles.js lo genera "npm run actualizar" en la maquina donde
+// estan los MP4, y viaja ya hecho en el repositorio. Aqui no hay carpeta de
+// videos que mirar, asi que no hay nada que regenerar.
 
 // Los efectos sintetizados no se versionan (efectos/ esta en .gitignore),
 // asi que hay que regenerarlos en cada build o el reproductor los pide y da 404.

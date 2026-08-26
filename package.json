@@ -2,16 +2,11 @@
   "name": "karaoke-sala-privada",
   "private": true,
   "scripts": {
-    "build": "node scripts/verify-deploy.js",
-    "postinstall": "node scripts/copy-soundtouch-lib.js",
-    "videos:index": "node scripts/sync-catalogo-desde-videos.js && node scripts/generate-videos-disponibles.js",
-    "catalogo:sync": "node scripts/sync-catalogo-desde-videos.js",
-    "efectos:generar": "node scripts/generar-efectos.js",
+    "actualizar": "node scripts/actualizar.js",
     "sugerencias": "node scripts/sugerir-canciones.js",
-    "catalogo:limpiar": "node scripts/limpiar-catalogo.js",
-    "catalogo:reconstruir": "node scripts/reconstruir-catalogo.js",
-    "excel:exportar": "node scripts/excel-catalogo.js --exportar",
-    "excel:importar": "node scripts/excel-catalogo.js --importar"
+    "efectos:generar": "node scripts/generar-efectos.js",
+    "build": "node scripts/verify-deploy.js",
+    "postinstall": "node scripts/copy-soundtouch-lib.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

@@ -4,43 +4,25 @@
 
 ## Cómo agregar canciones nuevas
 
-**El archivo `plantillacanciones.xlsx` NO se usa.** Es un resto de un método
-viejo; ningún script lo lee. Puedes ignorarlo o borrarlo.
+**Un solo comando.**
 
-El método real son tres pasos:
-
-**1.** Nombra el MP4 exactamente así, con espacio-guion-espacio en medio:
-
-```
-ARTISTA - TITULO.mp4
-```
-
-Ejemplo: `PALITO ORTEGA - LA FELICIDAD.mp4`
-
-**2.** Cópialo a la carpeta `videos_locales/`
-
-**3.** Ejecuta:
+1. Nombra el MP4 así:  `ARTISTA - TITULO.mp4`
+2. Cópialo a `videos_locales/`
+3. Ábrelo en `canciones.xlsx` y ponle género e idioma (opcional)
+4. Ejecuta:
 
 ```bash
-npm run videos:index
+npm run actualizar
 ```
 
-Eso hace dos cosas: lee los nombres de archivo y agrega al catálogo
-(`canciones.js`) las canciones que aún no estaban, y regenera el índice
-`videos_disponibles.js` que el reproductor usa para encontrar cada archivo.
+Eso arma el catálogo, actualiza el Excel, hace commit y publica. Ya está.
 
-El género y el idioma se adivinan solos: si ya tienes otras canciones de ese
-artista, copia las de ellas; si es un artista nuevo, pone `POP` y deduce el
-idioma por las palabras del título. Si alguna queda mal clasificada, edita esa
-línea en `canciones.js` a mano.
+La regla: **manda la carpeta**. Si el MP4 está, la canción entra. Si no está,
+no entra. El Excel solo aporta género e idioma, así que es imposible borrar
+canciones por tenerlo desactualizado.
 
-**Después haz commit y push**, para que `canciones.js` llegue al celular de tus
-clientes. Los MP4 **no** se suben al repositorio (pesan 131 GB): se quedan en tu
-máquina, que es donde corre el reproductor.
-
-> El separador ` - ` es obligatorio. Si el nombre no lo tiene, la canción entra
-> como artista "VARIOS" y con el nombre completo de archivo como título.
-
+Si una canción es de un artista nuevo, el comando te avisa de que quedó en
+POP. Le pones el género en el Excel y vuelves a correrlo.
 ---
 
 
