@@ -13,7 +13,7 @@ const required = [
   'videos_disponibles.js'
 ];
 
-const optional = ['logo.png', 'carteles_qr_sala_privada.html', 'efectos_disponibles.js'];
+const optional = ['logo.png', 'carteles_qr_sala_privada.html', 'efectos_disponibles.js', 'musica_cierre_disponible.js'];
 
 // videos_disponibles.js lo genera "npm run actualizar" en la maquina donde
 // estan los MP4, y viaja ya hecho en el repositorio. Aqui no hay carpeta de

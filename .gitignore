@@ -3,9 +3,11 @@
 node_modules/
 public/
 efectos/*
+musica_cierre/*
 videos_locales/
 ~$*
 .cache-deezer.json
 SUGERENCIAS.xlsx
 canciones.xlsx
 canciones.js.bak
+generos-ingles.xlsx

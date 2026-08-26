@@ -306,6 +306,30 @@ fs.writeFileSync(efectosFile, [
     ''
 ].join('\n'), 'utf8');
 
+// --- Musica de cierre ----------------------------------------------------
+// Lo que suene de fondo cuando se acaba la sesion, mientras el grupo recoge.
+// Mismo sistema que los efectos: suelta MP3 en la carpeta y ya.
+
+const musicaDir = path.join(root, 'musica_cierre');
+const musicaFile = path.join(root, 'musica_cierre_disponible.js');
+
+let musica = [];
+if (fs.existsSync(musicaDir)) {
+    musica = fs.readdirSync(musicaDir)
+        .filter((f) => /\.(mp3|wav|ogg|m4a)$/i.test(f))
+        .sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+fs.writeFileSync(musicaFile, [
+    '// Generado por scripts/actualizar.js — no editar a mano',
+    `// Pistas en musica_cierre/: ${musica.length}`,
+    '//',
+    '// Suena de fondo y en bucle cuando termina la sesion, a volumen bajo.',
+    '// Para cambiarla: suelta MP3 en musica_cierre/ y corre "npm run actualizar".',
+    'window.MUSICA_CIERRE = ' + JSON.stringify(musica, null, 2) + ';',
+    ''
+].join('\n'), 'utf8');
+
 // --- Resumen -------------------------------------------------------------
 
 console.log(`Catalogo:      ${finales.length} canciones\n`);

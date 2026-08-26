@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="videos_disponibles.js"></script>
     <script src="efectos_disponibles.js"></script>
+    <script src="musica_cierre_disponible.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -173,6 +174,32 @@
         const efectosSonidos = {};
         for (const e of (window.EFECTOS || [])) {
             efectosSonidos[e.clave] = new Audio('efectos/' + encodeURIComponent(e.archivo));
+        }
+
+        // Musica de fondo para cuando se acaba la sesion, mientras el grupo
+        // recoge. Sale de la carpeta musica_cierre/: suelta ahi los MP3 que
+        // quieras y corre "npm run actualizar".
+        let musicaCierre = null;
+
+        function iniciarMusicaCierre() {
+            const lista = window.MUSICA_CIERRE || [];
+            if (lista.length === 0 || musicaCierre) return;
+
+            // Al azar, para que no suene siempre la misma al cerrar.
+            const pista = lista[Math.floor(Math.random() * lista.length)];
+
+            musicaCierre = new Audio('musica_cierre/' + encodeURIComponent(pista));
+            musicaCierre.loop = true;
+            musicaCierre.volume = 0.22;   // de fondo: tienen que poder hablar
+
+            const p = musicaCierre.play();
+            if (p && p.catch) p.catch((e) => console.warn('[Cierre] No sonó:', e.message));
+        }
+
+        function detenerMusicaCierre() {
+            if (!musicaCierre) return;
+            try { musicaCierre.pause(); } catch (e) {}
+            musicaCierre = null;
         }
 
         function reproducirEfecto(valor) {
@@ -794,6 +821,11 @@
             // Se reabrio: vuelve a funcionar todo.
             if (salaCerradaYa) {
                 salaCerradaYa = false;
+                cerrandoPorTiempo = false;
+                avisosVistos = {};
+                faseSesion = null;
+                detenerMusicaCierre();
+
                 if (sistemaIniciado) {
                     systemActive = true;
                     lobbyMessage.innerText = 'ESPERANDO SOLICITUDES...';
@@ -824,7 +856,11 @@
             timeCounter.classList.add('hidden');
 
             lobbyScreen.style.display = 'flex';
-            lobbyMessage.innerText = 'SALA CERRADA\n\nEsperando al operador';
+            // Si venimos de agotar el tiempo, se deja la despedida puesta: es
+            // mas amable que un "SALA CERRADA" seco justo al terminar.
+            lobbyMessage.innerText = cerrandoPorTiempo
+                ? 'SESIÓN FINALIZADA\n\n¡Gracias por visitarnos!'
+                : 'SALA CERRADA\n\nEsperando al operador';
             singerName.classList.add('hidden');
             countdownText.classList.add('hidden');
         }
@@ -926,6 +962,8 @@
             }
         }
 
+        let cerrandoPorTiempo = false;
+
         function terminarSesionEnPantalla() {
             systemActive = false;
             cancelarCuentaRegresiva();
@@ -942,10 +980,42 @@
             codigoSala.classList.add('hidden');
             avisoSesion.classList.add('hidden');
 
+            // El reloj deja de contar: seguir marcando -11:04 no aporta nada.
+            if (relojIntervalo) { clearInterval(relojIntervalo); relojIntervalo = null; }
+            relojSesion.classList.add('hidden');
+
             lobbyScreen.style.display = 'flex';
             lobbyMessage.innerText = 'SESIÓN FINALIZADA\n\n¡Gracias por visitarnos!';
             singerName.classList.add('hidden');
             countdownText.classList.add('hidden');
+
+            iniciarMusicaCierre();
+            cerrarSesionPorTiempo();
+        }
+
+        // Se agoto la cortesia: se cierra la sesion de verdad. Si no, seguia
+        // abierta en la base de datos, el codigo volvia a aparecer y el admin
+        // seguia ofreciendo añadir tiempo como si nada.
+        async function cerrarSesionPorTiempo() {
+            if (cerrandoPorTiempo) return;
+            cerrandoPorTiempo = true;
+
+            const pin = localStorage.getItem('karaoke_pin_operador');
+            if (!pin) {
+                console.warn('[Sesion] Sin PIN en esta TV: hay que cerrarla desde el admin.');
+                return;
+            }
+
+            try {
+                await fetch(`${API_BASE}/api/sesion`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'cerrar', pin })
+                });
+                console.info('[Sesion] Cerrada automaticamente al agotarse el tiempo.');
+            } catch (e) {
+                console.warn('[Sesion] No se pudo cerrar sola:', e.message);
+            }
         }
 
         function arrancarReloj() {
@@ -1015,7 +1085,9 @@
                     if (sesionActual && sistemaIniciado) systemActive = true;
                 }
 
-                if (sesionActual) {
+                // El codigo se esconde en cuanto se acaba el tiempo. Sin esto,
+                // el refresco lo volvia a sacar sobre la pantalla de despedida.
+                if (sesionActual && !salaCerradaYa && faseSesion !== 'terminada') {
                     codigoSalaValor.innerText = sesionActual.codigo;
                     codigoSala.classList.remove('hidden');
                 } else {
