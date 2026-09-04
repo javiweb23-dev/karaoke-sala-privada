@@ -104,6 +104,13 @@
         </div>
 
         <main class="max-w-md w-full mx-auto px-4 pb-6 pt-3">
+            <!-- Sugerencias. Solo sale mientras navegan: al buscar o filtrar
+                 desaparece, para no estorbar a quien ya sabe lo que quiere. -->
+            <div id="sugerencias" class="hidden mb-4">
+                <p id="sugerenciasTitulo" class="text-zinc-500 text-[11px] font-bold uppercase tracking-widest mb-2 px-1"></p>
+                <div id="sugerenciasFila" class="genre-slider-wrap flex gap-2.5 overflow-x-auto pb-1"></div>
+            </div>
+
             <div class="flex flex-col gap-2" id="songList"></div>
         </main>
     </div>
@@ -490,6 +497,200 @@
             return cancionesPopulares.includes(`${titulo} - ${artista}`);
         }
 
+        // ------------------------------------------------------------------
+        // Sugerencias
+        //
+        // Nada de "quien canto X tambien canto Y": con 74 personas-noche esa
+        // tabla saldria vacia y las sugerencias serian ruido. Lo que si dicen
+        // los datos es que 6 de cada 10 personas se quedan en el mismo genero
+        // durante su noche. Asi que se sugiere mas de lo que YA escogieron:
+        // mismo artista primero, mismo genero despues, y lo mas pedido de la
+        // sala como desempate.
+        //
+        // Funciona desde la primera cancion y sin historico ninguno.
+        // ------------------------------------------------------------------
+
+        let misPedidosNoche = [];
+        let popularidad = new Map();   // "TITULO - ARTISTA" -> total de pedidos
+
+        async function cargarPopularidad() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('canciones_populares')
+                    .select('identificador, total_pedidos');
+                if (error) throw error;
+                popularidad = new Map((data || []).map(f => [f.identificador, f.total_pedidos || 0]));
+            } catch (e) {
+                console.warn('No se pudo cargar la popularidad:', e.message || e);
+            }
+        }
+
+        function puntosPopularidad(song) {
+            // El identificador se guarda como "TITULO - ARTISTA", al reves del
+            // nombre de archivo. Fallar esto dejaria la popularidad siempre a 0.
+            return popularidad.get(`${song.titulo} - ${song.artista}`) || 0;
+        }
+
+        async function cargarMisPedidos() {
+            if (!miNombre) { misPedidosNoche = []; return; }
+
+            try {
+                let consulta = supabaseClient
+                    .from('Solicitudes')
+                    .select('cancion_info, genero')
+                    .eq('nombre_usuario', miNombre);
+
+                if (sesionSalaId) {
+                    consulta = consulta.eq('sesion_id', sesionSalaId);
+                } else {
+                    // Sin sesion, lo pedido en las ultimas horas.
+                    const desde = new Date(Date.now() - 6 * 3600000).toISOString();
+                    consulta = consulta.gte('created_at', desde);
+                }
+
+                const { data, error } = await consulta;
+                if (error) throw error;
+                misPedidosNoche = data || [];
+            } catch (e) {
+                console.warn('No se pudieron leer tus pedidos:', e.message || e);
+                misPedidosNoche = [];
+            }
+        }
+
+        function calcularSugerencias(maximo = 10) {
+            if (misPedidosNoche.length === 0) return { lista: [], motivo: '' };
+
+            const yaPedidas = new Set();
+            const artistas = new Map();
+            const generos = new Map();
+
+            for (const p of misPedidosNoche) {
+                const info = String(p.cancion_info || '');
+                yaPedidas.add(sinAcentos(info));
+
+                const corte = info.indexOf(' - ');
+                if (corte > 0) {
+                    const a = sinAcentos(info.slice(0, corte));
+                    artistas.set(a, (artistas.get(a) || 0) + 1);
+                }
+                const g = sinAcentos(p.genero || '');
+                if (g) generos.set(g, (generos.get(g) || 0) + 1);
+            }
+
+            const candidatas = [];
+            for (const c of cancionesREAL) {
+                if (!cancionTieneVideo(c)) continue;
+
+                const clave = sinAcentos(`${c.artista} - ${c.titulo}`);
+                if (yaPedidas.has(clave)) continue;
+
+                const mismoArtista = artistas.get(sinAcentos(c.artista)) || 0;
+                const mismoGenero = generos.get(sinAcentos(c.genero)) || 0;
+                if (!mismoArtista && !mismoGenero) continue;
+
+                // El artista pesa mucho mas: si acaban de pedir a Amanda
+                // Miguel, otra suya acierta casi seguro. El genero es una
+                // apuesta mas floja, y la popularidad decide entre iguales.
+                // El pellizco al azar rompe los empates. Casi ninguna cancion
+                // tiene popularidad todavia, asi que sin esto el desempate lo
+                // decidia el orden del catalogo y salian siempre las mismas
+                // (Ana Gabriel todas las noches por empezar por A).
+                const puntos = mismoArtista * 100
+                             + mismoGenero * 12
+                             + Math.min(20, puntosPopularidad(c))
+                             + Math.random() * 8;
+
+                candidatas.push({ song: c, puntos, mismoArtista });
+            }
+
+            candidatas.sort((a, b) => b.puntos - a.puntos);
+
+            // Que no salgan 10 canciones del mismo artista: se limita a 3 por
+            // artista para que la fila tenga variedad.
+            const porArtista = new Map();
+            const lista = [];
+            for (const cand of candidatas) {
+                const a = sinAcentos(cand.song.artista);
+                const n = porArtista.get(a) || 0;
+                if (n >= 3) continue;
+                porArtista.set(a, n + 1);
+                lista.push(cand.song);
+                if (lista.length >= maximo) break;
+            }
+
+            // El titulo explica de donde sale la sugerencia: sin eso parece
+            // una lista al azar y nadie la toca.
+            let motivo = 'Quizá te guste';
+            const topArtista = [...artistas.entries()].sort((a, b) => b[1] - a[1])[0];
+            if (topArtista && lista.some(s => sinAcentos(s.artista) === topArtista[0])) {
+                const nombre = misPedidosNoche
+                    .map(p => String(p.cancion_info || '').split(' - ')[0])
+                    .find(n => sinAcentos(n) === topArtista[0]);
+                if (nombre) motivo = `Porque cantaste ${nombre}`;
+            } else {
+                const topGenero = [...generos.entries()].sort((a, b) => b[1] - a[1])[0];
+                if (topGenero) {
+                    const g = misPedidosNoche.find(p => sinAcentos(p.genero || '') === topGenero[0]);
+                    if (g && g.genero) motivo = `Más ${g.genero.toLowerCase()} para ti`;
+                }
+            }
+
+            return { lista, motivo };
+        }
+
+        function renderizarSugerencias() {
+            const caja = document.getElementById('sugerencias');
+            const fila = document.getElementById('sugerenciasFila');
+            const titulo = document.getElementById('sugerenciasTitulo');
+
+            // Solo mientras navegan: al buscar o filtrar, fuera.
+            const buscando = document.getElementById('searchBar').value.trim().length > 0;
+            if (buscando || generoActivo !== 'Todos' || idiomaActivo !== 'Todos') {
+                caja.classList.add('hidden');
+                return;
+            }
+
+            const { lista, motivo } = calcularSugerencias();
+            if (lista.length === 0) {
+                caja.classList.add('hidden');
+                return;
+            }
+
+            titulo.textContent = motivo;
+            fila.innerHTML = '';
+
+            for (const song of lista) {
+                const nombreFormateado = `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
+
+                const card = document.createElement('div');
+                card.className = 'shrink-0 w-36 bg-zinc-900 border border-zinc-800 rounded-2xl p-3 flex flex-col gap-2';
+
+                const info = document.createElement('div');
+                info.className = 'min-w-0';
+                info.innerHTML = `
+                    <p class="text-zinc-100 text-[12px] font-bold leading-snug line-clamp-2">${escaparTexto(song.titulo)}</p>
+                    <p class="text-zinc-500 text-[10px] mt-1 truncate">${escaparTexto(song.artista)}</p>`;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold py-2 rounded-lg text-[11px] active:scale-95 transition-all';
+                btn.textContent = 'Pedir';
+                btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero, btn);
+
+                card.appendChild(info);
+                card.appendChild(btn);
+                fila.appendChild(card);
+            }
+
+            caja.classList.remove('hidden');
+        }
+
+        // Los titulos son datos: nunca van crudos al DOM.
+        function escaparTexto(t) {
+            return String(t == null ? '' : t)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         function claveArchivoCancion(song) {
             return `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
         }
@@ -742,6 +943,7 @@
 
         function aplicarFiltros() {
             cargarCanciones(filtrarCanciones());
+            renderizarSugerencias();
         }
 
         // ------------------------------------------------------------------
@@ -1092,6 +1294,9 @@
                     mostrarAlerta(`✅ ¡En cola! Tienes ${totalCola} canción(es) por delante (Aprox ${minsAprox} min).`);
                 }
                 actualizarCola();
+
+                // Cada canción pedida afina la siguiente sugerencia.
+                cargarMisPedidos().then(renderizarSugerencias);
             } finally {
                 pedidoEnCurso = false;
                 if (btn) {
@@ -1138,6 +1343,8 @@
             if (puedePasar) mostrarGateNombre();
 
             await cargarCancionesPopulares();
+            await cargarPopularidad();
+            await cargarMisPedidos();
             renderizarIdiomas();
             renderizarSliderGeneros();
             configurarScrollGeneros();
