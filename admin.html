@@ -433,28 +433,56 @@
 
         // El mismo reparto por turnos que usa el reproductor: la cola del admin
         // tiene que enseñar el orden real en que va a sonar, no el de llegada.
-        function ordenarPorTurnos(filas) {
+        function repartirCola(filas) {
             const cantadas = new Map();
             const pendientes = [];
+            let ultimoCantante = null;
 
+            // Las filas llegan por id, asi que la ultima completada que se ve
+            // es la que acaba de sonar.
             for (const r of filas) {
                 const quien = String(r.nombre_usuario || '').trim().toUpperCase();
                 if (r.estado === 'completada') {
                     cantadas.set(quien, (cantadas.get(quien) || 0) + 1);
+                    ultimoCantante = quien;
                 } else if (r.estado === 'pendiente') {
                     pendientes.push(r);
                 }
             }
 
+            // Turno = lo que lleva cantado + lo que tiene por delante en su
+            // propia lista. Quien va por detras recupera sitio.
             const vistas = new Map();
             for (const p of pendientes) {
                 const quien = String(p.nombre_usuario || '').trim().toUpperCase();
                 p._turno = (cantadas.get(quien) || 0) + (vistas.get(quien) || 0) + 1;
                 vistas.set(quien, (vistas.get(quien) || 0) + 1);
             }
-
             pendientes.sort((a, b) => (a._turno - b._turno) || (a.id - b.id));
-            return pendientes;
+
+            // Y ahora la regla de oro: nadie canta dos seguidas mientras haya
+            // alguien esperando. Se recorre la lista escogiendo siempre al
+            // primero que NO sea quien acaba de cantar. Quien lleva ventaja de
+            // turno la conserva, pero intercalado con los demas en vez de
+            // soltar cuatro seguidas.
+            //
+            // Si al final solo queda una persona con canciones, canta seguido:
+            // es el caso del grupo que pide todo desde un mismo telefono.
+            const restantes = pendientes.slice();
+            const orden = [];
+            let anterior = ultimoCantante;
+
+            while (restantes.length > 0) {
+                let i = restantes.findIndex((p) =>
+                    String(p.nombre_usuario || '').trim().toUpperCase() !== anterior);
+                if (i === -1) i = 0;   // ya no queda nadie mas: le toca igual
+
+                const elegido = restantes.splice(i, 1)[0];
+                orden.push(elegido);
+                anterior = String(elegido.nombre_usuario || '').trim().toUpperCase();
+            }
+
+            return orden;
         }
 
         async function actualizarCola() {
@@ -464,7 +492,7 @@
                 .in('estado', ['pendiente', 'completada'])
                 .order('id', { ascending: true });
 
-            const data = ordenarPorTurnos(todas || []);
+            const data = repartirCola(todas || []);
 
             const adminQueue = document.getElementById('adminQueue');
             if (!data || data.length === 0) {
