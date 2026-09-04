@@ -1271,6 +1271,7 @@
             if (pedidoEnCurso) return;
 
             pedidoEnCurso = true;
+            let confirmado = false;
             const textoBtn = btn ? btn.textContent : 'Pedir';
             if (btn) {
                 btn.disabled = true;
@@ -1278,39 +1279,34 @@
             }
 
             try {
-                const { data: dups, error: errDups } = await supabaseClient
+                // UNA sola consulta para las dos comprobaciones. Antes eran dos
+                // viajes al servidor —uno para buscar duplicados y otro para
+                // contar la cola— y en el celular cada viaje se nota.
+                const { data: pendientes, error: errCola } = await supabaseClient
                     .from('Solicitudes')
-                    .select('id, nombre_usuario')
-                    .eq('estado', 'pendiente')
-                    .eq('cancion_info', nombreArchivo);
+                    .select('nombre_usuario, cancion_info')
+                    .eq('estado', 'pendiente');
 
-                if (errDups) {
-                    console.error('Error al verificar duplicados:', errDups);
+                if (errCola) {
+                    console.error('Error al leer la cola:', errCola);
                     return mostrarAlerta("❌ Error al verificar la cola. Intenta de nuevo.", true);
                 }
 
-                if (dups && dups.length > 0) {
+                const cola = pendientes || [];
+                const dups = cola.filter(d => d.cancion_info === nombreArchivo);
+
+                if (dups.length > 0) {
                     const yaLaPedí = dups.some(d => d.nombre_usuario === miNombre);
-                    if (yaLaPedí) {
-                        return mostrarAlerta("ℹ️ Ya agregaste esta canción a la lista.", true);
-                    }
-                    return mostrarAlerta("❌ Esta canción ya está en la cola.", true);
+                    return mostrarAlerta(yaLaPedí
+                        ? "ℹ️ Ya agregaste esta canción a la lista."
+                        : "❌ Esta canción ya está en la cola.", true);
                 }
 
                 // Ya no hay tope de canciones por persona: pedir de mas no le
                 // quita el turno a nadie. El reproductor reparte por turnos,
                 // asi que quien pide diez las canta de una en una, intercalado
                 // con los demas.
-
-                const { count: totalCola, error: errTotalCola } = await supabaseClient
-                    .from('Solicitudes')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('estado', 'pendiente');
-
-                if (errTotalCola) {
-                    console.error('Error al contar cola total:', errTotalCola);
-                    return mostrarAlerta("❌ Error al enviar. Intenta de nuevo.", true);
-                }
+                const totalCola = cola.length;
 
                 const solicitud = {
                     nombre_usuario: miNombre,
@@ -1333,7 +1329,12 @@
                     return mostrarAlerta("❌ No se pudo agregar la canción. Intenta de nuevo.", true);
                 }
 
-                await registrarPopularidad(titulo, artista);
+                // La cancion YA esta dentro: se avisa en este mismo instante.
+                // Antes se esperaba a registrar la popularidad (dos viajes mas
+                // al servidor) y el boton se quedaba en "..." sin que se
+                // supiera si habia funcionado.
+                confirmado = true;
+                if (btn) btn.textContent = '✓';
 
                 if (totalCola === 0) {
                     mostrarAlerta("✅ ¡Enviada! Comenzará en unos segundos.");
@@ -1341,15 +1342,23 @@
                     const minsAprox = totalCola * 3;
                     mostrarAlerta(`✅ ¡En cola! Tienes ${totalCola} canción(es) por delante (Aprox ${minsAprox} min).`);
                 }
-                actualizarCola();
 
-                // Cada canción pedida afina la siguiente sugerencia.
+                // Todo esto no hace esperar a nadie: corre por detras mientras
+                // el cliente ya esta viendo su confirmacion.
+                registrarPopularidad(titulo, artista);
+                actualizarCola();
                 cargarMisPedidos().then(renderizarSugerencias);
             } finally {
                 pedidoEnCurso = false;
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = textoBtn;
+                    // Tras un acierto el tick se queda un momento para que se
+                    // vea; si fallo, el boton vuelve a la normalidad ya.
+                    if (confirmado) {
+                        setTimeout(() => { btn.textContent = textoBtn; }, 1500);
+                    } else {
+                        btn.textContent = textoBtn;
+                    }
                 }
             }
         }
