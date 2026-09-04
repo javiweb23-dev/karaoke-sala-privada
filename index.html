@@ -620,22 +620,12 @@
 
             // El titulo explica de donde sale la sugerencia: sin eso parece
             // una lista al azar y nadie la toca.
-            let motivo = 'Te recomendamos...';
-            const topArtista = [...artistas.entries()].sort((a, b) => b[1] - a[1])[0];
-            if (topArtista && lista.some(s => sinAcentos(s.artista) === topArtista[0])) {
-                const nombre = misPedidosNoche
-                    .map(p => String(p.cancion_info || '').split(' - ')[0])
-                    .find(n => sinAcentos(n) === topArtista[0]);
-                if (nombre) motivo = `Porque cantaste ${nombre} te recomendamos...`;
-            } else {
-                const topGenero = [...generos.entries()].sort((a, b) => b[1] - a[1])[0];
-                if (topGenero) {
-                    const g = misPedidosNoche.find(p => sinAcentos(p.genero || '') === topGenero[0]);
-                    if (g && g.genero) {
-                        motivo = `Porque te gusta ${g.genero.toLowerCase()} te recomendamos...`;
-                    }
-                }
-            }
+            // El titulo va generico a proposito. Antes nombraba al artista mas
+            // repetido ("Porque cantaste ABBA") pero debajo podia salir Bad
+            // Bunny, porque la lista mezcla lo del artista con lo de TODOS los
+            // generos pedidos esa noche. Prometer un artista y enseñar otra
+            // cosa se nota enseguida; esto siempre es cierto.
+            const motivo = 'Por las últimas que has pedido te recomendamos...';
 
             return { lista, motivo };
         }
