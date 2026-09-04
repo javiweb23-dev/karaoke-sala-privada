@@ -89,16 +89,31 @@ function leerCatalogoJs() {
 
 // ---------------------------------------------------------------------------
 
-if (!fs.existsSync(videosDir)) {
-    console.error('No existe la carpeta videos_locales/.');
+// videos_locales/ es un enlace al disco externo. Si el disco no esta
+// conectado, la carpeta se ve vacia o rota, y como el catalogo se reconstruye
+// a partir de ella eso significaria quedarse sin canciones. Se avisa claro y
+// no se escribe nada.
+function avisarDiscoYSalir(detalle) {
+    console.error('');
+    console.error('  No se pueden leer los videos: ' + detalle);
+    console.error('');
+    console.error('  ¿Está conectado el disco externo?');
+    console.error('  Los videos viven en D:\\videos_locales y la carpeta');
+    console.error('  videos_locales/ del proyecto es solo un enlace.');
+    console.error('');
+    console.error('  No se ha tocado el catalogo.');
     process.exit(1);
 }
 
-const archivos = fs.readdirSync(videosDir).filter((f) => /\.mp4$/i.test(f));
-if (archivos.length === 0) {
-    console.error('No hay ningun MP4 en videos_locales/.');
-    process.exit(1);
+let archivos;
+try {
+    if (!fs.existsSync(videosDir)) avisarDiscoYSalir('no existe la carpeta');
+    archivos = fs.readdirSync(videosDir).filter((f) => /\.mp4$/i.test(f));
+} catch (e) {
+    avisarDiscoYSalir(e.code === 'ENOENT' ? 'el enlace no lleva a ningun sitio' : e.message);
 }
+
+if (archivos.length === 0) avisarDiscoYSalir('la carpeta esta vacia');
 
 console.log(`Archivos MP4:  ${archivos.length}\n`);
 
