@@ -431,12 +431,40 @@
             });
         }
 
+        // El mismo reparto por turnos que usa el reproductor: la cola del admin
+        // tiene que enseñar el orden real en que va a sonar, no el de llegada.
+        function ordenarPorTurnos(filas) {
+            const cantadas = new Map();
+            const pendientes = [];
+
+            for (const r of filas) {
+                const quien = String(r.nombre_usuario || '').trim().toUpperCase();
+                if (r.estado === 'completada') {
+                    cantadas.set(quien, (cantadas.get(quien) || 0) + 1);
+                } else if (r.estado === 'pendiente') {
+                    pendientes.push(r);
+                }
+            }
+
+            const vistas = new Map();
+            for (const p of pendientes) {
+                const quien = String(p.nombre_usuario || '').trim().toUpperCase();
+                p._turno = (cantadas.get(quien) || 0) + (vistas.get(quien) || 0) + 1;
+                vistas.set(quien, (vistas.get(quien) || 0) + 1);
+            }
+
+            pendientes.sort((a, b) => (a._turno - b._turno) || (a.id - b.id));
+            return pendientes;
+        }
+
         async function actualizarCola() {
-            const { data } = await supabaseClient
+            const { data: todas } = await supabaseClient
                 .from('Solicitudes')
-                .select('cancion_info, nombre_usuario')
-                .eq('estado', 'pendiente')
+                .select('id, cancion_info, nombre_usuario, estado')
+                .in('estado', ['pendiente', 'completada'])
                 .order('id', { ascending: true });
+
+            const data = ordenarPorTurnos(todas || []);
 
             const adminQueue = document.getElementById('adminQueue');
             if (!data || data.length === 0) {

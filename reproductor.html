@@ -1153,14 +1153,58 @@
             }
         }
 
+        // ==================================================================
+        // Reparto de turnos
+        //
+        // Antes sonaba por orden de llegada, asi que quien pedia diez seguidas
+        // se adueñaba de la noche. Ahora cada solicitud lleva un numero de
+        // turno: cuantas canciones lleva ya cantadas esa persona, mas las que
+        // tiene por delante en su propia lista.
+        //
+        // Todos cantan su PRIMERA antes de que nadie repita; todos la segunda
+        // antes de que nadie vaya por la tercera. Si Maria pidio diez y no hay
+        // nadie mas, suenan sus diez seguidas; en cuanto Pedro pide una, la
+        // suya se cuela porque es su turno 1 contra el turno 2 de Maria.
+        //
+        // Entre gente del mismo turno manda el orden de llegada.
+        // ==================================================================
+        function ordenarPorTurnos(filas) {
+            const cantadas = new Map();
+            const pendientes = [];
+
+            for (const r of filas) {
+                const quien = String(r.nombre_usuario || '').trim().toUpperCase();
+                if (r.estado === 'completada') {
+                    cantadas.set(quien, (cantadas.get(quien) || 0) + 1);
+                } else if (r.estado === 'pendiente') {
+                    pendientes.push(r);
+                }
+            }
+
+            // Las filas llegan por id, asi que el recuento respeta el orden en
+            // que cada quien pidio sus canciones.
+            const vistas = new Map();
+            for (const p of pendientes) {
+                const quien = String(p.nombre_usuario || '').trim().toUpperCase();
+                p._turno = (cantadas.get(quien) || 0) + (vistas.get(quien) || 0) + 1;
+                vistas.set(quien, (vistas.get(quien) || 0) + 1);
+            }
+
+            pendientes.sort((a, b) => (a._turno - b._turno) || (a.id - b.id));
+            return pendientes;
+        }
+
         async function buscarSiguienteCancion() {
             if (!systemActive || isPlaying || completandoCancion) return;
             if (haySesion === false) return;   // sala cerrada
 
+            // Se piden TODAS las de la sesion, no solo las pendientes: para
+            // saber a quien le toca hay que contar cuantas lleva cantadas cada
+            // quien. Con solo las pendientes no se puede repartir el turno.
             let consulta = supabaseClient
                 .from('Solicitudes')
                 .select('*')
-                .eq('estado', 'pendiente');
+                .in('estado', ['pendiente', 'completada']);
 
             // Con sesion abierta suena lo pedido en ESTA sesion. Aqui es donde
             // el control se hace de verdad: una solicitud de la sesion de ayer
@@ -1175,11 +1219,11 @@
                 );
             }
 
-            const { data, error } = await consulta
-                .order('id', { ascending: true })
-                .limit(1);
+            const { data, error } = await consulta.order('id', { ascending: true });
 
-            if (error || !data || data.length === 0) {
+            const cola = error ? [] : ordenarPorTurnos(data || []);
+
+            if (cola.length === 0) {
                 lobbyScreen.style.display = 'flex';
                 lobbyMessage.innerText    = "ESPERANDO SOLICITUDES...";
                 singerName.classList.add('hidden');
@@ -1188,7 +1232,7 @@
                 return;
             }
 
-            iniciarCuentaRegresiva(data[0]);
+            iniciarCuentaRegresiva(cola[0]);
         }
 
         function iniciarCuentaRegresiva(solicitud) {
