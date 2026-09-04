@@ -107,7 +107,7 @@
             <!-- Sugerencias. Solo sale mientras navegan: al buscar o filtrar
                  desaparece, para no estorbar a quien ya sabe lo que quiere. -->
             <div id="sugerencias" class="hidden mb-4">
-                <p id="sugerenciasTitulo" class="text-zinc-500 text-[11px] font-bold uppercase tracking-widest mb-2 px-1"></p>
+                <p id="sugerenciasTitulo" class="text-orange-400 text-[11px] font-bold uppercase tracking-widest mb-2 px-1"></p>
                 <div id="sugerenciasFila" class="genre-slider-wrap flex gap-2.5 overflow-x-auto pb-1"></div>
             </div>
 
@@ -620,18 +620,20 @@
 
             // El titulo explica de donde sale la sugerencia: sin eso parece
             // una lista al azar y nadie la toca.
-            let motivo = 'Quizá te guste';
+            let motivo = 'Te recomendamos...';
             const topArtista = [...artistas.entries()].sort((a, b) => b[1] - a[1])[0];
             if (topArtista && lista.some(s => sinAcentos(s.artista) === topArtista[0])) {
                 const nombre = misPedidosNoche
                     .map(p => String(p.cancion_info || '').split(' - ')[0])
                     .find(n => sinAcentos(n) === topArtista[0]);
-                if (nombre) motivo = `Porque cantaste ${nombre}`;
+                if (nombre) motivo = `Porque cantaste ${nombre} te recomendamos...`;
             } else {
                 const topGenero = [...generos.entries()].sort((a, b) => b[1] - a[1])[0];
                 if (topGenero) {
                     const g = misPedidosNoche.find(p => sinAcentos(p.genero || '') === topGenero[0]);
-                    if (g && g.genero) motivo = `Más ${g.genero.toLowerCase()} para ti`;
+                    if (g && g.genero) {
+                        motivo = `Porque te gusta ${g.genero.toLowerCase()} te recomendamos...`;
+                    }
                 }
             }
 
