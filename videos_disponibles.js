@@ -1,5 +1,5 @@
 // Generado por scripts/actualizar.js — no editar a mano
-// Archivos: 2259 — 2026-09-04T16:41:37.519Z
+// Archivos: 2259 — 2026-09-04T17:27:43.313Z
 window.VIDEOS_DISPONIBLES = {
   "A.CINCO - ACURRUCAME LA VIDA": "A.CINCO - ACURRUCAME LA VIDA.mp4",
   "A.CINCO - COMO SABER": "A.CINCO - COMO SABER.mp4",
