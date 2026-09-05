@@ -4,10 +4,10 @@
 //
 // Lo que hace, en orden:
 //   1. Mira que MP4 hay en videos_locales/  (eso es lo que EXISTE de verdad)
-//   2. Lee canciones.xlsx                    (de ahi salen genero e idioma)
+//   2. Lee plantillacanciones.xlsx                    (de ahi salen genero e idioma)
 //   3. Escribe canciones.js
 //   4. Escribe videos_disponibles.js
-//   5. Reescribe canciones.xlsx con todo     (asi nunca se queda atrasado)
+//   5. Reescribe plantillacanciones.xlsx con todo     (asi nunca se queda atrasado)
 //   6. Hace commit y push
 //
 // La regla de oro: manda la CARPETA. Si el MP4 esta, la cancion entra; si no
@@ -25,7 +25,7 @@ const { crearXlsx, leerXlsx } = require('./lib-xlsx');
 
 const root = path.join(__dirname, '..');
 const catalogFile = path.join(root, 'canciones.js');
-const excelFile = path.join(root, 'canciones.xlsx');
+const excelFile = path.join(root, 'plantillacanciones.xlsx');
 const videosFile = path.join(root, 'videos_disponibles.js');
 const videosDir = path.join(root, 'videos_locales');
 
@@ -129,13 +129,15 @@ if (fs.existsSync(excelFile)) {
         const col = {
             id: cab.indexOf('NUMERO'),
             artista: cab.indexOf('ARTISTA'),
-            titulo: cab.indexOf('TITULO'),
+            // La plantilla llama CANCION a esa columna; se acepta TITULO por si
+            // alguna hoja vieja la trae con ese nombre.
+            titulo: cab.indexOf('CANCION') >= 0 ? cab.indexOf('CANCION') : cab.indexOf('TITULO'),
             genero: cab.indexOf('GENERO'),
             idioma: cab.indexOf('IDIOMA')
         };
 
         if (col.artista < 0 || col.titulo < 0) {
-            console.log('⚠  canciones.xlsx no tiene las columnas esperadas; se ignora.\n');
+            console.log('⚠  plantillacanciones.xlsx no tiene las columnas esperadas; se ignora.\n');
         } else {
             for (const f of filas.slice(1)) {
                 const artista = String(f[col.artista] || '').trim();
@@ -152,7 +154,7 @@ if (fs.existsSync(excelFile)) {
             console.log(`Excel:         ${leidasDelExcel} filas leidas`);
         }
     } catch (e) {
-        console.log(`⚠  No se pudo leer canciones.xlsx (${e.message}); se ignora.\n`);
+        console.log(`⚠  No se pudo leer plantillacanciones.xlsx (${e.message}); se ignora.\n`);
     }
 }
 
@@ -230,15 +232,12 @@ finales.sort((a, b) => {
     return norm(a.titulo).localeCompare(norm(b.titulo), 'es');
 });
 
-const usados = new Set();
-let siguiente = 1;
-for (const s of finales) {
-    if (!s.id || usados.has(s.id)) {
-        while (usados.has(siguiente)) siguiente++;
-        s.id = siguiente;
-    }
-    usados.add(s.id);
-}
+// El numero es solo para contar. No lo usa nada del sistema: las canciones se
+// identifican por "ARTISTA - TITULO" tanto en los pedidos como en las portadas
+// y en las populares. Antes se conservaba el numero viejo de cada cancion, asi
+// que al ordenar alfabeticamente quedaban salteados y no servian para contar.
+// Ahora se renumera de 1 a N en cada pasada: la ultima fila dice cuantas hay.
+finales.forEach((s, i) => { s.id = i + 1; });
 
 // --- Se escriben los tres archivos ---------------------------------------
 
@@ -270,7 +269,8 @@ fs.writeFileSync(videosFile, [
 let excelOk = true;
 try {
     fs.writeFileSync(excelFile, crearXlsx(
-        ['numero', 'artista', 'titulo', 'genero', 'idioma'],
+        // Las mismas columnas que ya tenia la plantilla, con sus nombres.
+        ['numero', 'Artista', 'Cancion', 'genero', 'idioma'],
         finales.map((s) => [s.id, s.artista, s.titulo, s.genero, s.idioma]),
         { nombreHoja: 'Canciones', anchos: [10, 34, 44, 22, 14] }
     ));
@@ -358,11 +358,11 @@ if (repetidos.length) {
 if (sinClasificar.length) {
     console.log(`⚠  ${sinClasificar.length} de artistas nuevos, quedaron en POP:`);
     sinClasificar.forEach((s) => console.log(`   ${s.artista} - ${s.titulo}`));
-    console.log('\n   Ponles el genero en canciones.xlsx y vuelve a correr esto.\n');
+    console.log('\n   Ponles el genero en plantillacanciones.xlsx y vuelve a correr esto.\n');
 }
 
 if (!excelOk) {
-    console.log('⚠  No se pudo reescribir canciones.xlsx (¿lo tienes abierto en Excel?).');
+    console.log('⚠  No se pudo reescribir plantillacanciones.xlsx (¿lo tienes abierto en Excel?).');
     console.log('   Cierralo y vuelve a correr esto para que quede al dia.\n');
 }
 
