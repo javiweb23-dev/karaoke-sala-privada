@@ -331,7 +331,7 @@ const musicaFile = path.join(root, 'musica_cierre_disponible.js');
 let musica = [];
 if (fs.existsSync(musicaDir)) {
     musica = fs.readdirSync(musicaDir)
-        .filter((f) => /\.(mp3|wav|ogg|m4a)$/i.test(f))
+        .filter((f) => /\.(mp3|wav|ogg|m4a|flac|mp4)$/i.test(f))
         .sort((a, b) => a.localeCompare(b, 'es'));
 }
 
@@ -340,7 +340,7 @@ fs.writeFileSync(musicaFile, [
     `// Pistas en musica_cierre/: ${musica.length}`,
     '//',
     '// Suena de fondo y en bucle cuando termina la sesion, a volumen bajo.',
-    '// Para cambiarla: suelta MP3 en musica_cierre/ y corre "npm run actualizar".',
+    '// Para cambiarla: suelta MP3, FLAC o MP4 en musica_cierre/ y corre "npm run actualizar".',
     'window.MUSICA_CIERRE = ' + JSON.stringify(musica, null, 2) + ';',
     ''
 ].join('\n'), 'utf8');

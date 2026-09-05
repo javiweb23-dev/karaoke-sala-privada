@@ -228,7 +228,7 @@
 
             musicaCierre = new Audio('musica_cierre/' + encodeURIComponent(pista));
             musicaCierre.loop = true;
-            musicaCierre.volume = 0.22;   // de fondo: tienen que poder hablar
+            musicaCierre.volume = 0.40;   // de fondo: tienen que poder hablar
 
             const p = musicaCierre.play();
             if (p && p.catch) p.catch((e) => console.warn('[Cierre] No sonó:', e.message));
@@ -976,7 +976,16 @@
         }
 
         function alCambiarFase(fase) {
-            // Cada aviso se enseña una sola vez por sesion.
+            // Volver a "corriendo" solo pasa si se pago mas tiempo. Los
+            // avisos se rearman: tras extender media hora, el grupo tiene
+            // que volver a oir el de los 15 minutos para decidir si paga
+            // otra vez. Antes se avisaba una sola vez en toda la noche.
+            if (fase === 'corriendo') {
+                avisosVistos = {};
+                avisoSesion.classList.add('hidden');
+            }
+
+            // Cada aviso se enseña una sola vez mientras no se extienda.
             const yaVisto = avisosVistos[fase];
 
             if (fase === 'por_terminar' && !yaVisto) {
