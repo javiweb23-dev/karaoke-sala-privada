@@ -1,5 +1,5 @@
 // Generado por scripts/actualizar.js — no editar a mano
-// Archivos: 2514 — 2026-09-05T14:52:00.894Z
+// Archivos: 2514 — 2026-09-05T14:52:27.137Z
 window.VIDEOS_DISPONIBLES = {
   "5 SECONDS OF SUMMER - GHOST OF YOU": "5 SECONDS OF SUMMER - GHOST OF YOU.mp4",
   "5 SECONDS OF SUMMER - YOUNGBLOOD": "5 SECONDS OF SUMMER - YOUNGBLOOD.mp4",
