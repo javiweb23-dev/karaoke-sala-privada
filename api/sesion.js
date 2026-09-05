@@ -211,6 +211,18 @@ module.exports = async (req, res) => {
             // primero se cierra la anterior si quedo alguna.
             await cerrarAbiertas();
 
+            // Una sesion nueva empieza con la cola vacia, siempre.
+            // cerrarAbiertas() solo limpia lo de la sesion que estaba abierta,
+            // asi que las pendientes de una noche que se cerro de otra forma
+            // (se apago la TV, se cerro sin sesion abierta) se quedaban ahi
+            // para siempre. Aqui no hay sesion abierta: nada que sea pendiente
+            // tiene ya sentido.
+            await supabaseFetchEstricto('Solicitudes?estado=eq.pendiente', {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ estado: 'completada' })
+            });
+
             const fin = new Date(inicio.getTime() + horas * 3600000);
 
             const nueva = await supabaseFetchEstricto('sesiones', {

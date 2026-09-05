@@ -1285,10 +1285,19 @@
                 // Se traen tambien las completadas porque hacen falta para
                 // calcular los turnos: sin saber cuantas lleva cantada cada
                 // quien no se puede decir en que puesto queda la nueva.
-                const { data: todasFilas, error: errCola } = await supabaseClient
+                let consultaCola = supabaseClient
                     .from('Solicitudes')
                     .select('id, nombre_usuario, cancion_info, estado')
                     .in('estado', ['pendiente', 'completada']);
+
+                // Mismo filtro que el reproductor. Sin el, el puesto en la cola
+                // y el aviso de "ya la pediste" contaban canciones de otras
+                // noches que la TV ni siquiera ve.
+                if (sesionSalaId) {
+                    consultaCola = consultaCola.or(`sesion_id.eq.${sesionSalaId},sesion_id.is.null`);
+                }
+
+                const { data: todasFilas, error: errCola } = await consultaCola;
 
                 if (errCola) {
                     console.error('Error al leer la cola:', errCola);

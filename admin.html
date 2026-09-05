@@ -188,6 +188,12 @@
             return data;
         }
 
+        // Id de la sesion abierta; null si no hay o si todavia no se sabe.
+        // La cola se filtra con esto. Sin filtrar, el panel listaba como
+        // pendientes canciones de noches anteriores que la TV jamas iba a
+        // reproducir: se veian en cola y no sonaban nunca.
+        let sesionIdAdmin = null;
+
         function pintarPanelSesion(data) {
             if (!data) {
                 panelSesion.innerHTML = `<p class="text-zinc-600 italic text-sm">PIN no ingresado.</p>
@@ -215,6 +221,9 @@
             }
 
             if (!data.sesion) {
+                sesionIdAdmin = null;
+                actualizarCola();
+
                 // El tiempo se pide AQUI, al abrir. Esto es un negocio: si no
                 // hay horas pagadas no hay sesion. Antes se abria primero y el
                 // tiempo era un paso aparte que se podia olvidar, y entonces la
@@ -247,6 +256,11 @@
                     </button>
                     <p id="abrirError" class="text-red-400 text-xs font-bold mt-3 h-4"></p>`;
                 return;
+            }
+
+            if (sesionIdAdmin !== data.sesion.id) {
+                sesionIdAdmin = data.sesion.id;
+                actualizarCola();
             }
 
             const desde = new Date(data.sesion.abierta_en);
@@ -531,15 +545,28 @@
         }
 
         async function actualizarCola() {
+            const adminQueue = document.getElementById('adminQueue');
+
+            // Sin sesion abierta la TV no reproduce nada, asi que aqui la cola
+            // tiene que verse vacia tambien. Mostrar pendientes sueltas daba a
+            // entender que algo iba a sonar y no sonaba.
+            if (!sesionIdAdmin) {
+                adminQueue.innerHTML = `<p class="text-zinc-600 italic text-sm">No hay sesión abierta.</p>`;
+                return;
+            }
+
+            // Mismo filtro que el reproductor: lo de ESTA sesion, mas lo que se
+            // pidio antes de abrirla (sesion_id nulo). Si las dos pantallas no
+            // preguntan lo mismo, el admin miente.
             const { data: todas } = await supabaseClient
                 .from('Solicitudes')
                 .select('id, cancion_info, nombre_usuario, estado')
                 .in('estado', ['pendiente', 'completada'])
+                .or(`sesion_id.eq.${sesionIdAdmin},sesion_id.is.null`)
                 .order('id', { ascending: true });
 
             const data = repartirCola(todas || []);
 
-            const adminQueue = document.getElementById('adminQueue');
             if (!data || data.length === 0) {
                 adminQueue.innerHTML = `<p class="text-zinc-600 italic text-sm">No hay canciones en espera.</p>`;
                 return;
