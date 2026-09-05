@@ -30,25 +30,25 @@ window.EFECTOS = [
   },
   {
     "clave": "gato",
-    "archivo": "gato.wav",
+    "archivo": "gato.mp3",
     "etiqueta": "Gato",
     "emoji": "🐱"
   },
   {
     "clave": "grillos",
-    "archivo": "grillos.wav",
+    "archivo": "grillos.mp3",
     "etiqueta": "Grillos",
     "emoji": "🦗"
   },
   {
     "clave": "redoble",
-    "archivo": "redoble.wav",
+    "archivo": "redoble.mp3",
     "etiqueta": "Redoble",
     "emoji": "🥁"
   },
   {
     "clave": "trombon",
-    "archivo": "trombon.wav",
+    "archivo": "trombon.mp3",
     "etiqueta": "Trombon",
     "emoji": "🎶"
   }

@@ -215,15 +215,37 @@
             }
 
             if (!data.sesion) {
+                // El tiempo se pide AQUI, al abrir. Esto es un negocio: si no
+                // hay horas pagadas no hay sesion. Antes se abria primero y el
+                // tiempo era un paso aparte que se podia olvidar, y entonces la
+                // sala quedaba abierta sin cuenta atras y sin cerrarse sola.
+                const ahora = new Date();
+                const hhmm = String(ahora.getHours()).padStart(2, '0') + ':' +
+                             String(ahora.getMinutes()).padStart(2, '0');
+
                 panelSesion.innerHTML = `
                     <p class="text-zinc-500 text-xs mb-1">Sin sesión abierta</p>
                     <p class="text-zinc-600 text-[11px] mb-4 leading-relaxed">
-                        Todos pueden pedir canciones sin código.
+                        La sala está cerrada. Nadie puede pedir canciones.
                     </p>
+
+                    <input type="text" id="grupoSesion" placeholder="Nombre del grupo (opcional)"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-2 px-3 text-zinc-100 text-sm text-center mb-3">
+
+                    <p class="text-zinc-500 text-[10px] uppercase tracking-widest mb-2">Tiempo contratado</p>
+                    <div class="flex items-center gap-2 mb-3">
+                        <input type="time" id="inicioSesion" value="${hhmm}"
+                            class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg py-2 px-2 text-zinc-100 text-sm text-center">
+                        <input type="number" id="horasSesion" value="3" min="0.5" max="24" step="0.5"
+                            class="w-20 bg-zinc-900 border border-zinc-700 rounded-lg py-2 px-2 text-zinc-100 text-sm text-center">
+                        <span class="text-zinc-500 text-xs">horas</span>
+                    </div>
+
                     <button onclick="abrirSesion()"
                         class="w-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
                         ▶ Abrir sesión
-                    </button>`;
+                    </button>
+                    <p id="abrirError" class="text-red-400 text-xs font-bold mt-3 h-4"></p>`;
                 return;
             }
 
@@ -328,21 +350,29 @@
                 ${botones}`;
         }
 
+        // Convierte "23:00" en una fecha completa. El input de hora solo da
+        // hora y minuto, asi que hay que decidir de que dia son: se elige el
+        // dia mas cercano a ahora. A las 00:30, "23:00" es de anoche (hace una
+        // hora) y no de dentro de 22; a las 23:00, "01:00" es la madrugada que
+        // viene. Importa porque de aqui sale la cuenta atras que se cobra.
+        function horaDeHoy(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            const f = new Date();
+            f.setHours(h, m, 0, 0);
+
+            const doceHoras = 12 * 3600000;
+            const diferencia = f.getTime() - Date.now();
+            if (diferencia > doceHoras) f.setDate(f.getDate() - 1);
+            else if (diferencia < -doceHoras) f.setDate(f.getDate() + 1);
+            return f;
+        }
+
         async function programarTiempo() {
             const hhmm = document.getElementById('inicioSesion').value;
             const horas = Number(document.getElementById('horasSesion').value);
             if (!hhmm || !(horas > 0)) return;
 
-            const [h, m] = hhmm.split(':').map(Number);
-            const inicio = new Date();
-            inicio.setHours(h, m, 0, 0);
-
-            // Si la hora ya paso hace mucho, es de la madrugada siguiente:
-            // a las 00:30 poner "23:00" significa anoche, no dentro de 22h.
-            const doceHoras = 12 * 3600000;
-            if (Date.now() - inicio.getTime() > doceHoras) {
-                inicio.setDate(inicio.getDate() + 1);
-            }
+            const inicio = horaDeHoy(hhmm);
 
             pintarPanelSesion(await llamarSesion('programar', {
                 inicio: inicio.toISOString(),
@@ -360,8 +390,23 @@
         }
 
         async function abrirSesion() {
-            const nombre = prompt('Nombre del grupo (opcional):') || '';
-            pintarPanelSesion(await llamarSesion('abrir', { nombre }));
+            const err = document.getElementById('abrirError');
+            const nombre = (document.getElementById('grupoSesion').value || '').trim();
+            const hhmm = document.getElementById('inicioSesion').value;
+            const horas = Number(document.getElementById('horasSesion').value);
+
+            if (!hhmm || !(horas > 0)) {
+                err.innerText = 'Falta la hora de inicio o las horas contratadas';
+                return;
+            }
+
+            const inicio = horaDeHoy(hhmm);
+
+            pintarPanelSesion(await llamarSesion('abrir', {
+                nombre,
+                inicio: inicio.toISOString(),
+                horas
+            }));
         }
 
         async function cerrarSesion() {

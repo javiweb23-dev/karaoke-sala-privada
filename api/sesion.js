@@ -193,16 +193,34 @@ module.exports = async (req, res) => {
         }
 
         if (accion === 'abrir') {
+            // El tiempo es obligatorio al abrir. Esto es un negocio: sin horas
+            // pagadas no hay sesion. Se valida aqui y no solo en el admin,
+            // porque una comprobacion que solo vive en el navegador se salta
+            // llamando al endpoint directamente.
+            const inicio = new Date(cuerpo?.inicio);
+            const horas = Number(cuerpo?.horas);
+
+            if (isNaN(inicio.getTime())) {
+                return res.status(400).json({ ok: false, error: 'Falta la hora de inicio' });
+            }
+            if (!(horas > 0) || horas > 24) {
+                return res.status(400).json({ ok: false, error: 'Las horas deben estar entre 0 y 24' });
+            }
+
             // El indice unico parcial impide dos sesiones abiertas, asi que
             // primero se cierra la anterior si quedo alguna.
             await cerrarAbiertas();
+
+            const fin = new Date(inicio.getTime() + horas * 3600000);
 
             const nueva = await supabaseFetchEstricto('sesiones', {
                 method: 'POST',
                 headers: { Prefer: 'return=representation' },
                 body: JSON.stringify({
                     codigo: generarCodigo(),
-                    nombre_grupo: String(cuerpo?.nombre || '').trim().slice(0, 60) || null
+                    nombre_grupo: String(cuerpo?.nombre || '').trim().slice(0, 60) || null,
+                    inicio_previsto: inicio.toISOString(),
+                    fin_previsto: fin.toISOString()
                 })
             });
 
