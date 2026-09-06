@@ -217,19 +217,56 @@
         // Musica de fondo para cuando se acaba la sesion, mientras el grupo
         // recoge. Sale de la carpeta musica_cierre/: suelta ahi los MP3 que
         // quieras y corre "npm run actualizar".
-        let musicaCierre = null;
+        let musicaCierre  = null;
+        let listaCierre   = [];
+        let indiceCierre  = 0;
 
         function iniciarMusicaCierre() {
             const lista = window.MUSICA_CIERRE || [];
             if (lista.length === 0 || musicaCierre) return;
 
-            // Al azar, para que no suene siempre la misma al cerrar.
-            const pista = lista[Math.floor(Math.random() * lista.length)];
+            // Se baraja la carpeta entera y se van poniendo una tras otra.
+            // Antes se elegia UNA al azar y se repetia en bucle: parecia que
+            // solo hubiera una cancion, y a la tercera vuelta cansaba.
+            listaCierre = lista.slice();
+            for (let i = listaCierre.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = listaCierre[i];
+                listaCierre[i] = listaCierre[j];
+                listaCierre[j] = tmp;
+            }
+            indiceCierre = 0;
 
-            musicaCierre = new Audio('musica_cierre/' + encodeURIComponent(pista));
-            musicaCierre.loop = true;
-            musicaCierre.volume = 0.40;   // de fondo: tienen que poder hablar
+            // Un solo Audio que va cambiando de src: asi no se solapan dos
+            // pistas si algo dispara el cierre dos veces.
+            musicaCierre = new Audio();
+            musicaCierre.volume = 0.22;   // de fondo: tienen que poder hablar
 
+            musicaCierre.addEventListener('ended', () => {
+                avanzarPistaCierre();
+                sonarPistaCierre();
+            });
+
+            // Un archivo ilegible no puede dejar la sala en silencio: se salta
+            // y sigue. Si fallan todas, se para al dar la vuelta completa.
+            musicaCierre.addEventListener('error', () => {
+                console.warn('[Cierre] No se pudo leer:', listaCierre[indiceCierre]);
+                avanzarPistaCierre();
+                if (indiceCierre !== 0) sonarPistaCierre();
+            });
+
+            sonarPistaCierre();
+        }
+
+        // Al llegar al final vuelve a empezar: nadie deberia quedarse sin
+        // musica por recoger despacio.
+        function avanzarPistaCierre() {
+            indiceCierre = (indiceCierre + 1) % listaCierre.length;
+        }
+
+        function sonarPistaCierre() {
+            if (!musicaCierre || listaCierre.length === 0) return;
+            musicaCierre.src = 'musica_cierre/' + encodeURIComponent(listaCierre[indiceCierre]);
             const p = musicaCierre.play();
             if (p && p.catch) p.catch((e) => console.warn('[Cierre] No sonó:', e.message));
         }
@@ -238,6 +275,8 @@
             if (!musicaCierre) return;
             try { musicaCierre.pause(); } catch (e) {}
             musicaCierre = null;
+            listaCierre = [];
+            indiceCierre = 0;
         }
 
         function reproducirEfecto(valor) {
