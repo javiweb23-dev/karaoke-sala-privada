@@ -1287,10 +1287,14 @@
             // Tambien entran las que no tienen sesion: son las que se pidieron
             // ANTES de que el operador abriera la sesion. Sin esto se quedaban
             // invisibles y colgadas en la cola para siempre.
+            // SOLO esta sesion. Antes se colaba tambien "sesion_id is null",
+            // pensando en lo pedido justo antes de abrir la sala, pero esa
+            // puerta no tenia fecha: arrastraba las 724 filas completadas de
+            // mayo a agosto, de cuando la columna no existia. Como el reparto
+            // de turnos cuenta lo ya cantado, quien habia venido otras noches
+            // empezaba con 158 o 222 canciones a cuestas y no le tocaba nunca.
             if (sesionIdActiva) {
-                consulta = consulta.or(
-                    `sesion_id.eq.${sesionIdActiva},sesion_id.is.null`
-                );
+                consulta = consulta.eq('sesion_id', sesionIdActiva);
             }
 
             const { data, error } = await consulta.order('id', { ascending: true });

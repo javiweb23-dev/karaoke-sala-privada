@@ -1217,8 +1217,14 @@
                 .select('id, cancion_info, nombre_usuario, estado')
                 .in('estado', ['pendiente', 'completada']);
 
+            // SOLO esta sesion. Antes se colaba tambien "sesion_id is null",
+            // pensando en lo pedido justo antes de abrir la sala, pero esa
+            // puerta no tenia fecha: arrastraba las 724 filas completadas de
+            // mayo a agosto, de cuando la columna no existia. Como el reparto
+            // de turnos cuenta lo ya cantado, quien habia venido otras noches
+            // empezaba con 158 o 222 canciones a cuestas y no le tocaba nunca.
             if (sesionSalaId) {
-                consulta = consulta.or(`sesion_id.eq.${sesionSalaId},sesion_id.is.null`);
+                consulta = consulta.eq('sesion_id', sesionSalaId);
             }
 
             const { data: todas } = await consulta.order('id', { ascending: true });
@@ -1293,8 +1299,9 @@
                 // Mismo filtro que el reproductor. Sin el, el puesto en la cola
                 // y el aviso de "ya la pediste" contaban canciones de otras
                 // noches que la TV ni siquiera ve.
+                // Mismo filtro que el reproductor: solo esta sesion.
                 if (sesionSalaId) {
-                    consultaCola = consultaCola.or(`sesion_id.eq.${sesionSalaId},sesion_id.is.null`);
+                    consultaCola = consultaCola.eq('sesion_id', sesionSalaId);
                 }
 
                 const { data: todasFilas, error: errCola } = await consultaCola;
@@ -1344,10 +1351,13 @@
                     estado: 'pendiente'
                 };
 
-                // Solo se manda si de verdad hay sesion abierta. Asi el sistema
-                // sigue pidiendo canciones aunque el SQL de sql/ todavia no se
-                // haya ejecutado y la columna no exista.
-                if (sesionSalaId) solicitud.sesion_id = sesionSalaId;
+                // Sin sesion la cancion nace huerfana: no la veria la TV y
+                // encima quedaria contando turnos para siempre. Mejor no
+                // aceptarla y decirlo, que aceptarla y que no suene nunca.
+                if (!sesionSalaId) {
+                    return mostrarAlerta("❌ La sala no está abierta. Avisa al operador.", true);
+                }
+                solicitud.sesion_id = sesionSalaId;
 
                 const { error } = await supabaseClient
                     .from('Solicitudes')
