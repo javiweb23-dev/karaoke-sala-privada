@@ -147,6 +147,11 @@
         let systemActive            = false;
         let sistemaIniciado         = false;
         let idActual                = null;
+        // Quien esta cantando ahora y quien canto justo antes. Hace falta
+        // para la regla de no cantar dos seguidas: es el unico sitio del
+        // sistema que sabe el orden real en que sonaron las canciones.
+        let cantanteActual          = null;
+        let ultimoQueCanto          = null;
         let cuentaRegresivaId       = null;
         let reproduccionToken       = 0;
         let completandoCancion      = false;
@@ -1172,6 +1177,7 @@
                 if (!anterior || !sesionActual || anterior.id !== sesionActual.id) {
                     avisosVistos = {};
                     faseSesion = null;
+                    ultimoQueCanto = null;   // grupo nuevo: nadie ha cantado aun
                     avisoSesion.classList.add('hidden');
                     if (sesionActual && sistemaIniciado) systemActive = true;
                 }
@@ -1216,7 +1222,7 @@
         //
         // Entre gente del mismo turno manda el orden de llegada.
         // ==================================================================
-        function repartirCola(filas) {
+        function repartirCola(filas, ultimoConocido) {
             const cantadas = new Map();
             const pendientes = [];
             let ultimoCantante = null;
@@ -1251,9 +1257,18 @@
             //
             // Si al final solo queda una persona con canciones, canta seguido:
             // es el caso del grupo que pide todo desde un mismo telefono.
+            // Quien acaba de cantar DE VERDAD. La TV lo sabe porque acaba de
+            // reproducirlo y lo pasa aqui. Deducirlo de los datos no vale: la
+            // ultima "completada" mirando el id es la ultima que se PIDIO, no
+            // la ultima que SONO. Quien pide seis de golpe se lleva seis ids
+            // seguidos y bajos, asi que al acabar una suya el id mas alto
+            // seguia siendo de otra persona. La regla protegia al que no era
+            // y dejaba encadenar cinco seguidas a quien ya venia cantando.
             const restantes = pendientes.slice();
             const orden = [];
-            let anterior = ultimoCantante;
+            let anterior = (ultimoConocido !== undefined && ultimoConocido !== null && ultimoConocido !== '')
+                ? String(ultimoConocido).trim().toUpperCase()
+                : ultimoCantante;
 
             while (restantes.length > 0) {
                 let i = restantes.findIndex((p) =>
@@ -1299,7 +1314,7 @@
 
             const { data, error } = await consulta.order('id', { ascending: true });
 
-            const cola = error ? [] : repartirCola(data || []);
+            const cola = error ? [] : repartirCola(data || [], ultimoQueCanto);
 
             if (cola.length === 0) {
                 lobbyScreen.style.display = 'flex';
@@ -1319,6 +1334,7 @@
 
             isPlaying = true;
             idActual = solicitud.id;
+            cantanteActual = solicitud.nombre_usuario;
             let segundos = 5;
 
             resetTono(true);
@@ -1404,8 +1420,13 @@
                 console.error('Error al marcar completada:', e);
             }
 
+            // Se apunta ANTES de limpiar: el siguiente reparto necesita saber
+            // que acaba de cantar esta persona para no repetirla.
+            ultimoQueCanto = cantanteActual;
+
             isPlaying = false;
             idActual  = null;
+            cantanteActual = null;
 
             timeCounter.classList.add('hidden');
 

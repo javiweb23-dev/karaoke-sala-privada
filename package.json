@@ -6,7 +6,8 @@
     "sugerencias": "node scripts/sugerir-canciones.js",
     "efectos:generar": "node scripts/generar-efectos.js",
     "build": "node scripts/verify-deploy.js",
-    "postinstall": "node scripts/copy-soundtouch-lib.js"
+    "postinstall": "node scripts/copy-soundtouch-lib.js",
+    "probar": "node scripts/probar-sistema.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

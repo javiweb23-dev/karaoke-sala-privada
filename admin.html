@@ -492,7 +492,7 @@
 
         // El mismo reparto por turnos que usa el reproductor: la cola del admin
         // tiene que enseñar el orden real en que va a sonar, no el de llegada.
-        function repartirCola(filas) {
+        function repartirCola(filas, ultimoConocido) {
             const cantadas = new Map();
             const pendientes = [];
             let ultimoCantante = null;
@@ -527,9 +527,18 @@
             //
             // Si al final solo queda una persona con canciones, canta seguido:
             // es el caso del grupo que pide todo desde un mismo telefono.
+            // Quien acaba de cantar DE VERDAD. La TV lo sabe porque acaba de
+            // reproducirlo y lo pasa aqui. Deducirlo de los datos no vale: la
+            // ultima "completada" mirando el id es la ultima que se PIDIO, no
+            // la ultima que SONO. Quien pide seis de golpe se lleva seis ids
+            // seguidos y bajos, asi que al acabar una suya el id mas alto
+            // seguia siendo de otra persona. La regla protegia al que no era
+            // y dejaba encadenar cinco seguidas a quien ya venia cantando.
             const restantes = pendientes.slice();
             const orden = [];
-            let anterior = ultimoCantante;
+            let anterior = (ultimoConocido !== undefined && ultimoConocido !== null && ultimoConocido !== '')
+                ? String(ultimoConocido).trim().toUpperCase()
+                : ultimoCantante;
 
             while (restantes.length > 0) {
                 let i = restantes.findIndex((p) =>
