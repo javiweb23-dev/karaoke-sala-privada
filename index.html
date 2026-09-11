@@ -1024,7 +1024,7 @@
 
             lista.forEach(song => {
                 const nombreFormateado = `${song.artista.toUpperCase()} - ${song.titulo.toUpperCase()}`;
-                const estrellaPopular = esCancionPopular(song.titulo, song.artista) ? '<span class="shrink-0 text-amber-400 text-sm">⭐</span>' : '';
+                const estrellaPopular = esCancionPopular(song.titulo, song.artista) ? '<span class="text-amber-400 text-sm whitespace-nowrap">\u00a0⭐</span>' : '';
                 const card = document.createElement('div');
                 card.className = 'cancion-card bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-600 p-4 rounded-2xl flex items-center gap-4 transition-all shadow-sm';
                 card.dataset.artista = song.artista;
@@ -1037,11 +1037,17 @@
 
                 const info = document.createElement('div');
                 info.className = 'flex-1 min-w-0 pr-1';
+                // Sin "truncate": los titulos largos siguen en la linea de
+                // abajo en vez de cortarse con puntos suspensivos. Al karaoke
+                // viene gente que busca por el nombre completo, y "COMO LA
+                // FLOR (VERSION MARIA..." no dice cual es. El h3 tampoco es
+                // flex ya: asi la estrella fluye con el texto y se va con la
+                // ultima palabra en vez de quedarse anclada a la derecha.
                 info.innerHTML = `
-                    <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight flex items-center gap-1.5 min-w-0">
-                        <span class="truncate">${song.titulo}</span>${estrellaPopular}
+                    <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight break-words">
+                        ${song.titulo}${estrellaPopular}
                     </h3>
-                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 truncate font-medium tracking-wide">${song.artista}</p>
+                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 font-medium tracking-wide break-words">${song.artista}</p>
                     <div class="flex flex-wrap gap-1.5">
                         <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.genero}</span>
                         <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.idioma}</span>
