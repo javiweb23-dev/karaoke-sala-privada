@@ -887,6 +887,37 @@
             });
         }
 
+        // Que tan bien responde una cancion a lo que se escribio. Cuanto mas
+        // bajo, mas arriba sale. El orden lo pidio Javier: primero el artista,
+        // luego el titulo, y el genero de ultimo porque ya tiene sus filtros.
+        //
+        // Dentro de cada grupo, lo que EMPIEZA por lo escrito va antes que lo
+        // que solo lo contiene en medio: quien escribe "marc" busca a MARC
+        // ANTHONY, no "LA MARCHA DE...".
+        function relevancia(cancion, q) {
+            const artista = sinAcentos(cancion.artista);
+            const titulo = sinAcentos(cancion.titulo);
+
+            if (artista.startsWith(q)) return 0;
+            if (artista.includes(q)) return 1;
+            if (titulo.startsWith(q)) return 2;
+            if (titulo.includes(q)) return 3;
+            return 4;   // solo coincidio el genero o el idioma
+        }
+
+        // Empatados, manda el orden de siempre: artista y luego cancion. Asi
+        // los resultados de un mismo artista salen juntos y en orden.
+        function ordenarPorRelevancia(lista, q) {
+            return lista.slice().sort((a, b) => {
+                const ra = relevancia(a, q), rb = relevancia(b, q);
+                if (ra !== rb) return ra - rb;
+
+                const aa = sinAcentos(a.artista), ba = sinAcentos(b.artista);
+                if (aa !== ba) return aa.localeCompare(ba, 'es');
+                return sinAcentos(a.titulo).localeCompare(sinAcentos(b.titulo), 'es');
+            });
+        }
+
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
 
@@ -911,7 +942,7 @@
 
             if (exactas.length > 0) {
                 busquedaFueAproximada = false;
-                return ordenarCatalogo(exactas);
+                return ordenarPorRelevancia(exactas, q);
             }
 
             // Sin coincidencias exactas se prueba tolerando erratas. Escribir
@@ -930,7 +961,7 @@
             );
 
             busquedaFueAproximada = aproximadas.length > 0;
-            return ordenarCatalogo(aproximadas);
+            return ordenarPorRelevancia(aproximadas, q);
         }
 
         function aplicarFiltros() {
@@ -1037,17 +1068,23 @@
 
                 const info = document.createElement('div');
                 info.className = 'flex-1 min-w-0 pr-1';
-                // Sin "truncate": los titulos largos siguen en la linea de
-                // abajo en vez de cortarse con puntos suspensivos. Al karaoke
-                // viene gente que busca por el nombre completo, y "COMO LA
-                // FLOR (VERSION MARIA..." no dice cual es. El h3 tampoco es
-                // flex ya: asi la estrella fluye con el texto y se va con la
-                // ultima palabra en vez de quedarse anclada a la derecha.
+                // El ARTISTA va arriba y el titulo debajo, aunque el titulo sea
+                // lo grande. La lista se ordena por artista, y al recorrerla con
+                // la vista uno lee la primera linea de cada tarjeta: si ahi va el
+                // titulo, se leen titulos en orden aparentemente aleatorio y la
+                // lista parece desordenada aunque no lo este. Con el artista
+                // arriba se lee ABBA, ABBA, ADELE... que es como esta ordenada.
+                // De paso, un artista repetido varias veces seguidas se lee solo
+                // como un grupo, sin necesidad de encabezados.
+                //
+                // Sin "truncate": los titulos largos siguen en la linea de abajo
+                // en vez de cortarse. El h3 no es flex, asi la estrella fluye con
+                // el texto y se va pegada a la ultima palabra.
                 info.innerHTML = `
-                    <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight break-words">
+                    <p class="text-[13px] text-zinc-400 font-medium tracking-wide break-words">${song.artista}</p>
+                    <h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight mt-0.5 mb-2.5 break-words">
                         ${song.titulo}${estrellaPopular}
                     </h3>
-                    <p class="text-[13px] text-zinc-400 mt-1 mb-2.5 font-medium tracking-wide break-words">${song.artista}</p>
                     <div class="flex flex-wrap gap-1.5">
                         <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.genero}</span>
                         <span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">${song.idioma}</span>

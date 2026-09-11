@@ -203,6 +203,86 @@ for (const archivo of ['reproductor.html', 'index.html', 'admin.html']) {
 }
 
 // =========================================================================
+// 3. La lista de canciones
+// =========================================================================
+seccion('Lista de canciones');
+
+{
+    const t = leer('index.html');
+    const plantilla = [...t.matchAll(/info\.innerHTML = `([\s\S]*?)`;/g)]
+        .map((m) => m[1]).find((b) => b.includes('flex flex-wrap gap-1.5'));
+
+    // El artista va ANTES que el titulo. Es lo que hace que una lista
+    // ordenada por artista se lea como ordenada al recorrerla con la vista.
+    const posArtista = plantilla.indexOf('song.artista');
+    const posTitulo = plantilla.indexOf('song.titulo');
+    comprobar('el artista se pinta encima del titulo',
+        posArtista >= 0 && posTitulo >= 0 && posArtista < posTitulo,
+        { posArtista, posTitulo });
+
+    comprobar('el titulo sigue siendo el grande',
+        /text-\[15px\][^>]*>\s*\$\{song\.titulo\}/.test(plantilla.replace(/\n\s*/g, ' ')));
+    comprobar('el artista sigue siendo el chico y gris',
+        /text-\[13px\][^>]*text-zinc-400/.test(plantilla));
+    comprobar('ninguno de los dos se corta con puntos suspensivos',
+        !/truncate/.test(plantilla));
+}
+
+// =========================================================================
+// 4. Orden de los resultados de busqueda
+// =========================================================================
+seccion('Buscador');
+
+{
+    const t = leer('index.html');
+    const codigo = ['sinAcentos', 'relevancia', 'ordenarPorRelevancia']
+        .map((n) => sacarFuncion(t, n, 8)).join('\n');
+    const api = new Function(codigo +
+        '\nreturn { sinAcentos, relevancia, ordenarPorRelevancia };')();
+
+    const c = (artista, titulo, genero) => ({ artista, titulo, genero: genero || 'POP', idioma: 'ESPAÑOL' });
+
+    // Los cuatro niveles, en el orden que pidio Javier.
+    comprobar('nivel 0: el artista empieza por lo escrito',
+        api.relevancia(c('MARC ANTHONY', 'EL CANTANTE'), 'marc') === 0);
+    comprobar('nivel 1: el artista lo contiene',
+        api.relevancia(c('ELLA BAILA SOLA', 'AMORES DE BARRA'), 'baila') === 1);
+    comprobar('nivel 2: el titulo empieza por lo escrito',
+        api.relevancia(c('DON OMAR', 'BAILA MORENA'), 'baila') === 2);
+    comprobar('nivel 3: el titulo lo contiene',
+        api.relevancia(c('CHAYANNE', 'SALOME BAILA'), 'baila') === 3);
+    comprobar('nivel 4: solo coincide el genero',
+        api.relevancia(c('LUIS ENRIQUE', 'YO NO SE MAÑANA', 'SALSA'), 'salsa') === 4);
+
+    // El genero de ultimo: fue el peor caso en vivo, "salsa" devolvia 279
+    // resultados con el bueno en el puesto 206.
+    const lista = [
+        c('LUIS ENRIQUE', 'YO NO SE MAÑANA', 'SALSA'),
+        c('GILBERTO SANTA ROSA', 'CONCIENCIA', 'SALSA'),
+        c('ORQUESTA DE LA LUZ', 'SALSA CALIENTE DEL JAPON', 'SALSA'),
+        c('SALSA KIDS', 'DEJAME UN BESO', 'SALSA')
+    ];
+    const orden = api.ordenarPorRelevancia(lista, 'salsa').map((x) => x.artista);
+    comprobar('el artista que se llama asi va primero', orden[0] === 'SALSA KIDS', orden);
+    comprobar('luego la cancion que se llama asi', orden[1] === 'ORQUESTA DE LA LUZ', orden);
+    comprobar('las que solo son del genero, al final',
+        orden.slice(2).length === 2, orden);
+
+    // Empatados, el orden de siempre: artista y luego cancion.
+    const mismoNivel = [
+        c('MARC ANTHONY', 'VALIO LA PENA'),
+        c('MARC ANTHONY', 'AHORA QUIEN'),
+        c('MARCOS WITT', 'SOPLA')
+    ];
+    const emp = api.ordenarPorRelevancia(mismoNivel, 'marc').map((x) => x.artista + ' / ' + x.titulo);
+    comprobar('empatados, alfabetico por artista y cancion',
+        emp[0] === 'MARC ANTHONY / AHORA QUIEN' && emp[2] === 'MARCOS WITT / SOPLA', emp);
+
+    comprobar('los acentos no estorban',
+        api.relevancia(c('JOSÉ JOSÉ', 'EL TRISTE'), api.sinAcentos('jose')) === 0);
+}
+
+// =========================================================================
 // 3. Fases de la sesion y avisos
 // =========================================================================
 seccion('Avisos de tiempo');
@@ -255,7 +335,7 @@ seccion('Avisos de tiempo');
 }
 
 // =========================================================================
-// 4. La hora de inicio a partir de un "HH:MM" suelto
+// 5. La hora de inicio a partir de un "HH:MM" suelto
 // =========================================================================
 seccion('Hora de inicio (noches que cruzan la medianoche)');
 
@@ -285,7 +365,7 @@ seccion('Hora de inicio (noches que cruzan la medianoche)');
 }
 
 // =========================================================================
-// 5. La sesion: el tiempo es obligatorio
+// 6. La sesion: el tiempo es obligatorio
 // =========================================================================
 seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
 
