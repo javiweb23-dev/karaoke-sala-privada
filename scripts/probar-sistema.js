@@ -228,6 +228,23 @@ seccion('Lista de canciones');
         !/truncate/.test(plantilla));
 }
 
+{
+    // Al cambiar de filtro hay que volver arriba. Si no, el navegador deja el
+    // scroll donde estaba y lo recorta al maximo de la lista nueva: pasar de
+    // 2685 canciones a las 18 de BACHATA te dejaba viendo la numero 14 de 18,
+    // como si casi no hubiera. Medido en el navegador antes de arreglarlo.
+    const t = leer('index.html');
+    const cuerpo = sacarFuncion(t, 'aplicarFiltros', 8);
+    comprobar('al filtrar, la lista vuelve arriba',
+        /pageScroll/.test(cuerpo) && /scrollTop\s*=\s*0/.test(cuerpo), cuerpo.slice(0, 120));
+
+    // Las cuatro rutas que rehacen la lista pasan por aplicarFiltros, asi que
+    // basta con arreglarlo ahi. Si alguna dejara de pasar, esto lo avisa.
+    const llamadas = (t.match(/cargarCanciones\(/g) || []).length;
+    comprobar('solo aplicarFiltros rehace la lista',
+        llamadas === 2, llamadas + ' apariciones (definicion + 1 llamada)');
+}
+
 // =========================================================================
 // 4. Orden de los resultados de busqueda
 // =========================================================================

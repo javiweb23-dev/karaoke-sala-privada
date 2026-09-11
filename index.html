@@ -967,6 +967,14 @@
         function aplicarFiltros() {
             cargarCanciones(filtrarCanciones());
             renderizarSugerencias();
+
+            // Y de vuelta arriba. El contenedor se queda con el scroll que
+            // tenia, y al pasar de las 2686 canciones a las 30 de BACHATA el
+            // navegador lo recorta al maximo de la lista nueva: te deja
+            // mirando la ULTIMA bachata, como si solo hubiera una. Quien no
+            // sepa que tiene que subir a mano cree que no hay canciones.
+            const scroll = document.getElementById('pageScroll');
+            if (scroll) scroll.scrollTop = 0;
         }
 
         // ------------------------------------------------------------------
