@@ -245,7 +245,7 @@
             // Un solo Audio que va cambiando de src: asi no se solapan dos
             // pistas si algo dispara el cierre dos veces.
             musicaCierre = new Audio();
-            musicaCierre.volume = 0.22;   // de fondo: tienen que poder hablar
+            musicaCierre.volume = 0.12;   // bajito: es para recoger e irse, no para seguir la fiesta
 
             musicaCierre.addEventListener('ended', () => {
                 avanzarPistaCierre();
