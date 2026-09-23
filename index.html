@@ -36,6 +36,24 @@
          el dominio ("karaoke-sala-privada.vercel.app dice:") y eso no hay forma
          de cambiarlo: lo pone el navegador por seguridad. Con un cartel nuestro
          mandamos nosotros en el texto, y ademas combina con el resto. -->
+    <!-- Reportar una cancion defectuosa. Se pregunta QUE le pasa y no solo
+         "hay un error": no se arregla igual una que no suena que una que trae
+         la voz del cantante, y sin el motivo habria que abrir el video igual
+         para averiguarlo. De paso hace de confirmacion: un toque sin querer
+         no registra nada. -->
+    <div id="errorModal" class="fixed inset-0 bg-black/95 z-[120] flex flex-col justify-center items-center p-6 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm">
+            <h2 class="text-xl font-bold text-amber-400 mb-1 text-center">Karaoke Latino</h2>
+            <p id="errorCancion" class="text-zinc-500 text-xs mb-4 text-center break-words"></p>
+            <p class="text-zinc-300 text-sm mb-3 text-center font-bold">¿Qué le pasa a esta canción?</p>
+            <div id="errorMotivos" class="flex flex-col gap-2"></div>
+            <button id="errorCerrar" type="button"
+                class="w-full mt-4 bg-zinc-800 border border-zinc-700 text-zinc-400 font-bold py-2.5 rounded-xl active:scale-95 transition-all">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
     <div id="confirmModal" class="fixed inset-0 bg-black/95 z-[120] flex flex-col justify-center items-center p-6 hidden">
         <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
             <h2 class="text-xl font-bold text-amber-400 mb-3">Karaoke Latino</h2>
@@ -1132,14 +1150,32 @@
                     </div>
                 `;
 
+                // El boton de pedir y, debajo, el enlace para avisar de que la
+                // cancion esta mala. Van en su propia columna para que el
+                // enlace quede bajo el boton y no al lado.
+                const acciones = document.createElement('div');
+                acciones.className = 'flex-shrink-0 flex flex-col items-stretch gap-1.5';
+
                 const btn = document.createElement('button');
-                btn.className = 'flex-shrink-0 bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
+                btn.className = 'bg-zinc-800 hover:bg-amber-500 hover:text-black text-amber-400 font-bold px-5 py-3 rounded-xl text-sm active:scale-95 transition-all shadow-sm';
                 btn.textContent = 'Pedir';
                 btn.onclick = () => pedirCancion(nombreFormateado, song.titulo, song.artista, song.genero, btn);
 
+                // Discreto a proposito: avisar de un fallo es util, pero el
+                // boton que manda es Pedir.
+                const reportar = document.createElement('button');
+                reportar.type = 'button';
+                reportar.textContent = 'reportar error';
+                reportar.className = 'text-[10px] text-zinc-600 hover:text-red-400 ' +
+                    'underline underline-offset-2 transition-colors py-0.5';
+                reportar.onclick = () => reportarError(nombreFormateado, song.titulo, song.artista);
+
+                acciones.appendChild(btn);
+                acciones.appendChild(reportar);
+
                 card.appendChild(portada);
                 card.appendChild(info);
-                card.appendChild(btn);
+                card.appendChild(acciones);
                 songList.appendChild(card);
 
                 observerPortadas.observe(card);
@@ -1370,6 +1406,95 @@
             try {
                 localStorage.setItem(CLAVE_MIAS, JSON.stringify({ sesion: sesionSalaId, ids }));
             } catch (e) {}
+        }
+
+        // ==================================================================
+        // Reportar una cancion defectuosa
+        //
+        // Un karaoke malo solo se descubre cantandolo, y hasta ahora eso se
+        // perdia: el cliente se encogia de hombros y pedia otra. Ahora queda
+        // anotado en Supabase con el motivo, y sale al correr
+        // "npm run actualizar" para poder reemplazar el archivo.
+        // ==================================================================
+        const MOTIVOS_ERROR = [
+            'No se escucha',
+            'Tiene la voz del cantante',
+            'La letra va desincronizada',
+            'No es la canción que dice',
+            'Se ve o se oye mal',
+            'Otra cosa'
+        ];
+
+        const CLAVE_ERRORES = 'karaoke_errores_reportados';
+
+        // Un reporte por cancion, por telefono y por noche. Sin esto, diez
+        // toques seguidos del mismo dedo pareceria una queja generalizada.
+        function erroresReportados() {
+            try {
+                const g = JSON.parse(localStorage.getItem(CLAVE_ERRORES) || '{}');
+                if (g.sesion !== sesionSalaId) return [];
+                return Array.isArray(g.ids) ? g.ids : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function guardarErrorReportado(identificador) {
+            try {
+                localStorage.setItem(CLAVE_ERRORES, JSON.stringify({
+                    sesion: sesionSalaId,
+                    ids: erroresReportados().concat(identificador)
+                }));
+            } catch (e) {}
+        }
+
+        function reportarError(identificador, titulo, artista) {
+            if (erroresReportados().includes(identificador)) {
+                return mostrarAlerta("Ya reportaste esta canción. ¡Gracias!");
+            }
+
+            const caja = document.getElementById('errorModal');
+            const lista = document.getElementById('errorMotivos');
+
+            document.getElementById('errorCancion').innerText = artista + ' — ' + titulo;
+            lista.innerHTML = '';
+
+            const cerrar = () => {
+                caja.classList.add('hidden');
+                caja.onclick = null;
+            };
+
+            MOTIVOS_ERROR.forEach((motivo) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = motivo;
+                b.className = 'w-full bg-zinc-800 border border-zinc-700 text-zinc-200 ' +
+                    'font-bold py-3 rounded-xl text-sm active:scale-95 ' +
+                    'hover:bg-red-900/50 hover:border-red-700 hover:text-red-200 transition-all';
+                b.onclick = () => { cerrar(); enviarReporteError(identificador, motivo); };
+                lista.appendChild(b);
+            });
+
+            document.getElementById('errorCerrar').onclick = cerrar;
+            caja.onclick = (e) => { if (e.target === caja) cerrar(); };
+            caja.classList.remove('hidden');
+        }
+
+        async function enviarReporteError(identificador, motivo) {
+            const { error } = await supabaseClient.rpc('reportar_cancion_con_error', {
+                p_identificador: identificador,
+                p_motivo: motivo,
+                p_usuario: miNombre || null,
+                p_sesion: sesionSalaId || null
+            });
+
+            if (error) {
+                console.warn('No se pudo reportar:', error);
+                return mostrarAlerta("❌ No se pudo enviar el reporte.", true);
+            }
+
+            guardarErrorReportado(identificador);
+            mostrarAlerta("✅ ¡Gracias! Vamos a revisarla.");
         }
 
         // Igual que confirm(), devuelve true o false, pero con nuestro cartel.

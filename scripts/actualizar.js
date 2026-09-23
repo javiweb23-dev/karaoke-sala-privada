@@ -9,6 +9,7 @@
 //   4. Escribe videos_disponibles.js
 //   5. Reescribe plantillacanciones.xlsx con todo     (asi nunca se queda atrasado)
 //   6. Hace commit y push
+//   7. Avisa de las canciones que los clientes reportaron como defectuosas
 //
 // La regla de oro: manda la CARPETA. Si el MP4 esta, la cancion entra; si no
 // esta, no entra. El Excel solo aporta genero e idioma. Asi es imposible
@@ -368,27 +369,103 @@ if (!excelOk) {
 
 // --- Publicar ------------------------------------------------------------
 
-if (!publicar) {
-    console.log('Listo (sin publicar).');
-    process.exit(0);
-}
-
-try {
-    const pendiente = execSync('git status --porcelain canciones.js videos_disponibles.js',
-        { cwd: root }).toString().trim();
-
-    if (!pendiente) {
-        console.log('Listo. No hubo cambios que publicar.');
-        process.exit(0);
+// Va dentro de una funcion y no suelto porque despues queda el aviso de las
+// canciones reportadas, que es asincrono: un process.exit lo cortaria antes
+// de que le diera tiempo a imprimir.
+function publicarCambios() {
+    if (!publicar) {
+        console.log('Listo (sin publicar).');
+        return;
     }
 
-    execSync('git add canciones.js videos_disponibles.js', { cwd: root });
-    execSync(`git commit -q -m "Actualizar catalogo: ${finales.length} canciones"`, { cwd: root });
-    execSync('git push -q', { cwd: root });
-    console.log('Listo. Publicado: ya lo ven los clientes en su celular.');
-} catch (e) {
-    console.log('El catalogo quedo bien, pero fallo la publicacion:');
-    console.log('   ' + String(e.message).split('\n')[0]);
-    console.log('\nPublicalo a mano con:');
-    console.log('   git add . && git commit -m "nuevas canciones" && git push');
+    try {
+        const pendiente = execSync('git status --porcelain canciones.js videos_disponibles.js',
+            { cwd: root }).toString().trim();
+
+        if (!pendiente) {
+            console.log('Listo. No hubo cambios que publicar.');
+            return;
+        }
+
+        execSync('git add canciones.js videos_disponibles.js', { cwd: root });
+        execSync(`git commit -q -m "Actualizar catalogo: ${finales.length} canciones"`, { cwd: root });
+        execSync('git push -q', { cwd: root });
+        console.log('Listo. Publicado: ya lo ven los clientes en su celular.');
+    } catch (e) {
+        console.log('El catalogo quedo bien, pero fallo la publicacion:');
+        console.log('   ' + String(e.message).split('\n')[0]);
+        console.log('\nPublicalo a mano con:');
+        console.log('   git add . && git commit -m "nuevas canciones" && git push');
+    }
 }
+
+publicarCambios();
+
+
+// --- Canciones que los clientes reportaron como malas ----------------------
+//
+// Se leen de Supabase y se cruzan con la fecha del MP4: si el archivo es mas
+// nuevo que la queja, ya lo reemplazaste y no hace falta enseñarlo. Asi no
+// hay que marcar nada a mano ni acordarse de nada.
+//
+// Solo LEE. Nunca escribe en Supabase, para no tener que darle permiso de
+// escritura a la clave publica.
+async function avisarDeCancionesMalas() {
+    let base, clave;
+    try {
+        const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+        base = html.match(/const SUPABASE_URL = "([^"]+)"/)[1];
+        clave = html.match(/const SUPABASE_KEY = "([^"]+)"/)[1];
+    } catch (e) {
+        return;   // sin claves a mano, se calla
+    }
+
+    let filas;
+    try {
+        const res = await fetch(
+            base + '/rest/v1/canciones_con_error' +
+            '?estado=eq.pendiente&select=identificador,motivo,veces,actualizada_en' +
+            '&order=veces.desc&limit=200',
+            { headers: { apikey: clave, Authorization: 'Bearer ' + clave } }
+        );
+        if (!res.ok) return;   // la tabla aun no existe: sql/007 sin ejecutar
+        filas = await res.json();
+    } catch (e) {
+        return;   // sin internet, no se estorba
+    }
+
+    if (!Array.isArray(filas) || filas.length === 0) return;
+
+    // ¿Se reemplazo el archivo despues de la queja?
+    const sinArreglar = filas.filter((f) => {
+        const archivo = byNorm[norm(f.identificador)];
+        if (!archivo) return true;   // ya no esta el MP4: sigue siendo noticia
+        try {
+            return fs.statSync(path.join(videosDir, archivo)).mtime < new Date(f.actualizada_en);
+        } catch (e) {
+            return true;
+        }
+    });
+
+    console.log('');
+    if (sinArreglar.length === 0) {
+        console.log('  Las canciones reportadas ya fueron reemplazadas.');
+        return;
+    }
+
+    const cuantas = sinArreglar.length;
+    console.log('\u26a0  ' + cuantas + (cuantas === 1
+        ? ' cancion reportada por los clientes:'
+        : ' canciones reportadas por los clientes:'));
+    console.log('');
+
+    for (const f of sinArreglar) {
+        console.log('   ' + (f.veces + 'x').padStart(4) + '  ' +
+            String(f.identificador).padEnd(44).slice(0, 44) + '  ' + f.motivo);
+    }
+
+    console.log('');
+    console.log('   Reemplaza el MP4 y desapareceran solas de esta lista.');
+}
+
+avisarDeCancionesMalas();

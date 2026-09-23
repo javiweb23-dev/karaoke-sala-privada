@@ -312,6 +312,68 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Reportar una cancion mala');
+
+{
+    const t = leer('index.html');
+    const sql = leer('sql/007-canciones-con-error.sql');
+
+    // El enlace va debajo del boton Pedir, en cada tarjeta.
+    comprobar('cada tarjeta lleva el enlace de reportar',
+        /reportar' \+ ' error|reportar error/.test(t) && /reportarError' \+ '\(|reportarError\(/.test(t));
+
+    // Se pregunta QUE le pasa: sin motivo habria que abrir el video igual.
+    comprobar('se preguntan los motivos', /MOTIVOS_ERROR/.test(t));
+    comprobar('esta el motivo mas util de todos',
+        /Tiene la voz del cantante/.test(t));
+
+    // Un reporte por cancion, telefono y noche.
+    const memoria = sacarFuncion(t, 'erroresReportados', 8);
+    comprobar('la memoria de reportes va por sesion',
+        /g\.sesion !== sesionSalaId/.test(memoria), memoria);
+
+    const reportar = sacarFuncion(t, 'reportarError', 8);
+    comprobar('no deja reportar dos veces la misma',
+        /erroresReportados\(\)\.includes/.test(reportar), reportar.slice(0, 200));
+
+    // Se escribe por la funcion de Supabase, no tocando la tabla: asi el
+    // navegador no puede meter filas arbitrarias.
+    const enviar = sacarFuncion(t, 'enviarReporteError', 8);
+    comprobar('se manda por la funcion, no escribiendo la tabla',
+        /rpc\('reportar_cancion_con_error'/.test(enviar) &&
+        !/from\('canciones_con_error'/.test(t), enviar.slice(0, 160));
+
+    // Y el SQL tiene que dejarlo cerrado igual que busquedas_fallidas.
+    comprobar('la tabla solo se puede leer desde el navegador',
+        /for select using \(true\)/.test(sql) &&
+        !/for insert/.test(sql) && !/for update/.test(sql), 'falta cerrar la tabla');
+    comprobar('la funcion es security definer',
+        /security definer/.test(sql));
+    comprobar('la misma queja suma en vez de duplicar',
+        /unique \(identificador, motivo\)/.test(sql) && /on conflict/.test(sql));
+}
+
+{
+    // El aviso al correr npm run actualizar.
+    const s = leer('scripts/actualizar.js');
+
+    comprobar('actualizar avisa de las canciones reportadas',
+        /async function avisarDeCancionesMalas/.test(s));
+
+    // Cruza con la fecha del MP4: lo que ya reemplazaste no se enseña.
+    comprobar('se cruza con la fecha del archivo',
+        /statSync[\s\S]{0,120}?mtime/.test(s));
+
+    // Solo lee. Si escribiera, habria que darle permiso a la clave publica.
+    comprobar('el script solo lee, nunca escribe en Supabase',
+        !/method: *'(POST|PATCH|DELETE)'[\s\S]{0,200}?canciones_con_error/.test(s));
+
+    // Un process.exit cortaria el aviso, que es asincrono.
+    comprobar('la publicacion ya no corta el aviso',
+        /function publicarCambios/.test(s) && !/process\.exit\(0\)/.test(s),
+        'queda un process.exit que mataria el aviso');
+}
+
 seccion('Borrar la busqueda');
 
 {
