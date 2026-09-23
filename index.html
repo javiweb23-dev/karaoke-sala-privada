@@ -108,8 +108,14 @@
             <div class="max-w-md w-full mx-auto px-4 py-3 space-y-3">
                 <div class="relative">
                     <input type="text" id="searchBar" placeholder="Busca artista, canción, género o idioma..." 
-                        class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 pl-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all text-base">
+                        class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 pl-11 pr-12 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-all text-base">
                     <span class="absolute left-4 top-3.5 text-zinc-500">🔍</span>
+
+                    <!-- Borrar de un toque. Escribir mal una busqueda en el celular
+                         pasa a cada rato, y borrar letra por letra con el dedo es
+                         un fastidio. Solo aparece cuando hay algo escrito. -->
+                    <button type="button" id="limpiarBusqueda" aria-label="Borrar la búsqueda" title="Borrar"
+                        class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 active:scale-90 transition-all text-lg">✕</button>
                 </div>
 
                 <div id="idiomaFiltro" class="flex items-center justify-center gap-1.5"></div>
@@ -1226,7 +1232,28 @@
             }, 1800);
         }
 
-        document.getElementById('searchBar').addEventListener('input', () => aplicarFiltros());
+        // La X del buscador: solo se ve cuando hay texto que borrar.
+        function actualizarBotonLimpiar() {
+            const caja = document.getElementById('searchBar');
+            const boton = document.getElementById('limpiarBusqueda');
+            if (!boton) return;
+            boton.classList.toggle('hidden', caja.value.length === 0);
+        }
+
+        document.getElementById('searchBar').addEventListener('input', () => {
+            actualizarBotonLimpiar();
+            aplicarFiltros();
+        });
+
+        document.getElementById('limpiarBusqueda').addEventListener('click', () => {
+            const caja = document.getElementById('searchBar');
+            caja.value = '';
+            actualizarBotonLimpiar();
+            aplicarFiltros();
+            // Se deja el cursor dentro: casi siempre van a escribir otra cosa,
+            // y asi no se les cierra el teclado del celular.
+            caja.focus();
+        });
 
         // El mismo reparto que usa el reproductor. Tiene que estar aqui tambien
         // o la cola que ve la gente no coincidiria con lo que suena, y eso se

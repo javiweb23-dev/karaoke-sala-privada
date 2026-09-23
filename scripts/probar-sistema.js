@@ -312,6 +312,34 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Borrar la busqueda');
+
+{
+    // La X que vacia el buscador. Escribir mal en el celular pasa a cada
+    // rato y borrar letra por letra con el dedo es un fastidio.
+    const t = leer('index.html');
+
+    comprobar('el buscador tiene boton de borrar',
+        /id="limpiarBusqueda"/.test(t));
+    comprobar('nace oculto, solo sale si hay texto escrito',
+        /id="limpiarBusqueda"[\s\S]{0,200}?class="hidden/.test(t) ||
+        /class="hidden[^"]*"[^>]*id="limpiarBusqueda"/.test(t));
+
+    const alterna = sacarFuncion(t, 'actualizarBotonLimpiar', 8);
+    comprobar('se esconde cuando la caja queda vacia',
+        /value\.length === 0/.test(alterna), alterna);
+
+    // Al vaciar hay que rehacer la lista, o se quedan los resultados viejos.
+    comprobar('al borrar se vuelve a filtrar',
+        /limpiarBusqueda\'\)\.addEventListener[\s\S]{0,400}?aplicarFiltros\(/.test(t));
+    comprobar('al borrar se deja el cursor dentro',
+        /limpiarBusqueda\'\)\.addEventListener[\s\S]{0,400}?\.focus\(/.test(t));
+
+    // Sin sitio reservado a la derecha, el texto largo pasa por debajo.
+    comprobar('la caja deja hueco para el boton',
+        /id="searchBar"[\s\S]{0,400}?pr-12/.test(t));
+}
+
 // =========================================================================
 // 4. Orden de los resultados de busqueda
 // =========================================================================
