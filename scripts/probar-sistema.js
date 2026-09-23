@@ -317,18 +317,20 @@ seccion('Caja de sugerencias');
 {
     const t = leer('index.html');
     const sql = leer('sql/008-opiniones-de-clientes.sql');
+    // Va dentro del pie y AL LADO del Instagram, no debajo. Debajo se leia
+    // como un subtitulo suyo: parecia que para dejar una sugerencia habia
+    // que entrar al Instagram a escribirla.
+    comprobar('el boton esta en el pie',
+        /<footer[\s\S]{0,2500}?id="abrirOpinion"[\s\S]{0,900}?<\/footer>/.test(t));
+    comprobar('esta en la misma fila que el instagram',
+        /<div[^>]*flex items-center[^>]*>[\s\S]{0,2500}?instagram\.com[\s\S]{0,2000}?id="abrirOpinion"/.test(t));
+    comprobar('dice Sugerencias, no una frase larga',
+        /id="abrirOpinion"[\s\S]{0,600}?>Sugerencias</.test(t));
+    comprobar('se ve como un boton, no como texto suelto',
+        /id="abrirOpinion"[\s\S]{0,400}?border border-zinc-700/.test(t));
+    comprobar('la letra es naranja',
+        /id="abrirOpinion"[\s\S]{0,400}?text-orange-400/.test(t));
 
-    // Va en el pie, debajo del Instagram, y en pequeño: interesa que se vea
-    // pero no puede comerse el sitio de las canciones.
-    comprobar('el enlace esta en el pie',
-        /<footer[\s\S]{0,2000}?id="abrirOpinion"/.test(t));
-    comprobar('va DEBAJO del instagram',
-        t.indexOf('instagram.com/mikaraokelatino') < t.indexOf('abrirOpinion'));
-    comprobar('es naranja y pequeño',
-        /id="abrirOpinion"[\s\S]{0,300}?text-orange-400/.test(t) &&
-        /id="abrirOpinion"[\s\S]{0,300}?text-\[11px\]/.test(t));
-
-    // Texto libre: lo que la gente quiere decir no cabe en opciones fijas.
     comprobar('se escribe en un cuadro de texto', /id="opinionTexto"/.test(t));
     comprobar('tiene limite de largo', /maxlength="500"/.test(t));
 

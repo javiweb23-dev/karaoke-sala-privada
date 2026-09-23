@@ -188,9 +188,15 @@
          la lista quedaria enterrado tras 2.000 canciones y no lo veria nadie.
          Como es hermano del scroll en el flex del body, no tapa el catalogo. -->
     <footer class="shrink-0 bg-zinc-900 border-t border-zinc-800">
+      <!-- Instagram y sugerencias, uno al lado del otro. Antes el enlace de
+           sugerencias iba debajo y se leia como un pie del Instagram: parecia
+           que para dejar una sugerencia habia que entrar al Instagram a
+           escribirla. Lado a lado se entiende que son dos cosas distintas, y
+           encima no ocupa ni una fila mas. -->
+      <div class="max-w-md mx-auto px-3 py-2.5 flex items-center gap-2">
         <a href="https://www.instagram.com/mikaraokelatino/"
            target="_blank" rel="noopener noreferrer"
-           class="max-w-md mx-auto px-4 py-2.5 flex items-center justify-center gap-2.5 active:scale-95 transition-transform">
+           class="flex-1 min-w-0 flex items-center justify-center gap-2 active:scale-95 transition-transform">
             <svg viewBox="0 0 24 24" class="w-5 h-5 shrink-0" aria-hidden="true">
                 <defs>
                     <linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -209,16 +215,20 @@
             </svg>
             <span class="text-left leading-tight">
                 <span class="block text-zinc-200 text-[13px] font-bold">@mikaraokelatino</span>
-                <span class="block text-zinc-500 text-[10px]">Etiquétanos y síguenos</span>
+                <span class="block text-zinc-500 text-[10px]">Etiquétanos</span>
             </span>
         </a>
 
-        <!-- Debajo del Instagram y en pequeño: interesa que se vea, pero el
-             pie no puede comerse el sitio de las canciones. -->
+        <span class="w-px h-8 bg-zinc-800 shrink-0" aria-hidden="true"></span>
+
         <button type="button" id="abrirOpinion"
-            class="w-full pb-2.5 -mt-0.5 text-orange-400 hover:text-orange-300 text-[11px] font-bold active:scale-95 transition-all">
-            Tu opinión es importante para nosotros
+            class="shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl
+                   bg-zinc-800/80 border border-zinc-700 text-orange-400 hover:text-orange-300
+                   hover:border-orange-700/60 active:scale-95 transition-all">
+            <span class="text-base leading-none" aria-hidden="true">💬</span>
+            <span class="text-[10px] font-bold leading-none">Sugerencias</span>
         </button>
+      </div>
     </footer>
 
     <script>
