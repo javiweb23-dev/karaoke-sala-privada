@@ -33,10 +33,12 @@ function comprobar(nombre, condicion, detalle) {
 
 // --- Sacar una funcion de un archivo, tal cual esta escrita ---------------
 function sacarFuncion(texto, nombre, sangria) {
-    const marca = ' '.repeat(sangria) + 'function ' + nombre + '(';
-    const ini = texto.indexOf(marca);
+    const hueco = ' '.repeat(sangria);
+    // Las hay normales y "async": se prueban las dos formas.
+    let ini = texto.indexOf(hueco + 'function ' + nombre + '(');
+    if (ini < 0) ini = texto.indexOf(hueco + 'async function ' + nombre + '(');
     if (ini < 0) throw new Error('no encontre la funcion ' + nombre);
-    const fin = texto.indexOf('\n' + ' '.repeat(sangria) + '}', ini);
+    const fin = texto.indexOf('\n' + hueco + '}', ini);
     if (fin < 0) throw new Error('no encontre el final de ' + nombre);
     return texto.slice(ini, fin + sangria + 2);
 }
@@ -246,6 +248,56 @@ seccion('Lista de canciones');
 }
 
 // =========================================================================
+// 4. Quitar una cancion propia
+// =========================================================================
+seccion('Cancelar cancion propia');
+
+{
+    const t = leer('index.html');
+
+    // Cancelar = poner estado "cancelada". Nunca borrar: la clave publica no
+    // tiene permiso de delete, y ademas conviene guardar el rastro.
+    const cancelar = sacarFuncion(t, 'cancelarCancion', 8);
+    comprobar('cancelar escribe estado cancelada',
+        /update\(\{\s*estado:\s*'cancelada'\s*\}\)/.test(cancelar), cancelar.slice(0, 200));
+    comprobar('cancelar pide confirmacion antes', /confirm\(/.test(cancelar));
+    comprobar('cancelar apunta a UNA sola fila', /\.eq\('id', id\)/.test(cancelar));
+    comprobar('al cancelar se olvida ese id', /guardarMisSolicitudes/.test(cancelar));
+
+    // La X solo en las propias y nunca en la que ya esta sonando.
+    const cola = sacarFuncion(t, 'actualizarCola', 8);
+    comprobar('la X no sale en la numero 1', /i > 0/.test(cola), cola.slice(0, 300));
+    comprobar('la X solo en las de este telefono', /mias\.includes\(s\.id\)/.test(cola));
+    comprobar('la X solo en las pendientes', /s\.estado === 'pendiente'/.test(cola));
+
+    // Las canceladas desaparecen porque ninguna consulta las pide.
+    const pideEstados = [...t.matchAll(/\.in\('estado', \[([^\]]+)\]\)/g)].map((m) => m[1]);
+    comprobar('ninguna consulta pide las canceladas',
+        pideEstados.length > 0 && pideEstados.every((e) => !/cancelada/.test(e)), pideEstados);
+
+    // El telefono recuerda por id, no por nombre: dos personas pueden
+    // llamarse igual y no deben poder quitarse la cancion entre ellas.
+    const memoria = sacarFuncion(t, 'misSolicitudes', 8);
+    comprobar('las propias se recuerdan por sesion',
+        /guardado\.sesion !== sesionSalaId/.test(memoria), memoria);
+}
+
+{
+    // Lo que de verdad importa: una cancelada no gasta turno.
+    const filas = [
+        { id: 1, nombre_usuario: 'ANA', estado: 'completada' },
+        { id: 2, nombre_usuario: 'ANA', estado: 'cancelada' },
+        { id: 3, nombre_usuario: 'ANA', estado: 'pendiente' },
+        { id: 4, nombre_usuario: 'LUIS', estado: 'completada' },
+        { id: 5, nombre_usuario: 'LUIS', estado: 'pendiente' }
+    ];
+    const orden = nombres(repartirCola(filas));
+    comprobar('una cancelada no aparece en la cola', orden.length === 2, orden);
+    comprobar('arrepentirse no le gasta el turno a nadie',
+        orden.length === 2 && new Set(orden).size === 2, orden);
+}
+
+// =========================================================================
 // 4. Orden de los resultados de busqueda
 // =========================================================================
 seccion('Buscador');
@@ -352,7 +404,7 @@ seccion('Avisos de tiempo');
 }
 
 // =========================================================================
-// 5. La hora de inicio a partir de un "HH:MM" suelto
+// 6. La hora de inicio a partir de un "HH:MM" suelto
 // =========================================================================
 seccion('Hora de inicio (noches que cruzan la medianoche)');
 
@@ -382,7 +434,7 @@ seccion('Hora de inicio (noches que cruzan la medianoche)');
 }
 
 // =========================================================================
-// 6. La sesion: el tiempo es obligatorio
+// 7. La sesion: el tiempo es obligatorio
 // =========================================================================
 seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
 

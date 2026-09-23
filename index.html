@@ -1271,6 +1271,59 @@
             return orden;
         }
 
+        // ==================================================================
+        // Cancelar una cancion propia
+        //
+        // Pasa mucho: alguien pide una, le da pena cantarla y se queda
+        // esperando a que salga en la TV para que el operador la salte. Con
+        // la X se quita sola.
+        //
+        // Que canciones son "suyas" se decide por los ids que guardo ESTE
+        // telefono, no por el nombre: dos personas pueden escribir "MARIA" y
+        // ninguna tiene por que poder quitarle la cancion a la otra.
+        //
+        // Cancelar es poner estado = "cancelada". Las consultas piden solo
+        // "pendiente" y "completada", asi que desaparece de la TV, del
+        // celular y del admin. Y como el reparto de turnos solo cuenta esas
+        // dos, arrepentirse no le gasta el turno a nadie.
+        // ==================================================================
+        const CLAVE_MIAS = 'karaoke_mis_solicitudes';
+
+        function misSolicitudes() {
+            try {
+                const guardado = JSON.parse(localStorage.getItem(CLAVE_MIAS) || '{}');
+                // Solo valen las de esta sesion: las de anoche ya no existen.
+                if (guardado.sesion !== sesionSalaId) return [];
+                return Array.isArray(guardado.ids) ? guardado.ids : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function guardarMisSolicitudes(ids) {
+            try {
+                localStorage.setItem(CLAVE_MIAS, JSON.stringify({ sesion: sesionSalaId, ids }));
+            } catch (e) {}
+        }
+
+        async function cancelarCancion(id, titulo) {
+            if (!confirm('¿Quitar "' + titulo + '" de la cola?')) return;
+
+            const { error } = await supabaseClient
+                .from('Solicitudes')
+                .update({ estado: 'cancelada' })
+                .eq('id', id);
+
+            if (error) {
+                console.error('No se pudo cancelar:', error);
+                return mostrarAlerta("❌ No se pudo quitar. Intenta de nuevo.", true);
+            }
+
+            guardarMisSolicitudes(misSolicitudes().filter((x) => x !== id));
+            mostrarAlerta("🗑️ Canción quitada de la cola.");
+            actualizarCola();
+        }
+
         async function actualizarCola() {
             let consulta = supabaseClient
                 .from('Solicitudes')
@@ -1298,7 +1351,23 @@
             const MAX_COLA = 6;
             const visibles = data.slice(0, MAX_COLA);
             const restantes = data.length - MAX_COLA;
-            let html = visibles.map((s, i) => `<div class="truncate"><span class="text-amber-500 font-bold mr-1">${i + 1}.</span> ${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`).join('');
+            const mias = misSolicitudes();
+
+            // La X no sale en la numero 1: esa ya la cargo la TV y va a sonar
+            // igual aunque se marque cancelada. Para esa hay que avisarle al
+            // operador, que la puede saltar.
+            let html = visibles.map((s, i) => {
+                const puedeQuitar = i > 0 && s.estado === 'pendiente' && mias.includes(s.id);
+                const equis = puedeQuitar
+                    ? `<button onclick="cancelarCancion(${s.id}, '${escaparTexto(String(s.cancion_info)).replace(/'/g, "\\'")}')"`
+                      + ` class="shrink-0 ml-2 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700`
+                      + ` text-zinc-400 hover:bg-red-900/60 hover:text-red-300 hover:border-red-700 active:scale-90 transition-all"`
+                      + ` aria-label="Quitar mi canción" title="Quitar de la cola">✕</button>`
+                    : '';
+                return `<div class="flex items-center gap-1">`
+                    + `<span class="truncate flex-1 min-w-0"><span class="text-amber-500 font-bold mr-1">${i + 1}.</span> ${s.cancion_info}`
+                    + ` <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></span>${equis}</div>`;
+            }).join('');
             if (restantes > 0) {
                 const etiqueta = restantes === 1 ? 'canción' : 'canciones';
                 html += `<p class="text-zinc-500 text-xs italic mt-2 pt-2 border-t border-zinc-800 text-center">...y ${restantes} ${etiqueta} más en cola</p>`;
@@ -1419,13 +1488,20 @@
                 }
                 solicitud.sesion_id = sesionSalaId;
 
-                const { error } = await supabaseClient
+                // Se pide de vuelta el id para poder recordar que esta cancion
+                // la pidio ESTE telefono, y asi ofrecerle la X para quitarla.
+                const { data: creada, error } = await supabaseClient
                     .from('Solicitudes')
-                    .insert([solicitud]);
+                    .insert([solicitud])
+                    .select('id');
 
                 if (error) {
                     console.error('Error al insertar solicitud:', error);
                     return mostrarAlerta("❌ No se pudo agregar la canción. Intenta de nuevo.", true);
+                }
+
+                if (creada && creada[0] && creada[0].id) {
+                    guardarMisSolicitudes(misSolicitudes().concat(creada[0].id));
                 }
 
                 // La cancion YA esta dentro: se avisa en este mismo instante.
