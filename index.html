@@ -32,6 +32,27 @@
 
     <!-- Va por encima del modal de nombre: primero se demuestra estar en la
          sala, despues se pregunta quien eres. -->
+    <!-- Confirmacion propia. El confirm() del navegador encabeza el cartel con
+         el dominio ("karaoke-sala-privada.vercel.app dice:") y eso no hay forma
+         de cambiarlo: lo pone el navegador por seguridad. Con un cartel nuestro
+         mandamos nosotros en el texto, y ademas combina con el resto. -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/95 z-[120] flex flex-col justify-center items-center p-6 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold text-amber-400 mb-3">Karaoke Latino</h2>
+            <p id="confirmTexto" class="text-zinc-300 text-sm mb-6 leading-relaxed whitespace-pre-line"></p>
+            <div class="flex gap-3">
+                <button id="confirmNo" type="button"
+                    class="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl active:scale-95 transition-all">
+                    No
+                </button>
+                <button id="confirmSi" type="button"
+                    class="flex-1 bg-amber-500 text-black font-black py-3 rounded-xl active:scale-95 transition-all">
+                    Sí, quitar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="codeModal" class="fixed inset-0 bg-black/95 z-[110] flex flex-col justify-center items-center p-6 hidden">
         <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
             <h2 class="text-2xl font-bold text-amber-400 mb-2">Código de sala</h2>
@@ -1306,8 +1327,38 @@
             } catch (e) {}
         }
 
+        // Igual que confirm(), devuelve true o false, pero con nuestro cartel.
+        function confirmarEnPantalla(texto, textoSi) {
+            return new Promise((resolver) => {
+                const caja = document.getElementById('confirmModal');
+                const si = document.getElementById('confirmSi');
+                const no = document.getElementById('confirmNo');
+
+                document.getElementById('confirmTexto').innerText = texto;
+                si.innerText = textoSi || 'Sí';
+                caja.classList.remove('hidden');
+
+                const cerrar = (respuesta) => {
+                    caja.classList.add('hidden');
+                    si.onclick = null;
+                    no.onclick = null;
+                    caja.onclick = null;
+                    resolver(respuesta);
+                };
+
+                si.onclick = () => cerrar(true);
+                no.onclick = () => cerrar(false);
+                // Tocar fuera del cuadro es lo mismo que decir que no.
+                caja.onclick = (e) => { if (e.target === caja) cerrar(false); };
+            });
+        }
+
         async function cancelarCancion(id, titulo) {
-            if (!confirm('¿Quitar "' + titulo + '" de la cola?')) return;
+            const seguro = await confirmarEnPantalla(
+                '¿Quitar "' + titulo + '" de tu lista?' +
+                '\n\nNo pierdes tu turno: lo que pidas después sigue en el mismo puesto.',
+                'Sí, quitar');
+            if (!seguro) return;
 
             const { error } = await supabaseClient
                 .from('Solicitudes')

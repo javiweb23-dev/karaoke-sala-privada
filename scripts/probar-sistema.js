@@ -260,7 +260,22 @@ seccion('Cancelar cancion propia');
     const cancelar = sacarFuncion(t, 'cancelarCancion', 8);
     comprobar('cancelar escribe estado cancelada',
         /update\(\{\s*estado:\s*'cancelada'\s*\}\)/.test(cancelar), cancelar.slice(0, 200));
-    comprobar('cancelar pide confirmacion antes', /confirm\(/.test(cancelar));
+    comprobar('cancelar pide confirmacion antes',
+        /await confirmarEnPantalla\(/.test(cancelar), cancelar.slice(0, 200));
+
+    // El confirm() del navegador encabeza el cartel con el dominio de Vercel
+    // ("karaoke-sala-privada.vercel.app dice:") y no hay forma de cambiarlo.
+    // Por eso se usa un cartel propio que dice Karaoke Latino.
+    comprobar('el cartel es nuestro, no el del navegador',
+        /id="confirmModal"/.test(t) && />Karaoke Latino</.test(t));
+    // Se miran solo las lineas de codigo: en los comentarios si se nombra.
+    const sinComentarios = t
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+        .replace(/confirmarEnPantalla/g, 'X');
+    comprobar('ya no se usa el confirm del navegador',
+        !/(^|[^a-zA-Z.])confirm\s*\(/m.test(sinComentarios),
+        'queda un confirm() suelto');
     comprobar('cancelar apunta a UNA sola fila', /\.eq\('id', id\)/.test(cancelar));
     comprobar('al cancelar se olvida ese id', /guardarMisSolicitudes/.test(cancelar));
 
