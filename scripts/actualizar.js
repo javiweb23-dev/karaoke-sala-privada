@@ -10,6 +10,7 @@
 //   5. Reescribe plantillacanciones.xlsx con todo     (asi nunca se queda atrasado)
 //   6. Hace commit y push
 //   7. Avisa de las canciones que los clientes reportaron como defectuosas
+//   8. Enseña las sugerencias nuevas que dejaron los clientes
 //
 // La regla de oro: manda la CARPETA. Si el MP4 esta, la cancion entra; si no
 // esta, no entra. El Excel solo aporta genero e idioma. Asi es imposible
@@ -471,4 +472,91 @@ async function avisarDeCancionesMalas() {
     console.log('   Reemplaza el MP4 y desapareceran solas de esta lista.');
 }
 
-avisarDeCancionesMalas();
+// --- Sugerencias que dejaron los clientes ----------------------------------
+//
+// A diferencia de las canciones malas, una sugerencia no se "arregla" sola:
+// no hay archivo con el que compararla. Si se enseñaran todas, en dos meses
+// serian cuarenta lineas cada vez que actualizas el catalogo.
+//
+// Por eso se guarda aqui al lado la fecha del ultimo vistazo y solo se
+// enseñan las posteriores. Las viejas no se pierden: siguen en Supabase, y
+// se dice cuantas hay en total.
+
+const marcaVistazo = path.join(root, ".ultimo-vistazo.json");
+
+function leerUltimoVistazo() {
+    try {
+        return new Date(JSON.parse(fs.readFileSync(marcaVistazo, "utf8")).opiniones);
+    } catch (e) {
+        return null;   // primera vez: se enseñan todas
+    }
+}
+
+function guardarVistazo() {
+    try {
+        fs.writeFileSync(marcaVistazo,
+            JSON.stringify({ opiniones: new Date().toISOString() }, null, 2) + "\n", "utf8");
+    } catch (e) {}
+}
+
+async function mostrarSugerencias() {
+    let base, clave;
+    try {
+        const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+        base = html.match(/const SUPABASE_URL = "([^"]+)"/)[1];
+        clave = html.match(/const SUPABASE_KEY = "([^"]+)"/)[1];
+    } catch (e) {
+        return;
+    }
+
+    let filas;
+    try {
+        const res = await fetch(
+            base + "/rest/v1/opiniones_clientes" +
+            "?select=texto,nombre_usuario,creada_en&order=creada_en.desc&limit=100",
+            { headers: { apikey: clave, Authorization: "Bearer " + clave } }
+        );
+        if (!res.ok) return;   // la tabla aun no existe: sql/008 sin ejecutar
+        filas = await res.json();
+    } catch (e) {
+        return;   // sin internet, no se estorba
+    }
+
+    if (!Array.isArray(filas) || filas.length === 0) return;
+
+    const desde = leerUltimoVistazo();
+    const nuevas = desde
+        ? filas.filter((f) => new Date(f.creada_en) > desde)
+        : filas;
+
+    if (nuevas.length === 0) {
+        guardarVistazo();
+        return;
+    }
+
+    console.log("");
+    console.log("\u{1F4AC}  " + nuevas.length +
+        (nuevas.length === 1 ? " sugerencia nueva:" : " sugerencias nuevas:"));
+    console.log("");
+
+    for (const f of nuevas.slice(0, 12)) {
+        const quien = f.nombre_usuario || "anonimo";
+        const cuando = new Date(f.creada_en).toLocaleDateString("es-VE",
+            { day: "2-digit", month: "short" });
+        console.log("   \u201C" + String(f.texto).replace(/\s+/g, " ").trim() + "\u201D");
+        console.log("       - " + quien + ", " + cuando);
+        console.log("");
+    }
+
+    if (nuevas.length > 12) {
+        console.log("   ...y " + (nuevas.length - 12) + " mas.");
+        console.log("");
+    }
+    if (filas.length > nuevas.length) {
+        console.log("   (" + filas.length + " en total; las anteriores ya las viste)");
+    }
+
+    guardarVistazo();
+}
+
+avisarDeCancionesMalas().then(mostrarSugerencias);

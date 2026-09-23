@@ -41,6 +41,30 @@
          la voz del cantante, y sin el motivo habria que abrir el video igual
          para averiguarlo. De paso hace de confirmacion: un toque sin querer
          no registra nada. -->
+    <!-- Caja de sugerencias. Texto libre a proposito: lo que la gente quiere
+         decir casi nunca cabe en las opciones que uno imagina de antemano. -->
+    <div id="opinionModal" class="fixed inset-0 bg-black/95 z-[120] flex flex-col justify-center items-center p-6 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm">
+            <h2 class="text-xl font-bold text-amber-400 mb-2 text-center">Tu opinión</h2>
+            <p class="text-zinc-400 text-sm mb-4 text-center leading-relaxed">
+                Si tienes alguna sugerencia, escríbela aquí.<br>
+                <span class="text-zinc-600 text-xs">La leemos todas.</span>
+            </p>
+            <textarea id="opinionTexto" rows="4" maxlength="500"
+                placeholder="Lo que quieras contarnos..."
+                class="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm resize-none focus:outline-none focus:border-amber-500"></textarea>
+            <p id="opinionContador" class="text-zinc-600 text-[10px] text-right mt-1 mb-3">0 / 500</p>
+            <button id="opinionEnviar" type="button"
+                class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-sm active:scale-95 transition-all">
+                ENVIAR
+            </button>
+            <button id="opinionCerrar" type="button"
+                class="w-full mt-2 bg-zinc-800 border border-zinc-700 text-zinc-400 font-bold py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
     <div id="errorModal" class="fixed inset-0 bg-black/95 z-[120] flex flex-col justify-center items-center p-6 hidden">
         <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm">
             <h2 class="text-xl font-bold text-amber-400 mb-1 text-center">Karaoke Latino</h2>
@@ -188,6 +212,13 @@
                 <span class="block text-zinc-500 text-[10px]">Etiquétanos y síguenos</span>
             </span>
         </a>
+
+        <!-- Debajo del Instagram y en pequeño: interesa que se vea, pero el
+             pie no puede comerse el sitio de las canciones. -->
+        <button type="button" id="abrirOpinion"
+            class="w-full pb-2.5 -mt-0.5 text-orange-400 hover:text-orange-300 text-[11px] font-bold active:scale-95 transition-all">
+            Tu opinión es importante para nosotros
+        </button>
     </footer>
 
     <script>
@@ -1287,6 +1318,8 @@
             aplicarFiltros();
         });
 
+        document.getElementById('abrirOpinion').addEventListener('click', abrirOpinion);
+
         document.getElementById('limpiarBusqueda').addEventListener('click', () => {
             const caja = document.getElementById('searchBar');
 
@@ -1406,6 +1439,63 @@
             try {
                 localStorage.setItem(CLAVE_MIAS, JSON.stringify({ sesion: sesionSalaId, ids }));
             } catch (e) {}
+        }
+
+        // ==================================================================
+        // Caja de sugerencias
+        //
+        // Lo que la gente quiere decir casi nunca cabe en un formulario con
+        // opciones, asi que es texto libre. Va a Supabase y sale al correr
+        // "npm run actualizar".
+        // ==================================================================
+        function abrirOpinion() {
+            const caja = document.getElementById('opinionModal');
+            const texto = document.getElementById('opinionTexto');
+            const contador = document.getElementById('opinionContador');
+            const enviar = document.getElementById('opinionEnviar');
+
+            texto.value = '';
+            contador.textContent = '0 / 500';
+            enviar.disabled = false;
+            enviar.textContent = 'ENVIAR';
+            caja.classList.remove('hidden');
+            texto.focus();
+
+            const cerrar = () => {
+                caja.classList.add('hidden');
+                caja.onclick = null;
+                texto.oninput = null;
+            };
+
+            texto.oninput = () => { contador.textContent = texto.value.length + ' / 500'; };
+            document.getElementById('opinionCerrar').onclick = cerrar;
+            caja.onclick = (e) => { if (e.target === caja) cerrar(); };
+
+            enviar.onclick = async () => {
+                const dice = texto.value.trim();
+                if (dice.length < 4) {
+                    return mostrarAlerta("Escribe un poco más para poder entenderte.", true);
+                }
+
+                enviar.disabled = true;
+                enviar.textContent = 'Enviando...';
+
+                const { error } = await supabaseClient.rpc('dejar_opinion', {
+                    p_texto: dice,
+                    p_usuario: miNombre || null,
+                    p_sesion: sesionSalaId || null
+                });
+
+                if (error) {
+                    console.warn('No se pudo enviar la opinion:', error);
+                    enviar.disabled = false;
+                    enviar.textContent = 'ENVIAR';
+                    return mostrarAlerta("❌ No se pudo enviar. Intenta de nuevo.", true);
+                }
+
+                cerrar();
+                mostrarAlerta("✅ ¡Gracias! Lo vamos a leer.");
+            };
         }
 
         // ==================================================================

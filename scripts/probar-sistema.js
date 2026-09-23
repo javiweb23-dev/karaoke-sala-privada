@@ -312,6 +312,68 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Caja de sugerencias');
+
+{
+    const t = leer('index.html');
+    const sql = leer('sql/008-opiniones-de-clientes.sql');
+
+    // Va en el pie, debajo del Instagram, y en pequeño: interesa que se vea
+    // pero no puede comerse el sitio de las canciones.
+    comprobar('el enlace esta en el pie',
+        /<footer[\s\S]{0,2000}?id="abrirOpinion"/.test(t));
+    comprobar('va DEBAJO del instagram',
+        t.indexOf('instagram.com/mikaraokelatino') < t.indexOf('abrirOpinion'));
+    comprobar('es naranja y pequeño',
+        /id="abrirOpinion"[\s\S]{0,300}?text-orange-400/.test(t) &&
+        /id="abrirOpinion"[\s\S]{0,300}?text-\[11px\]/.test(t));
+
+    // Texto libre: lo que la gente quiere decir no cabe en opciones fijas.
+    comprobar('se escribe en un cuadro de texto', /id="opinionTexto"/.test(t));
+    comprobar('tiene limite de largo', /maxlength="500"/.test(t));
+
+    const abrir = sacarFuncion(t, 'abrirOpinion', 8);
+    comprobar('se manda por la funcion de Supabase',
+        /rpc\('dejar_opinion'/.test(abrir), abrir.slice(0, 200));
+    comprobar('no deja mandar dos letras',
+        /dice\.length < 4/.test(abrir));
+    comprobar('el cuadro se limpia al abrirlo',
+        /texto\.value = ''/.test(abrir));
+
+    // Nunca escribiendo la tabla directamente.
+    comprobar('el navegador no escribe la tabla a mano',
+        !/from\('opiniones_clientes'/.test(t));
+
+    // Y el SQL, cerrado igual que las otras dos tablas.
+    comprobar('la tabla solo se puede leer',
+        /for select using \(true\)/.test(sql) &&
+        !/for insert/.test(sql) && !/for update/.test(sql));
+    comprobar('la funcion es security definer', /security definer/.test(sql));
+    comprobar('el SQL tambien corta el texto largo', /left\(v_texto, 500\)/.test(sql));
+}
+
+{
+    // El aviso al correr npm run actualizar.
+    const s = leer('scripts/actualizar.js');
+
+    comprobar('actualizar enseña las sugerencias',
+        /async function mostrarSugerencias/.test(s));
+
+    // Una sugerencia no se arregla sola: sin esto, en dos meses serian
+    // cuarenta lineas cada vez que actualizas el catalogo.
+    comprobar('solo enseña las nuevas desde la ultima vez',
+        /leerUltimoVistazo/.test(s) && /guardarVistazo/.test(s));
+    comprobar('la marca del ultimo vistazo no se sube a git',
+        /\.ultimo-vistazo\.json/.test(leer('.gitignore')));
+
+    comprobar('el script solo lee, nunca escribe en Supabase',
+        !/method: *'(POST|PATCH|DELETE)'[\s\S]{0,200}?opiniones_clientes/.test(s));
+
+    // Las dos avisos van encadenados: si el primero se cae, el segundo no sale.
+    comprobar('los dos avisos se ejecutan',
+        /avisarDeCancionesMalas\(\)\.then\(mostrarSugerencias\)/.test(s));
+}
+
 seccion('Reportar una cancion mala');
 
 {
