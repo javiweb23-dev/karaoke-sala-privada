@@ -330,8 +330,19 @@ seccion('Borrar la busqueda');
         /value\.length === 0/.test(alterna), alterna);
 
     // Al vaciar hay que rehacer la lista, o se quedan los resultados viejos.
+    // La llamada puede ir directa o diferida; lo que importa es que este.
     comprobar('al borrar se vuelve a filtrar',
-        /limpiarBusqueda\'\)\.addEventListener[\s\S]{0,400}?aplicarFiltros\(/.test(t));
+        /limpiarBusqueda\'\)\.addEventListener[\s\S]{0,2000}?aplicarFiltros/.test(t));
+
+    // Y que se haga FUERA del propio toque: rehacer las 3.276 tarjetas tarda
+    // lo suyo, y en el mismo tiron el navegador no repinta la caja vacia.
+    comprobar('la lista se rehace despues de pintar la caja',
+        /setTimeout\(aplicarFiltros/.test(t));
+
+    // requestAnimationFrame no corre con la pantalla apagada ni en segundo
+    // plano, y ahi el borrado se quedaria a medias.
+    comprobar('no se difiere con requestAnimationFrame',
+        !/requestAnimationFrame\([\s\S]{0,80}?aplicarFiltros/.test(t));
     comprobar('al borrar se deja el cursor dentro',
         /limpiarBusqueda\'\)\.addEventListener[\s\S]{0,400}?\.focus\(/.test(t));
 
