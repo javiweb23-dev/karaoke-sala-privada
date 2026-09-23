@@ -439,7 +439,10 @@ async function avisarDeCancionesMalas() {
     // ¿Se reemplazo el archivo despues de la queja?
     const sinArreglar = filas.filter((f) => {
         const archivo = byNorm[norm(f.identificador)];
-        if (!archivo) return true;   // ya no esta el MP4: sigue siendo noticia
+        // Si el MP4 ya no esta en el catalogo no hay nada que reemplazar:
+        // o lo quitaste tu, o lo renombraste. Enseñarlo seria dar la lata con
+        // algo sobre lo que no se puede hacer nada.
+        if (!archivo) return false;
         try {
             return fs.statSync(path.join(videosDir, archivo)).mtime < new Date(f.actualizada_en);
         } catch (e) {
