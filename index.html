@@ -992,16 +992,22 @@
         }
 
         function aplicarFiltros() {
-            cargarCanciones(filtrarCanciones());
-            renderizarSugerencias();
-
-            // Y de vuelta arriba. El contenedor se queda con el scroll que
-            // tenia, y al pasar de las 2686 canciones a las 30 de BACHATA el
-            // navegador lo recorta al maximo de la lista nueva: te deja
-            // mirando la ULTIMA bachata, como si solo hubiera una. Quien no
-            // sepa que tiene que subir a mano cree que no hay canciones.
+            // De vuelta arriba. El contenedor se queda con el scroll que tenia,
+            // y al pasar de las 3.000 canciones a las 27 de BACHATA el navegador
+            // lo recorta al maximo de la lista nueva: te dejaba mirando la
+            // ULTIMA bachata, como si solo hubiera una. Quien no sepa que tiene
+            // que subir a mano cree que no hay canciones.
+            //
+            // Va ANTES de rehacer la lista y no despues. Puesto al final,
+            // obligaba al navegador a maquetar de golpe las 3.276 tarjetas
+            // recien creadas —unos 800 ms de los 1.100 que tardaba— y encima
+            // bloqueado. Haciendolo antes se reordena sobre la lista vieja, que
+            // suele ser corta, y el resultado en pantalla es el mismo.
             const scroll = document.getElementById('pageScroll');
             if (scroll) scroll.scrollTop = 0;
+
+            cargarCanciones(filtrarCanciones());
+            renderizarSugerencias();
         }
 
         // ------------------------------------------------------------------
@@ -1247,12 +1253,24 @@
 
         document.getElementById('limpiarBusqueda').addEventListener('click', () => {
             const caja = document.getElementById('searchBar');
+
+            // Primero lo que el dedo espera ver: la caja vacia y la X fuera.
             caja.value = '';
             actualizarBotonLimpiar();
-            aplicarFiltros();
-            // Se deja el cursor dentro: casi siempre van a escribir otra cosa,
+            // El cursor se queda dentro: casi siempre van a escribir otra cosa,
             // y asi no se les cierra el teclado del celular.
             caja.focus();
+
+            // Y DESPUES la lista, que es lo caro. Volver al catalogo entero son
+            // 3.000 y pico de tarjetas y al navegador le lleva casi un segundo.
+            // Si se hiciera en el mismo tiron no podria repintar hasta terminar,
+            // asi que la caja seguia mostrando el texto y parecia que la X no
+            // habia hecho nada.
+            //
+            // Se usa setTimeout y no requestAnimationFrame porque este ultimo no
+            // corre con la pantalla apagada o la pagina en segundo plano, y ahi
+            // el borrado se quedaria a medias.
+            setTimeout(aplicarFiltros, 0);
         });
 
         // El mismo reparto que usa el reproductor. Tiene que estar aqui tambien
