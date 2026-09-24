@@ -11,6 +11,7 @@
 //   6. Hace commit y push
 //   7. Avisa de las canciones que los clientes reportaron como defectuosas
 //   8. Enseña las sugerencias nuevas que dejaron los clientes
+//   9. Enseña que canciones te pidieron y no tienes
 //
 // La regla de oro: manda la CARPETA. Si el MP4 esta, la cancion entra; si no
 // esta, no entra. El Excel solo aporta genero e idioma. Asi es imposible
@@ -559,4 +560,157 @@ async function mostrarSugerencias() {
     guardarVistazo();
 }
 
-avisarDeCancionesMalas().then(mostrarSugerencias);
+// --- Canciones que te pidieron y no tienes ---------------------------------
+//
+// Dos listas separadas, porque son dos señales distintas:
+//
+//   Busquedas sin resultado -> las deja cualquiera sin querer. Hay muchas y
+//     dicen lo que la gente espera encontrar en tu sala.
+//   Sugerencias -> hay que abrir el formulario y escribirlas. Hay pocas, y
+//     cada una vale por muchas busquedas.
+//
+// De las busquedas se quita el ruido: los tecleos a medias ("Aguani" cuando
+// despues escribieron "Aguanile") y lo que ya tienes en el catalogo, que se
+// descarga o se escribio distinto y ya no hace falta.
+
+function pedirALaBase(base, clave, ruta) {
+    return fetch(base + "/rest/v1/" + ruta,
+        { headers: { apikey: clave, Authorization: "Bearer " + clave } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+}
+
+// El catalogo en texto plano, calculado una vez.
+let catalogoPlano = null;
+function catalogoComoTexto() {
+    if (!catalogoPlano) {
+        catalogoPlano = finales.map((c) => {
+            const texto = norm(c.artista + " " + c.titulo);
+            return { texto, palabras: texto.split(" ").filter(Boolean) };
+        });
+    }
+    return catalogoPlano;
+}
+
+// Distancia de edicion con corte, la misma idea que usa el buscador del
+// celular: en cuanto se pasa del margen se rinde.
+function distancia(a, b, margen) {
+    if (a === b) return 0;
+    if (Math.abs(a.length - b.length) > margen) return margen + 1;
+    let anterior = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+        const actual = [i];
+        let mejor = i;
+        for (let j = 1; j <= b.length; j++) {
+            const v = Math.min(anterior[j] + 1, actual[j - 1] + 1,
+                anterior[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            actual[j] = v;
+            if (v < mejor) mejor = v;
+        }
+        if (mejor > margen) return margen + 1;
+        anterior = actual;
+    }
+    return anterior[b.length];
+}
+
+// Cuanto mas larga la palabra, mas erratas se perdonan. Mismo criterio que
+// el buscador del celular.
+function margenPorLargo(w) {
+    if (w.length >= 7) return 2;
+    if (w.length >= 4) return 1;
+    return 0;
+}
+
+// Lo que ya esta en el catalogo no hace falta pedirlo otra vez.
+//
+// Se perdonan las erratas igual que en el buscador del celular: quien
+// escribio "Chakira" o "rikardo" no descubrio un hueco, se equivoco al
+// teclear, y ya tienes 33 de Shakira y 14 de Arjona. Sin esto la lista se
+// llena de faltas de ortografia y deja de servir.
+//
+// Las palabras tienen que coincidir todas en la MISMA cancion. Buscarlas
+// sueltas por todo el catalogo era demasiado flojo: "Fantasmas del caribe"
+// pasaba por tener cada palabra en canciones distintas.
+function yaLaTienes(consulta) {
+    const q = norm(consulta);
+    if (q.length < 4) return true;   // ruido de teclado
+
+    const buscadas = q.split(" ").filter((w) => w.length >= 3);
+    if (buscadas.length === 0) return true;
+
+    return catalogoComoTexto().some(({ texto, palabras }) =>
+        buscadas.every((w) => {
+            if (texto.includes(w)) return true;
+            const margen = margenPorLargo(w);
+            if (margen === 0) return false;
+            return palabras.some((otra) => distancia(w, otra, margen) <= margen);
+        })
+    );
+}
+
+// "Aguani" sobra si tambien esta "Aguanile": es la misma persona tecleando.
+function esTecleoAMedias(consulta, todas) {
+    const q = norm(consulta);
+    return todas.some((otra) => {
+        const o = norm(otra);
+        return o.length > q.length && o.startsWith(q);
+    });
+}
+
+async function mostrarLoQuePiden() {
+    let base, clave;
+    try {
+        const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+        base = html.match(/const SUPABASE_URL = "([^"]+)"/)[1];
+        clave = html.match(/const SUPABASE_KEY = "([^"]+)"/)[1];
+    } catch (e) {
+        return;
+    }
+
+    const sugerencias = await pedirALaBase(base, clave,
+        "sugerencias_canciones?estado=eq.pendiente" +
+        "&select=texto,nombre_usuario,veces&order=veces.desc,actualizada_en.desc&limit=60");
+
+    if (Array.isArray(sugerencias) && sugerencias.length > 0) {
+        const utiles = sugerencias.filter((s) => !yaLaTienes(s.texto));
+        if (utiles.length > 0) {
+            console.log("");
+            console.log("\u{1F4A1}  " + utiles.length +
+                (utiles.length === 1 ? " sugerencia de cancion:" : " sugerencias de canciones:"));
+            console.log("   (se sentaron a escribirlas: valen mucho)");
+            console.log("");
+            for (const s of utiles.slice(0, 20)) {
+                console.log("   " + (s.veces + "x").padStart(4) + "  " +
+                    String(s.texto).padEnd(42).slice(0, 42) + "  " + (s.nombre_usuario || ""));
+            }
+            if (utiles.length > 20) console.log("   ...y " + (utiles.length - 20) + " mas.");
+        }
+    }
+
+    const busquedas = await pedirALaBase(base, clave,
+        "busquedas_fallidas?estado=eq.pendiente" +
+        "&select=consulta,nombre_usuario,veces&order=veces.desc,actualizada_en.desc&limit=200");
+
+    if (!Array.isArray(busquedas) || busquedas.length === 0) return;
+
+    const textos = busquedas.map((b) => b.consulta);
+    const utiles = busquedas.filter((b) =>
+        !yaLaTienes(b.consulta) && !esTecleoAMedias(b.consulta, textos));
+
+    if (utiles.length === 0) return;
+
+    console.log("");
+    console.log("\u{1F50E}  " + utiles.length +
+        (utiles.length === 1 ? " busqueda sin resultado:" : " busquedas sin resultado:"));
+    console.log("   (lo buscaron y no lo tienes)");
+    console.log("");
+    for (const b of utiles.slice(0, 20)) {
+        console.log("   " + (b.veces + "x").padStart(4) + "  " +
+            String(b.consulta).padEnd(42).slice(0, 42) + "  " + (b.nombre_usuario || ""));
+    }
+    if (utiles.length > 20) console.log("   ...y " + (utiles.length - 20) + " mas.");
+}
+
+avisarDeCancionesMalas()
+    .then(mostrarSugerencias)
+    .then(mostrarLoQuePiden);

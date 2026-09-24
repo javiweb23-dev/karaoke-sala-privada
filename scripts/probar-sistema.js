@@ -312,6 +312,87 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Lo que piden y no tienes');
+
+{
+    const t = leer('index.html');
+    const s = leer('scripts/actualizar.js');
+    const sql = leer('sql/010-sugerencias-de-canciones.sql');
+
+    // Las sugerencias se fueron a su propia tabla. Compartiendo tabla con
+    // las busquedas se fundian: busquedas_fallidas tiene unique por texto,
+    // asi que tres busquedas de "Aguanile" y una sugerencia de lo mismo
+    // caian en la misma fila y el contador quedaba mezclado.
+    comprobar('sugerir va por su propia funcion',
+        /rpc\('sugerir_cancion'/.test(t));
+    comprobar('sugerir ya no escribe en busquedas_fallidas',
+        !/registrarBusquedaFallida\([^)]*'sugerencia'/.test(t));
+    comprobar('la tabla nueva tiene su propio unique',
+        /texto_norm[^,]*unique/.test(sql));
+    comprobar('la funcion es security definer', /security definer/.test(sql));
+    comprobar('la tabla nueva solo se lee',
+        /for select using \(true\)/.test(sql) && !/for insert/.test(sql));
+
+    // Y el script las enseña por separado.
+    comprobar('actualizar enseña las dos listas',
+        /async function mostrarLoQuePiden/.test(s) &&
+        /sugerencias_canciones/.test(s) && /busquedas_fallidas/.test(s));
+    comprobar('se quita lo que ya tienes en el catalogo',
+        /function yaLaTienes/.test(s));
+    comprobar('se quitan los tecleos a medias',
+        /function esTecleoAMedias/.test(s));
+}
+
+{
+    // Los filtros de verdad, contra el catalogo de verdad.
+    const s = leer('scripts/actualizar.js');
+    const sacar = (firma) => {
+        const i = s.indexOf(firma);
+        if (i < 0) throw new Error('falta ' + firma);
+        return s.slice(i, s.indexOf(String.fromCharCode(10) + '}', i) + 2);
+    };
+
+    const txt = leer('canciones.js');
+    const finales = new Function(
+        'return ' + txt.slice(txt.indexOf('['), txt.lastIndexOf(']') + 1))();
+    const norm = (x) => String(x || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase().replace(/\s+/g, ' ').trim();
+
+    const api = new Function('finales', 'norm',
+        'let catalogoPlano = null;' +
+        [sacar('function catalogoComoTexto('), sacar('function distancia('),
+         sacar('function margenPorLargo('), sacar('function yaLaTienes('),
+         sacar('function esTecleoAMedias(')].join(String.fromCharCode(10)) +
+        String.fromCharCode(10) + 'return { yaLaTienes, esTecleoAMedias };'
+    )(finales, norm);
+
+    // Erratas de cosas que SI tiene: no son huecos, son faltas de ortografia.
+    comprobar('"Chakira" no cuenta como hueco', api.yaLaTienes('Chakira'));
+    comprobar('"rikardo" tampoco', api.yaLaTienes('rikardo'));
+    comprobar('"Eliza guerrero" tampoco (tiene ELISA)',
+        api.yaLaTienes('Eliza guerrero'));
+    comprobar('"Manda una carta..." tampoco (tiene MANDALE)',
+        api.yaLaTienes('Manda una carta a tu marido'));
+
+    // Huecos de verdad: tienen que sobrevivir al filtro.
+    for (const q of ['Aguanile', 'Locomia', 'Fantasmas del caribe', 'oasis']) {
+        comprobar('"' + q + '" sobrevive: es un hueco real', !api.yaLaTienes(q));
+    }
+
+    // Palabras sueltas en canciones distintas no valen: tienen que estar
+    // todas en la MISMA cancion.
+    comprobar('no vale juntar palabras de canciones distintas',
+        !api.yaLaTienes('Fantasmas del caribe'));
+
+    // Tecleos a medias.
+    const todas = ['Aguani', 'Aguanile', 'Pasam', 'Pasame la botella', 'Shakira'];
+    comprobar('"Aguani" se descarta por ser tecleo a medias',
+        api.esTecleoAMedias('Aguani', todas));
+    comprobar('"Aguanile" se conserva',
+        !api.esTecleoAMedias('Aguanile', todas));
+}
+
 seccion('Caja de sugerencias');
 
 {

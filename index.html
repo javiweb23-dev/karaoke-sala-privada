@@ -1077,6 +1077,29 @@
         // suposiciones. Se consulta en la tabla busquedas_fallidas de Supabase.
         // ------------------------------------------------------------------
 
+        // Sugerir una cancion es otra cosa que buscarla y no encontrarla, y
+        // por eso va a otra tabla.
+        //
+        // Compartiendo tabla se fundian: busquedas_fallidas tiene unique por
+        // texto, asi que tres busquedas de "Aguanile" y una sugerencia de lo
+        // mismo caian en la misma fila. El contador quedaba mezclado y se
+        // perdia justo lo que interesa distinguir: una busqueda la deja
+        // cualquiera sin querer, una sugerencia hay que sentarse a escribirla.
+        async function sugerirCancion(texto) {
+            const { error } = await supabaseClient.rpc('sugerir_cancion', {
+                p_texto: texto,
+                p_norm: sinAcentos(texto).toUpperCase(),
+                p_usuario: miNombre || null,
+                p_sesion: sesionSalaId || null
+            });
+
+            if (error) {
+                console.warn('No se pudo sugerir:', error);
+                return false;
+            }
+            return true;
+        }
+
         async function registrarBusquedaFallida(consulta, origen = 'busqueda') {
             const base = {
                 p_consulta: consulta,
@@ -1278,7 +1301,7 @@
                 btnEnviar.disabled = true;
                 btnEnviar.textContent = 'ENVIANDO...';
 
-                const ok = await registrarBusquedaFallida(texto, 'sugerencia');
+                const ok = await sugerirCancion(texto);
 
                 if (!ok) {
                     btnEnviar.disabled = false;
