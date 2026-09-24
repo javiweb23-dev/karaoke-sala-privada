@@ -453,8 +453,10 @@ seccion('Caja de sugerencias');
         !/method: *'(POST|PATCH|DELETE)'[\s\S]{0,200}?opiniones_clientes/.test(s));
 
     // Las dos avisos van encadenados: si el primero se cae, el segundo no sale.
-    comprobar('los dos avisos se ejecutan',
-        /avisarDeCancionesMalas\(\)\.then\(mostrarSugerencias\)/.test(s));
+    // Los tres avisos van encadenados: si uno se cae, los siguientes no salen.
+    comprobar('los tres avisos se ejecutan',
+        /avisarDeCancionesMalas\(\)[\s]*\.then\(mostrarSugerencias\)[\s]*\.then\(mostrarLoQuePiden\)/.test(s),
+        'la cadena de avisos cambio de forma');
 }
 
 seccion('Reportar una cancion mala');
