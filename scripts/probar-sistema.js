@@ -312,6 +312,86 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Buscar con una palabra a medias');
+
+{
+    // Cuando no coinciden todas las palabras se van soltando por el final,
+    // que es donde la gente se queda a medias porque escribe de izquierda a
+    // derecha.
+    //
+    // Paso de verdad: Marianne escribio "Natalia lafu" y no salio nada,
+    // teniendo cuatro canciones de NATALIA LAFOURCADE. El apellido lleva O
+    // —LAFO— y "lafu" queda lejos hasta para el corrector; pero "natalia" a
+    // secas encuentra 27.
+    const t = leer('index.html');
+
+    const codigo = ['sinAcentos', 'distanciaTexto', 'margenPorLargo',
+        'coincideAproximado', 'relevancia', 'ordenarPorRelevancia',
+        'ordenarCatalogo', 'cancionTieneVideo', 'coincideIdioma',
+        'hayFiltroPuesto', 'nombreDelFiltro', 'buscarEn',
+        'buscarSoltandoPalabras', 'filtrarCanciones']
+        .map((n) => sacarFuncion(t, n, 8)).join(String.fromCharCode(10));
+
+    const canciones = [
+        { artista: 'NATALIA LAFOURCADE', titulo: 'HASTA LA RAIZ', genero: 'POP', idioma: 'ESPAÑOL' },
+        { artista: 'NATALIA JIMENEZ', titulo: 'CREO EN MI', genero: 'POP', idioma: 'ESPAÑOL' },
+        { artista: 'LOS ANGELES AZULES FT NATALIA LAFOURCADE', titulo: 'NUNCA ES SUFICIENTE', genero: 'CUMBIA', idioma: 'ESPAÑOL' },
+        { artista: 'FRANCO DE VITA', titulo: 'TE AMO', genero: 'BALADA POP', idioma: 'ESPAÑOL' },
+        { artista: 'SHAKIRA', titulo: 'ANTOLOGIA', genero: 'POP', idioma: 'ESPAÑOL' }
+    ];
+
+    const hacer = (escrito, genero) => {
+        const ctx = {
+            cancionesREAL: canciones,
+            generoActivo: genero || 'Todos',
+            idiomaActivo: 'Todos',
+            VIDEOS_DISPONIBLES: null,
+            busquedaFueAproximada: false,
+            busquedaFueraDelFiltro: 0,
+            busquedaRecortadaA: '',
+            document: { getElementById: () => ({ value: escrito }) }
+        };
+        return new Function(...Object.keys(ctx), codigo + String.fromCharCode(10) +
+            'return { lista: filtrarCanciones(), recorte: busquedaRecortadaA };'
+        )(...Object.values(ctx));
+    };
+
+    // El caso de Marianne.
+    const lafu = hacer('Natalia lafu');
+    comprobar('"Natalia lafu" encuentra las Natalias',
+        lafu.lista.length === 3, lafu.lista.length);
+    comprobar('y dice con que busco al final',
+        lafu.recorte === 'natalia', lafu.recorte);
+
+    // Se ordena por lo que quedo, no por lo que escribieron: sin esto la
+    // primera salia una cancion que solo contenia "natalia" de refilon.
+    comprobar('ordena por la palabra que quedo',
+        lafu.lista[0].artista.startsWith('NATALIA'), lafu.lista[0].artista);
+
+    // Varias palabras: se suelta solo la ultima.
+    const franco = hacer('Franco de vita ale');
+    comprobar('con varias palabras suelta solo la ultima',
+        franco.recorte === 'franco de vita', franco.recorte);
+    comprobar('y encuentra al artista', franco.lista.length === 1, franco.lista.length);
+
+    // Lo que funciona tal cual no se toca.
+    const normal = hacer('shakira');
+    comprobar('una busqueda que funciona no se recorta',
+        normal.recorte === '' && normal.lista.length === 1, normal.recorte);
+
+    // Lo inventado sigue dando cero: eso hay que anotarlo como faltante.
+    const nada = hacer('zzz qqq www');
+    comprobar('lo inventado sigue dando cero',
+        nada.lista.length === 0 && nada.recorte === '', nada.lista.length);
+
+    // Y el aviso tiene que anotar la busqueda ORIGINAL: el cliente ve
+    // canciones, pero "shakira ojos asi" sigue siendo un hueco del catalogo.
+    const cola = sacarFuncion(t, 'cargarCanciones', 8);
+    comprobar('al recortar se anota igual la busqueda original',
+        /busquedaRecortadaA[\s\S]{0,900}?anotarBusquedaSinResultados\(\)/.test(cola),
+        'no se esta anotando el hueco real');
+}
+
 seccion('Buscar con un filtro puesto');
 
 {

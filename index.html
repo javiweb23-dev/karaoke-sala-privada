@@ -245,6 +245,9 @@
         // Cuantas apareceieron fuera del filtro puesto. Cero cuando no hizo
         // falta salirse.
         let busquedaFueraDelFiltro = 0;
+        // Con que se acabo buscando de verdad, cuando hubo que soltar alguna
+        // palabra. Vacio cuando se busco tal cual lo escribieron.
+        let busquedaRecortadaA = '';
 
         // Banderas por idioma. Lo que no este aqui sale con una nota musical.
         const BANDERAS = {
@@ -1051,6 +1054,35 @@
             };
         }
 
+        // Cuando no coinciden TODAS las palabras, se van soltando por el
+        // final hasta que aparezca algo. Por el final porque se escribe de
+        // izquierda a derecha: la ultima es la que suele quedarse a medias.
+        //
+        // Paso de verdad: Marianne escribio "Natalia lafu" y no salio nada,
+        // teniendo cuatro canciones de NATALIA LAFOURCADE. El apellido va con
+        // O —LAFO— y "lafu" queda demasiado lejos hasta para el corrector.
+        // Pero "natalia" a secas encuentra 27.
+        function buscarSoltandoPalabras(lista, q) {
+            let palabras = q.split(/\s+/).filter((p) => p.length >= 2);
+
+            while (palabras.length > 1) {
+                palabras = palabras.slice(0, -1);
+                const recorte = palabras.join(' ');
+                const hallazgos = lista.filter((c) =>
+                    coincideAproximado(sinAcentos(`${c.artista} ${c.titulo}`), palabras)
+                );
+
+                if (hallazgos.length > 0) {
+                    // Se ordena por lo que QUEDO, no por lo que escribieron:
+                    // buscando "natalia" la primera salia DON OMAR FT NATTI
+                    // NATASHA en vez de las Natalias.
+                    return { hallazgos: ordenarPorRelevancia(hallazgos, recorte), con: recorte };
+                }
+            }
+
+            return { hallazgos: [], con: '' };
+        }
+
         function filtrarCanciones() {
             const q = sinAcentos(document.getElementById('searchBar').value);
 
@@ -1062,6 +1094,7 @@
             });
 
             busquedaFueraDelFiltro = 0;
+            busquedaRecortadaA = '';
 
             if (!q) {
                 busquedaFueAproximada = false;
@@ -1090,6 +1123,16 @@
                     busquedaFueraDelFiltro = fuera.hallazgos.length;
                     return fuera.hallazgos;
                 }
+            }
+
+            // Tal cual lo escribieron no hay nada en ninguna parte. Ultimo
+            // intento: soltar palabras del final. Vale mas enseñar las 27 de
+            // "natalia" que una pantalla vacia.
+            const recorte = buscarSoltandoPalabras(conVideo, q);
+            if (recorte.hallazgos.length > 0) {
+                busquedaFueAproximada = false;
+                busquedaRecortadaA = recorte.con;
+                return recorte.hallazgos;
             }
 
             busquedaFueAproximada = false;
@@ -1211,6 +1254,23 @@
                 anotarBusquedaSinResultados();
                 agregarPieSugerencia(songList);
                 return;
+            }
+
+            // Si hubo que soltar palabras, se dice con que se busco al final.
+            // Y se anota igual la busqueda ORIGINAL: el cliente ve canciones en
+            // vez de una pantalla vacia, pero "shakira ojos asi" sigue siendo
+            // un hueco del catalogo y tiene que salir en la lista de faltantes.
+            if (busquedaRecortadaA) {
+                const escrito = document.getElementById('searchBar').value.trim();
+                const aviso = document.createElement('div');
+                aviso.className = 'bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-3 text-center';
+                aviso.innerHTML =
+                    `<p class="text-amber-300 text-xs font-bold mb-1">` +
+                        `No encontramos "${escaparTexto(escrito)}"</p>` +
+                    `<p class="text-zinc-400 text-[11px] leading-snug">` +
+                        `Te mostramos los resultados de "${escaparTexto(busquedaRecortadaA)}"</p>`;
+                songList.appendChild(aviso);
+                anotarBusquedaSinResultados();
             }
 
             // Si lo que sale es de fuera del filtro, se dice claramente. Sin
