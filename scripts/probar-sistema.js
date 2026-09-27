@@ -409,7 +409,8 @@ seccion('Buscar con un filtro puesto');
     const codigo = ['sinAcentos', 'distanciaTexto', 'margenPorLargo',
         'coincideAproximado', 'relevancia', 'ordenarPorRelevancia',
         'ordenarCatalogo', 'cancionTieneVideo', 'coincideIdioma',
-        'hayFiltroPuesto', 'nombreDelFiltro', 'buscarEn', 'filtrarCanciones']
+        'hayFiltroPuesto', 'nombreDelFiltro', 'buscarEn',
+        'buscarSoltandoPalabras', 'filtrarCanciones']
         .map(sacarF).join(String.fromCharCode(10));
 
     const canciones = [
