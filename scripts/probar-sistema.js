@@ -312,6 +312,82 @@ seccion('Cancelar cancion propia');
         orden.length === 2 && new Set(orden).size === 2, orden);
 }
 
+seccion('Buscar con un filtro puesto');
+
+{
+    // Con un chip puesto, una busqueda que no da nada dentro del filtro se
+    // mira tambien en el resto del catalogo. Si no, el cliente se va
+    // convencido de que no tenemos esa cancion.
+    //
+    // Paso de verdad: Rosanna busco "Franco de vita" a las 6:54 pm con un
+    // filtro puesto, no le salio nada, y a las 6:55 pm pidio una cancion de
+    // Franco de Vita. Y esas busquedas se anotaban como canciones que
+    // faltaban: 17 de 39 entradas de la lista eran canciones que si estaban.
+    const t = leer('index.html');
+
+    const sacarF = (n) => sacarFuncion(t, n, 8);
+    const codigo = ['sinAcentos', 'distanciaTexto', 'margenPorLargo',
+        'coincideAproximado', 'relevancia', 'ordenarPorRelevancia',
+        'ordenarCatalogo', 'cancionTieneVideo', 'coincideIdioma',
+        'hayFiltroPuesto', 'nombreDelFiltro', 'buscarEn', 'filtrarCanciones']
+        .map(sacarF).join(String.fromCharCode(10));
+
+    const canciones = [
+        { artista: 'FRANCO DE VITA', titulo: 'TE AMO', genero: 'BALADA POP', idioma: 'ESPAÑOL' },
+        { artista: 'FRANCO DE VITA', titulo: 'LOUIS', genero: 'BALADA POP', idioma: 'ESPAÑOL' },
+        { artista: 'SHAKIRA', titulo: 'ANTOLOGIA', genero: 'POP', idioma: 'ESPAÑOL' },
+        { artista: 'SODA STEREO', titulo: 'DE MUSICA LIGERA', genero: 'ROCK EN ESPAÑOL', idioma: 'ESPAÑOL' }
+    ];
+
+    const hacer = (genero, idioma, escrito) => {
+        const ctx = {
+            cancionesREAL: canciones,
+            generoActivo: genero,
+            idiomaActivo: idioma,
+            VIDEOS_DISPONIBLES: null,
+            busquedaFueAproximada: false,
+            busquedaFueraDelFiltro: 0,
+            document: { getElementById: () => ({ value: escrito }) }
+        };
+        const fn = new Function(...Object.keys(ctx), codigo +
+            String.fromCharCode(10) +
+            'return { lista: filtrarCanciones(), fuera: busquedaFueraDelFiltro,' +
+            ' nombre: nombreDelFiltro(), hayFiltro: hayFiltroPuesto() };')(...Object.values(ctx));
+        return fn;
+    };
+
+    // El caso de Rosanna.
+    const rosanna = hacer('ROCK EN ESPAÑOL', 'Todos', 'Franco de vita');
+    comprobar('con filtro, encuentra lo que hay fuera',
+        rosanna.lista.length === 2, rosanna.lista.length);
+    comprobar('y avisa de cuantas son',
+        rosanna.fuera === 2, rosanna.fuera);
+    comprobar('dice que filtro estorbaba',
+        rosanna.nombre === 'ROCK EN ESPAÑOL', rosanna.nombre);
+
+    // Con los dos chips puestos se nombran los dos.
+    const dos = hacer('SALSA', 'INGLES', 'shakira');
+    comprobar('nombra los dos filtros',
+        dos.nombre === 'SALSA y INGLES', dos.nombre);
+
+    // Si dentro del filtro SI hay, no se sale ni se avisa.
+    const dentro = hacer('BALADA POP', 'Todos', 'Franco');
+    comprobar('si esta dentro del filtro, no se sale',
+        dentro.lista.length === 2 && dentro.fuera === 0,
+        { n: dentro.lista.length, fuera: dentro.fuera });
+
+    // Sin filtro, todo como siempre.
+    const libre = hacer('Todos', 'Todos', 'shakira');
+    comprobar('sin filtro no hay aviso',
+        libre.lista.length === 1 && libre.fuera === 0, libre.fuera);
+    comprobar('sin chips, hayFiltroPuesto dice que no', !libre.hayFiltro);
+
+    // Lo que no existe sigue dando cero: eso SI hay que anotarlo.
+    const nada = hacer('ROCK EN ESPAÑOL', 'Todos', 'zzzqwertyinventada');
+    comprobar('lo que no existe sigue dando cero',
+        nada.lista.length === 0 && nada.fuera === 0, nada.lista.length);
+}
+
 seccion('Lo que piden y no tienes');
 
 {

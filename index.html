@@ -242,6 +242,9 @@
         let idiomaActivo = 'Todos';
         let pedidoEnCurso = false;
         let busquedaFueAproximada = false;
+        // Cuantas apareceieron fuera del filtro puesto. Cero cuando no hizo
+        // falta salirse.
+        let busquedaFueraDelFiltro = 0;
 
         // Banderas por idioma. Lo que no este aqui sale con una nota musical.
         const BANDERAS = {
@@ -1004,22 +1007,24 @@
             });
         }
 
-        function filtrarCanciones() {
-            const q = sinAcentos(document.getElementById('searchBar').value);
+        // ¿Hay algun chip puesto? Con "Todos" en los dos, se busca en todo.
+        function hayFiltroPuesto() {
+            return generoActivo !== 'Todos' || idiomaActivo !== 'Todos';
+        }
 
-            const porGenero = cancionesREAL.filter(c => {
-                if (!cancionTieneVideo(c)) return false;
-                if (!coincideIdioma(c)) return false;
-                return generoActivo === 'Todos'
-                    || sinAcentos(c.genero) === sinAcentos(generoActivo);
-            });
+        // Como se llama lo que esta filtrando, para poder decirselo al cliente.
+        function nombreDelFiltro() {
+            const partes = [];
+            if (generoActivo !== 'Todos') partes.push(generoActivo);
+            if (idiomaActivo !== 'Todos') partes.push(idiomaActivo);
+            return partes.join(' y ');
+        }
 
-            if (!q) {
-                busquedaFueAproximada = false;
-                return ordenarCatalogo(porGenero);
-            }
-
-            const exactas = porGenero.filter(c =>
+        // Busca dentro de la lista que se le pase. Se saco aparte para poder
+        // llamarla dos veces: primero dentro del filtro y, si ahi no hay nada,
+        // otra vez sobre el catalogo entero.
+        function buscarEn(lista, q) {
+            const exactas = lista.filter(c =>
                 sinAcentos(c.artista).includes(q)
                 || sinAcentos(c.titulo).includes(q)
                 || sinAcentos(c.genero).includes(q)
@@ -1027,27 +1032,68 @@
             );
 
             if (exactas.length > 0) {
-                busquedaFueAproximada = false;
-                return ordenarPorRelevancia(exactas, q);
+                return { hallazgos: ordenarPorRelevancia(exactas, q), aproximada: false };
             }
 
             // Sin coincidencias exactas se prueba tolerando erratas. Escribir
             // "morrisette" en vez de "morissette" no deberia dejar sin cantar
             // a nadie: en la sala se teclea rapido y en un celular.
-            // Solo corre cuando la busqueda normal no dio nada, asi que no
-            // ralentiza el caso habitual.
             const palabras = q.split(/\s+/).filter((p) => p.length >= 2);
-            if (palabras.length === 0) {
-                busquedaFueAproximada = false;
-                return ordenarCatalogo(exactas);
-            }
+            if (palabras.length === 0) return { hallazgos: [], aproximada: false };
 
-            const aproximadas = porGenero.filter(c =>
+            const aproximadas = lista.filter(c =>
                 coincideAproximado(sinAcentos(`${c.artista} ${c.titulo}`), palabras)
             );
 
-            busquedaFueAproximada = aproximadas.length > 0;
-            return ordenarPorRelevancia(aproximadas, q);
+            return {
+                hallazgos: ordenarPorRelevancia(aproximadas, q),
+                aproximada: aproximadas.length > 0
+            };
+        }
+
+        function filtrarCanciones() {
+            const q = sinAcentos(document.getElementById('searchBar').value);
+
+            const conVideo = cancionesREAL.filter(cancionTieneVideo);
+            const delFiltro = conVideo.filter(c => {
+                if (!coincideIdioma(c)) return false;
+                return generoActivo === 'Todos'
+                    || sinAcentos(c.genero) === sinAcentos(generoActivo);
+            });
+
+            busquedaFueraDelFiltro = 0;
+
+            if (!q) {
+                busquedaFueAproximada = false;
+                return ordenarCatalogo(delFiltro);
+            }
+
+            const dentro = buscarEn(delFiltro, q);
+            if (dentro.hallazgos.length > 0) {
+                busquedaFueAproximada = dentro.aproximada;
+                return dentro.hallazgos;
+            }
+
+            // Dentro del filtro no hay nada. Antes de decir "no se encontraron
+            // resultados" se mira el resto del catalogo, porque si ahi si esta,
+            // el cliente se iba convencido de que no la tenemos.
+            //
+            // Paso de verdad: Rosanna busco "Franco de vita" con un filtro
+            // puesto, no le salio nada, y un minuto despues pidio una cancion
+            // de Franco de Vita. Y de paso esas busquedas se anotaban como
+            // canciones que faltaban: 17 de 39 entradas de la lista eran
+            // canciones que si estaban.
+            if (hayFiltroPuesto()) {
+                const fuera = buscarEn(conVideo, q);
+                if (fuera.hallazgos.length > 0) {
+                    busquedaFueAproximada = fuera.aproximada;
+                    busquedaFueraDelFiltro = fuera.hallazgos.length;
+                    return fuera.hallazgos;
+                }
+            }
+
+            busquedaFueAproximada = false;
+            return [];
         }
 
         function aplicarFiltros() {
@@ -1165,6 +1211,22 @@
                 anotarBusquedaSinResultados();
                 agregarPieSugerencia(songList);
                 return;
+            }
+
+            // Si lo que sale es de fuera del filtro, se dice claramente. Sin
+            // botones ni nada que tocar: las canciones ya estan ahi debajo, y
+            // el chip se queda puesto para cuando borren la busqueda.
+            if (busquedaFueraDelFiltro > 0) {
+                const escrito = document.getElementById('searchBar').value.trim();
+                const aviso = document.createElement('div');
+                aviso.className = 'bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-3 text-center';
+                aviso.innerHTML =
+                    `<p class="text-amber-300 text-xs font-bold mb-1">` +
+                        `No hay "${escaparTexto(escrito)}" en ${escaparTexto(nombreDelFiltro())}</p>` +
+                    `<p class="text-zinc-400 text-[11px] leading-snug">` +
+                        `Te mostramos ${busquedaFueraDelFiltro === 1 ? "la que hay" : "las " + busquedaFueraDelFiltro + " que hay"}` +
+                        ` en el resto del catálogo</p>`;
+                songList.appendChild(aviso);
             }
 
             // Si hubo que corregir la ortografia, se avisa: asi el cliente
