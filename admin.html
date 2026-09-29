@@ -132,13 +132,16 @@
              Se abre en otra pestaña para no perder el control remoto. -->
         <div>
             <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Tienda</h2>
-            <a href="tienda.html" target="_blank" rel="noopener"
+            <!-- desde=admin hace que la tienda enseñe el enlace de vuelta aqui.
+                 Va en la misma pestaña justamente por eso: con el boton de
+                 volver a la vista no hace falta abrir otra. -->
+            <a href="tienda.html?desde=admin"
                 class="w-full flex items-center justify-center gap-2 bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-black py-4 rounded-xl text-lg active:scale-95 transition-all">
-                🛒 PEDIR COMIDA
+                🛒 PEDIR COMIDA U OTROS
             </a>
             <a href="tienda-admin.html" target="_blank" rel="noopener"
                 class="block text-center text-zinc-600 hover:text-amber-400 text-[11px] font-bold py-2 mt-1 transition-colors">
-                gestionar productos y tasa
+                gestionar productos y tasa (clave aparte)
             </a>
         </div>
 

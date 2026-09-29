@@ -38,6 +38,78 @@ function configurado() {
     return Boolean(token && token.includes(':') && chatId);
 }
 
+// EL PROBLEMA QUE ARREGLA LO DE ABAJO
+//
+// Pasaba que el primer aviso no llegaba nunca y, al mandar el segundo,
+// aparecian los dos de golpe. Tanto con los pedidos como con la llamada al
+// operador, que a alguien le toco repetir porque la primera se perdio.
+//
+// Es la firma clasica de una peticion que se queda colgada en una funcion sin
+// servidor: Vercel congela la instancia con el socket a medias, y no se
+// descongela hasta que llega la siguiente llamada. Ahi sale la de antes y la
+// nueva juntas. Esperar sin limite no sirve de nada, porque la funcion se muere
+// por tiempo agotado antes de que la peticion termine.
+//
+// La solucion son las dos cosas juntas:
+//   1. Un limite de tiempo por intento, para cortar el socket colgado en vez de
+//      arrastrarlo. Sin esto los reintentos tampoco llegarian a ocurrir.
+//   2. Reintentos con conexion nueva, porque el fallo casi siempre es del
+//      primer intento en frio.
+//
+// Y en vercel.json se le subio el tiempo maximo a estas funciones, porque con
+// los 10 segundos de por defecto no cabian los tres intentos.
+
+const INTENTOS = 3;
+const TIMEOUT_MS = 6000;
+const ESPERAS_MS = [400, 1200];
+
+function esperar(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
+
+// Un intento suelto. Devuelve { ok } o { ok:false, ... , reintentable }.
+async function intentarEnvio(token, chatId, texto) {
+    const ac = new AbortController();
+    const reloj = setTimeout(() => ac.abort(), TIMEOUT_MS);
+
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: texto }),
+            signal: ac.signal
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) return { ok: true };
+
+        // 4xx es culpa nuestra (token malo, chat que no existe): repetirlo da
+        // exactamente el mismo error y solo gasta el tiempo de la funcion.
+        // 429 y 5xx si son pasajeros.
+        const reintentable = res.status === 429 || res.status >= 500;
+
+        console.error('[telegram] rechazado', res.status, data);
+        return {
+            ok: false,
+            reintentable,
+            error: 'Telegram rechazo el mensaje',
+            telegramDescription: data.description || 'Sin descripcion de Telegram',
+            details: data
+        };
+    } catch (err) {
+        const porTiempo = err.name === 'AbortError';
+        console.error('[telegram]', porTiempo ? 'se agoto el tiempo' : 'error de red:', err.message);
+        return {
+            ok: false,
+            reintentable: true,
+            error: porTiempo ? 'Telegram no respondio a tiempo' : 'Error al contactar Telegram'
+        };
+    } finally {
+        clearTimeout(reloj);
+    }
+}
+
 // Nunca lanza: devuelve { ok, error }. Quien llama decide si el fallo importa.
 // En el caso de la tienda NO importa tanto como parece: el pedido ya quedo
 // guardado en la base antes de llegar aqui.
@@ -52,29 +124,21 @@ async function enviarMensaje(texto) {
         return { ok: false, error: 'TELEGRAM_BOT_TOKEN invalido (debe ser como 123456789:ABCdef...)' };
     }
 
-    try {
-        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: texto })
-        });
+    let ultimo = { ok: false, error: 'No se pudo contactar Telegram' };
 
-        const data = await res.json().catch(() => ({}));
+    for (let i = 0; i < INTENTOS; i++) {
+        ultimo = await intentarEnvio(token, chatId, texto);
 
-        if (!res.ok) {
-            console.error('[telegram]', data);
-            return {
-                ok: false,
-                error: 'Telegram rechazo el mensaje',
-                telegramDescription: data.description || 'Sin descripcion de Telegram'
-            };
+        if (ultimo.ok) {
+            if (i > 0) console.log(`[telegram] enviado en el intento ${i + 1}`);
+            return { ok: true };
         }
 
-        return { ok: true };
-    } catch (err) {
-        console.error('[telegram] error de red:', err);
-        return { ok: false, error: 'Error al contactar Telegram' };
+        if (!ultimo.reintentable) break;
+        if (i < INTENTOS - 1) await esperar(ESPERAS_MS[i]);
     }
+
+    return ultimo;
 }
 
 module.exports = { enviarMensaje, configurado };

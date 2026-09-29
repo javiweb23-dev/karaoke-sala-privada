@@ -21,7 +21,8 @@ const optional = [
   'efectos_disponibles.js',
   'musica_cierre_disponible.js',
   'tienda.html',
-  'tienda-admin.html'
+  'tienda-admin.html',
+  'qr-tienda.html'
 ];
 
 // videos_disponibles.js lo genera "npm run actualizar" en la maquina donde

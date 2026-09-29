@@ -1,11 +1,12 @@
 // Gestion de la tienda: productos, fotos y tasa manual.
 //
-// TODO lo de aqui exige el PIN del operador, el mismo de /api/sesion.js.
-// tienda-admin.html no tiene login propio, asi que este PIN es lo unico que
-// separa al operador de un curioso que conozca la URL.
+// LLEVA SU PROPIA CLAVE, distinta a la del operador. No es lo mismo dejar que
+// alguien pause una cancion que dejarle cambiar los precios: el ADMIN_PIN lo
+// tiene quien maneje la consola esa noche, y con el no se debe poder tocar el
+// menu. Por eso aqui manda TIENDA_PIN y solo eso.
 //
-// Variables de entorno en Vercel (ya las tienes todas):
-//   ADMIN_PIN
+// Variables de entorno en Vercel:
+//   TIENDA_PIN             (NUEVA — la clave del menu, distinta de ADMIN_PIN)
 //   SUPABASE_URL
 //   SUPABASE_SERVICE_KEY
 
@@ -14,8 +15,7 @@ const {
     supabaseFetch,
     supabaseFetchEstricto,
     configurado,
-    pinValido,
-    hayPinConfigurado
+    comparaSecreto
 } = require('./_lib-supabase');
 const { obtenerTasa } = require('./_lib-tasa');
 const { aplicarCors } = require('./_lib-http');
@@ -32,6 +32,18 @@ const MAX_BYTES = 3 * 1024 * 1024;
 
 function texto(valor, maximo) {
     return String(valor == null ? '' : valor).trim().replace(/\s+/g, ' ').slice(0, maximo);
+}
+
+function hayClaveTienda() {
+    return Boolean(sanitizeEnv(process.env.TIENDA_PIN));
+}
+
+// Comparacion en tiempo constante, igual que el PIN del operador: sin ella se
+// podria adivinar la clave midiendo cuanto tarda la respuesta.
+function claveTiendaValida(recibida) {
+    const esperada = sanitizeEnv(process.env.TIENDA_PIN);
+    if (!esperada) return false;
+    return comparaSecreto(String(recibida || '').trim(), esperada);
 }
 
 function precioValido(valor) {
@@ -338,11 +350,14 @@ module.exports = async (req, res) => {
         });
     }
 
-    if (!hayPinConfigurado()) {
+    // Sin TIENDA_PIN no se abre con el del operador "para que al menos
+    // funcione": eso es justo lo que se quiere evitar. Se dice que falta y ya.
+    if (!hayClaveTienda()) {
         return res.status(500).json({
             ok: false,
             sinConfigurar: true,
-            error: 'Falta ADMIN_PIN en Vercel'
+            error: 'Falta TIENDA_PIN en Vercel. Agregala en Settings > Environment ' +
+                   'Variables (Production) y vuelve a desplegar.'
         });
     }
 
@@ -351,9 +366,10 @@ module.exports = async (req, res) => {
         try { cuerpo = JSON.parse(cuerpo); } catch (e) { cuerpo = {}; }
     }
 
-    if (!pinValido(cuerpo?.pin)) {
+    if (!claveTiendaValida(cuerpo?.pin)) {
+        // Retraso fijo: probar claves a mano deja de ser comodo.
         await new Promise((r) => setTimeout(r, 700));
-        return res.status(401).json({ ok: false, error: 'PIN incorrecto' });
+        return res.status(401).json({ ok: false, error: 'Clave incorrecta' });
     }
 
     const accion = ACCIONES[String(cuerpo?.accion || '')];

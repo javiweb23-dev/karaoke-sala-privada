@@ -26,6 +26,19 @@
 
     <!-- ─────────────────────────── Cabecera ─────────────────────────── -->
     <header class="sticky top-0 z-40 bg-zinc-900 border-b border-zinc-800 shadow-lg shadow-black/40">
+
+        <!-- Solo sale al entrar desde el panel. Sin esto, el operador que se
+             mete a pedir algo se queda sin forma de volver, y mientras tanto
+             no puede controlar la musica. -->
+        <div id="barraVolver" class="hidden bg-zinc-800/70 border-b border-zinc-700/70">
+            <div class="max-w-5xl mx-auto px-4 py-2">
+                <a href="admin.html"
+                    class="inline-flex items-center gap-1.5 text-zinc-300 hover:text-amber-400 text-xs font-bold transition-colors">
+                    ← Volver al panel del operador
+                </a>
+            </div>
+        </div>
+
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
             <img src="logo.png" alt="Mi Karaoke Latino" class="h-10 w-auto object-contain shrink-0">
 
@@ -113,15 +126,29 @@
                 <!-- Los datos del pedido. Solo dos: quien pide y desde donde.
                      Nada de telefono ni correo: la comida se lleva a la mesa. -->
                 <div id="carritoFormulario" class="hidden mt-6 pt-5 border-t border-zinc-800">
-                    <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Tu nombre</label>
+                    <label for="pedidoNombre" class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Tu nombre</label>
                     <input type="text" id="pedidoNombre" maxlength="60" autocomplete="name"
                         placeholder="Ej: María, Carlos..."
                         class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm mb-4 focus:outline-none focus:border-amber-500">
 
-                    <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">¿Desde dónde pides?</label>
-                    <input type="text" id="pedidoUbicacion" maxlength="80"
-                        placeholder="Ej: Mesa 4, área de la piscina..."
-                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm focus:outline-none focus:border-amber-500">
+                    <!-- Lista en vez de texto libre: con el campo abierto la
+                         gente escribia cualquier cosa y despues habia que
+                         adivinar adonde llevar el pedido. La primera opcion no
+                         vale a proposito, para que elegir sea un acto y no un
+                         descuido: si viniera marcada "Sala de Karaoke", quien
+                         esta afuera mandaria el pedido al sitio equivocado sin
+                         darse cuenta. -->
+                    <label for="pedidoLugar" class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">¿Desde dónde pides?</label>
+                    <select id="pedidoLugar"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 text-sm focus:outline-none focus:border-amber-500">
+                        <option value="" disabled selected>Elige dónde estás...</option>
+                        <option value="Sala de Karaoke">Sala de Karaoke</option>
+                        <option value="Otro lugar">Otro lugar</option>
+                    </select>
+
+                    <input type="text" id="pedidoLugarOtro" maxlength="80"
+                        placeholder="¿Dónde exactamente? Ej: Mesa 4, piscina..."
+                        class="hidden w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm mt-2 focus:outline-none focus:border-amber-500">
 
                     <p id="pedidoError" class="text-red-400 text-xs font-bold mt-3 min-h-4"></p>
                 </div>
@@ -153,10 +180,18 @@
             </p>
             <p id="listoNumero" class="text-zinc-600 text-xs font-mono mb-2"></p>
             <p id="listoAviso" class="hidden text-amber-500/90 text-xs leading-relaxed mb-2"></p>
+
             <button type="button" id="btnSeguir"
-                class="mt-6 w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                class="mt-6 w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3.5 rounded-xl text-sm active:scale-95 transition-all">
                 Pedir algo más
             </button>
+
+            <!-- El texto y el destino cambian segun de donde vino: al panel si
+                 entro desde el admin, al catalogo si llego por el QR. -->
+            <a id="btnVolver" href="#"
+                class="mt-2 block w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                Volver al inicio
+            </a>
         </div>
     </div>
 
@@ -520,11 +555,21 @@ function cerrarCarrito() {
 
 // ------------------------------------------------------------------- confirmar
 
+// Junta la opcion elegida con el detalle, para que al operador le llegue
+// "Otro lugar: Mesa 4" y no un "Otro lugar" a secas que no dice nada.
+function lugarElegido() {
+    const opcion = document.getElementById('pedidoLugar').value;
+    if (opcion !== 'Otro lugar') return opcion;
+
+    const detalle = document.getElementById('pedidoLugarOtro').value.trim();
+    return detalle ? `Otro lugar: ${detalle}` : '';
+}
+
 async function confirmarPedido() {
     const btn = document.getElementById('btnConfirmar');
     const err = document.getElementById('pedidoError');
     const nombre = document.getElementById('pedidoNombre').value.trim();
-    const ubicacion = document.getElementById('pedidoUbicacion').value.trim();
+    const ubicacion = lugarElegido();
 
     err.textContent = '';
 
@@ -533,9 +578,14 @@ async function confirmarPedido() {
         document.getElementById('pedidoNombre').focus();
         return;
     }
+    if (!document.getElementById('pedidoLugar').value) {
+        err.textContent = 'Elige desde dónde pides';
+        document.getElementById('pedidoLugar').focus();
+        return;
+    }
     if (ubicacion.length < 2) {
-        err.textContent = 'Escribe desde dónde pides';
-        document.getElementById('pedidoUbicacion').focus();
+        err.textContent = 'Escribe dónde estás exactamente';
+        document.getElementById('pedidoLugarOtro').focus();
         return;
     }
     if (carrito.size === 0) {
@@ -620,18 +670,74 @@ document.getElementById('btnCerrarCarrito').addEventListener('click', cerrarCarr
 document.getElementById('carritoFondo').addEventListener('click', cerrarCarrito);
 document.getElementById('btnConfirmar').addEventListener('click', confirmarPedido);
 
-document.getElementById('btnSeguir').addEventListener('click', () => {
+// El detalle del lugar solo estorba mientras no haga falta.
+document.getElementById('pedidoLugar').addEventListener('change', (e) => {
+    const otro = document.getElementById('pedidoLugarOtro');
+    const esOtro = e.target.value === 'Otro lugar';
+    otro.classList.toggle('hidden', !esOtro);
+    if (esOtro) otro.focus();
+    else otro.value = '';
+    limpiarError();
+});
+
+// El error se borra en cuanto tocan algo. Sin esto quedaba pegado: escribian
+// el nombre despues de que saliera y seguian leyendo "Escribe tu nombre"
+// encima del campo ya lleno, como si el formulario no se enterara.
+function limpiarError() {
+    document.getElementById('pedidoError').textContent = '';
+}
+
+['pedidoNombre', 'pedidoLugarOtro'].forEach((id) => {
+    const campo = document.getElementById(id);
+    campo.addEventListener('input', limpiarError);
+    campo.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmarPedido();
+    });
+});
+
+function volverAlCatalogo() {
     const listo = document.getElementById('panelListo');
     listo.classList.add('hidden');
     listo.classList.remove('flex');
-    document.getElementById('pedidoNombre').value = '';
-    document.getElementById('pedidoUbicacion').value = '';
+    document.getElementById('pedidoLugar').selectedIndex = 0;
+    document.getElementById('pedidoLugarOtro').value = '';
+    document.getElementById('pedidoLugarOtro').classList.add('hidden');
+    limpiarError();
+    window.scrollTo({ top: 0 });
     cargarCatalogo();
-});
+}
 
-document.getElementById('pedidoUbicacion').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') confirmarPedido();
-});
+// El nombre NO se borra: casi siempre pide la misma persona varias veces en la
+// noche y volver a teclearlo cada vez es un fastidio.
+document.getElementById('btnSeguir').addEventListener('click', volverAlCatalogo);
+
+// ------------------------------------------------------- de donde vino
+
+// Quien entra desde el panel necesita poder volver: si se queda aqui, deja de
+// controlar la musica mientras pide.
+const DESDE_ADMIN = new URLSearchParams(location.search).get('desde') === 'admin';
+const btnVolver = document.getElementById('btnVolver');
+
+if (DESDE_ADMIN) {
+    document.getElementById('barraVolver').classList.remove('hidden');
+    btnVolver.textContent = 'Volver al panel del operador';
+    btnVolver.href = 'admin.html';
+} else {
+    btnVolver.textContent = 'Volver al inicio';
+    btnVolver.href = '#';
+    btnVolver.addEventListener('click', (e) => {
+        e.preventDefault();
+        volverAlCatalogo();
+    });
+}
+
+// Si ya escribio su nombre en el karaoke, no se lo volvemos a preguntar.
+try {
+    const delKaraoke = localStorage.getItem('karaoke_nombre');
+    if (delKaraoke) document.getElementById('pedidoNombre').value = delKaraoke;
+} catch (e) {
+    // Modo privado. Se queda vacio y lo escribe a mano.
+}
 
 recuperarCarrito();
 refrescarTotales();

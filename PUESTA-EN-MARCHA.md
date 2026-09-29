@@ -217,24 +217,45 @@ donde recibes las alertas del operador, con la lista, quién pidió y desde dón
 1. Ejecuta [sql/011-tienda.sql](sql/011-tienda.sql) en Supabase (SQL Editor →
    New query → Run). Crea las tablas, el bucket de fotos y cuatro productos de
    prueba.
-2. **No hace falta ninguna variable nueva** en Vercel: usa las que ya tienes
-   (`ADMIN_PIN`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `TELEGRAM_BOT_TOKEN`,
-   `TELEGRAM_CHAT_ID`).
+2. En Vercel → Settings → Environment Variables, con **Production** marcado,
+   agrega **una sola variable nueva**:
 
-### Las tres páginas
+| Variable | Valor |
+|---|---|
+| `TIENDA_PIN` | la clave del menú. **Distinta de `ADMIN_PIN`** |
 
-| Página | Para quién | Pide PIN |
+3. **Deployments → ⋯ → Redeploy.** Las variables no se aplican sin esto.
+
+Las demás ya las tienes: `ADMIN_PIN`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`,
+`TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
+
+**Por qué una clave aparte:** el `ADMIN_PIN` lo tiene quien maneje la consola
+esa noche. No es lo mismo dejar que alguien pause una canción que dejarle
+cambiar los precios. Con `TIENDA_PIN` el menú solo lo toca quien tú decidas, y
+entrar al admin no da acceso. Mientras no la configures, el panel de productos
+no abre y te lo dice en pantalla.
+
+### Las páginas
+
+| Página | Para quién | Clave |
 |---|---|---|
-| [tienda.html](tienda.html) | El cliente. Catálogo y carrito. | No |
-| [tienda-admin.html](tienda-admin.html) | Tú. Productos, fotos y tasa. | Sí |
-| [admin.html](admin.html) | Ya lo conoces. Ahora tiene el botón **🛒 PEDIR COMIDA**. | Sí |
+| [tienda.html](tienda.html) | El cliente. Catálogo y carrito. | Ninguna |
+| [tienda-admin.html](tienda-admin.html) | Productos, fotos y tasa. | `TIENDA_PIN` |
+| [admin.html](admin.html) | Ya lo conoces. Ahora tiene **🛒 PEDIR COMIDA U OTROS**. | `ADMIN_PIN` |
+| [qr-tienda.html](qr-tienda.html) | Cartel de un solo QR para colgar en el área. | Ninguna |
 
 En la pantalla del PIN del admin hay además un botón **Comprar en la Tienda**:
 es para quien escanea el QR del control remoto sin ser del staff y se quedaba
 atascado pidiendo una clave que nadie le va a dar.
 
-El cartel de QR ([carteles_qr_sala_privada.html](carteles_qr_sala_privada.html))
-trae una tarjeta nueva, **PEDIR REFRIGERIOS Y OTROS**, para colgar en el área.
+Al entrar a la tienda desde el panel, arriba sale **← Volver al panel del
+operador** y no desaparece: sin eso, quien se mete a pedir algo deja de poder
+controlar la música mientras tanto.
+
+Los carteles: [qr-tienda.html](qr-tienda.html) es el de la tienda sola, para
+imprimir o mandar por WhatsApp. El de siempre
+([carteles_qr_sala_privada.html](carteles_qr_sala_privada.html)) también trae ya
+la tarjeta **PEDIR REFRIGERIOS Y OTROS**.
 
 ### Agregar productos
 
@@ -255,6 +276,22 @@ guardas. Mientras esté marcado, manda tu número y no se consulta internet.
 
 Cada pedido guarda la tasa que se usó en ese momento, así el historial sigue
 cuadrando aunque la tasa cambie después.
+
+### Los avisos que se perdían
+
+Pasaba que el primer aviso no llegaba y, al mandar el segundo, aparecían los
+dos de golpe. Ocurría con los pedidos **y con el botón de llamar al operador**:
+hubo una llamada que se perdió y tuvieron que repetirla.
+
+La causa era una petición que se quedaba colgada. Vercel congela la función con
+la conexión a medias y no la descongela hasta la siguiente llamada, y ahí salen
+las dos juntas. Ahora cada intento tiene un límite de tiempo y, si falla, se
+reintenta hasta tres veces con conexión nueva. Los dos avisos usan el mismo
+código, así que el arreglo vale para ambos.
+
+Si aun así un aviso no sale, el cliente lo ve en pantalla («el aviso automático
+no salió, confírmalo con el personal») y **el pedido igual quedó guardado** en
+Supabase: primero se guarda y después se avisa, nunca al revés.
 
 ### Dónde ver los pedidos
 

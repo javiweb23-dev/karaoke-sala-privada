@@ -17,12 +17,14 @@
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans">
 
-    <!-- Puerta del panel. Mismo PIN que el resto del admin. -->
+    <!-- Puerta del panel. Clave PROPIA, distinta a la del operador: aqui se
+         tocan los precios, y quien maneja la consola esa noche no tiene por
+         que poder cambiarlos. -->
     <div id="puerta" class="fixed inset-0 bg-zinc-950 z-[300] flex flex-col justify-center items-center p-6">
         <div class="w-full max-w-xs text-center">
             <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
             <h2 class="text-lg font-bold text-zinc-200 mb-1">Productos de la tienda</h2>
-            <p class="text-zinc-500 text-xs mb-6">Introduce el PIN para continuar</p>
+            <p class="text-zinc-500 text-xs mb-6">Clave de la tienda (no es la del operador)</p>
 
             <input type="password" id="pinInput" autocomplete="off"
                 class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-white font-bold text-center mb-3 focus:outline-none focus:border-amber-500">
@@ -206,12 +208,14 @@
 // efectos y las sesiones, y meterle mas codigo encima es arriesgar lo que ya
 // funciona por unos productos.
 //
-// Todo pasa por /api/tienda-admin.js con el PIN. Aqui no hay ninguna clave.
+// Todo pasa por /api/tienda-admin.js con la clave. Aqui no hay ninguna clave
+// escrita: se comprueba contra el servidor.
 // ---------------------------------------------------------------------------
 
-// La misma que usa admin.html: si ya entro el PIN ahi, aqui no se le vuelve a
-// preguntar.
-const CLAVE_PIN = 'karaoke_pin_operador';
+// Llave PROPIA, a proposito distinta de 'karaoke_pin_operador'. Si se
+// compartiera, cualquiera que ya hubiera entrado al admin en ese telefono
+// entraria aqui sin que se le pida nada y podria cambiar los precios.
+const CLAVE_PIN = 'karaoke_clave_tienda';
 
 let productos = [];
 let tasa = null;
@@ -278,8 +282,8 @@ async function api(accion, extra = {}) {
         return { ok: false, error: 'Sin conexión' };
     }
 
-    // PIN malo: se borra el guardado y se vuelve a pedir, como en admin.html.
-    if (!data.ok && data.error === 'PIN incorrecto') {
+    // Clave mala: se borra la guardada y se vuelve a pedir.
+    if (!data.ok && data.error === 'Clave incorrecta') {
         localStorage.removeItem(CLAVE_PIN);
         mostrarPuerta();
     }
@@ -322,15 +326,15 @@ async function intentarEntrar() {
         return;
     }
 
-    // Un fallo de configuracion no es un PIN equivocado: se dice lo que pasa
-    // en vez de dejar a la operadora tecleando el PIN correcto una y otra vez.
+    // Un fallo de configuracion no es una clave equivocada: se dice lo que
+    // pasa en vez de dejarla tecleando la clave correcta una y otra vez.
     if (data.sinConfigurar || data.faltaSql) {
         err.textContent = data.error;
         return;
     }
 
     localStorage.removeItem(CLAVE_PIN);
-    err.textContent = data.error || 'PIN incorrecto';
+    err.textContent = data.error || 'Clave incorrecta';
     input.value = '';
     input.focus();
 }
