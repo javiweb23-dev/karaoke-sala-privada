@@ -38,6 +38,20 @@
             </button>
 
             <p id="adminPinError" class="text-red-400 text-xs font-bold mt-4 h-4"></p>
+
+            <!-- Salida para quien no viene al karaoke. El cartel del area trae
+                 hasta aqui a gente que solo quiere pedir refrigerios, y el PIN
+                 no lo tiene nadie mas que el operador: sin esto se quedaban
+                 mirando una clave que nunca les van a dar. -->
+            <div class="mt-8 pt-6 border-t border-zinc-800">
+                <p class="text-zinc-500 text-[11px] mb-3 leading-relaxed">
+                    ¿No vienes a cantar y solo quieres pedir algo?
+                </p>
+                <a href="tienda.html"
+                    class="block w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                    🛒 Comprar en la Tienda
+                </a>
+            </div>
         </div>
     </div>
 
@@ -111,6 +125,21 @@
         <div>
             <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Efectos Especiales</h2>
             <div id="panelEfectos" class="grid grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- Tienda de refrigerios. Pagina aparte a proposito: no comparte nada
+             con la cola ni con el reproductor, y funciona con la sala cerrada.
+             Se abre en otra pestaña para no perder el control remoto. -->
+        <div>
+            <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider text-center">Tienda</h2>
+            <a href="tienda.html" target="_blank" rel="noopener"
+                class="w-full flex items-center justify-center gap-2 bg-emerald-900/40 hover:bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 font-black py-4 rounded-xl text-lg active:scale-95 transition-all">
+                🛒 PEDIR COMIDA
+            </a>
+            <a href="tienda-admin.html" target="_blank" rel="noopener"
+                class="block text-center text-zinc-600 hover:text-amber-400 text-[11px] font-bold py-2 mt-1 transition-colors">
+                gestionar productos y tasa
+            </a>
         </div>
 
         <div class="pt-4 mt-2 border-t border-zinc-800">

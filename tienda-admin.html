@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda - Productos - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body { min-height: 100vh; min-height: 100dvh; }
+        .lineas-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans">
+
+    <!-- Puerta del panel. Mismo PIN que el resto del admin. -->
+    <div id="puerta" class="fixed inset-0 bg-zinc-950 z-[300] flex flex-col justify-center items-center p-6">
+        <div class="w-full max-w-xs text-center">
+            <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
+            <h2 class="text-lg font-bold text-zinc-200 mb-1">Productos de la tienda</h2>
+            <p class="text-zinc-500 text-xs mb-6">Introduce el PIN para continuar</p>
+
+            <input type="password" id="pinInput" autocomplete="off"
+                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-white font-bold text-center mb-3 focus:outline-none focus:border-amber-500">
+
+            <button type="button" id="pinBtn"
+                class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl active:scale-95 transition-all">
+                ENTRAR
+            </button>
+
+            <p id="pinError" class="text-red-400 text-xs font-bold mt-4 min-h-4"></p>
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
+
+        <header class="flex items-center gap-4 pb-4 border-b border-zinc-800">
+            <img src="logo.png" alt="Mi Karaoke Latino" class="h-12 w-auto shrink-0 object-contain">
+            <div class="min-w-0 flex-1">
+                <h1 class="text-lg font-black text-amber-400 tracking-wide leading-tight">TIENDA</h1>
+                <p class="text-xs text-zinc-500 mt-0.5">Productos y tasa del día</p>
+            </div>
+            <a href="tienda.html" target="_blank" rel="noopener"
+                class="shrink-0 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold px-3 py-2 rounded-xl text-xs active:scale-95 transition-all">
+                Ver tienda ↗
+            </a>
+        </header>
+
+        <!-- ───────────────────────── Tasa ───────────────────────── -->
+        <section>
+            <h2 class="text-zinc-400 text-xs font-bold mb-3 uppercase tracking-wider">Tasa de referencia</h2>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                <div class="flex items-baseline gap-2 mb-1">
+                    <span id="tasaActual" class="text-2xl font-black text-amber-400">—</span>
+                    <span id="tasaFuente" class="text-[11px] text-zinc-500"></span>
+                </div>
+                <p class="text-zinc-600 text-[11px] leading-relaxed mb-4">
+                    Los precios se guardan en dólares. Esta tasa solo sirve para mostrar
+                    la referencia en bolívares.
+                </p>
+
+                <label class="flex items-start gap-3 mb-3 cursor-pointer">
+                    <input type="checkbox" id="usarManual"
+                        class="mt-0.5 w-4 h-4 shrink-0 accent-amber-500">
+                    <span class="text-zinc-300 text-sm leading-snug">
+                        Usar tasa manual
+                        <span class="block text-zinc-600 text-[11px] mt-0.5">
+                            Actívalo solo si la tasa automática está mal o no aparece.
+                        </span>
+                    </span>
+                </label>
+
+                <div class="flex items-center gap-2">
+                    <input type="number" id="tasaManual" step="0.01" min="0" placeholder="Ej: 364.00"
+                        class="flex-1 bg-zinc-950 border border-zinc-700 rounded-xl py-2.5 px-3 text-zinc-100 text-sm focus:outline-none focus:border-amber-500">
+                    <button type="button" id="btnGuardarTasa"
+                        class="shrink-0 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-bold px-4 py-2.5 rounded-xl text-sm active:scale-95 transition-all">
+                        Guardar
+                    </button>
+                </div>
+                <p id="tasaMensaje" class="text-[11px] font-bold mt-2 min-h-4"></p>
+            </div>
+        </section>
+
+        <!-- ─────────────────────── Productos ─────────────────────── -->
+        <section>
+            <div class="flex items-center gap-3 mb-3">
+                <h2 class="flex-1 text-zinc-400 text-xs font-bold uppercase tracking-wider">Productos</h2>
+                <button type="button" id="btnNuevo"
+                    class="bg-amber-500 hover:bg-amber-400 text-black font-black px-4 py-2 rounded-xl text-xs active:scale-95 transition-all">
+                    + NUEVO
+                </button>
+            </div>
+
+            <div id="listaProductos" class="flex flex-col gap-2">
+                <p class="text-zinc-600 italic text-sm">Cargando...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- ──────────────────── Crear / editar producto ──────────────────── -->
+    <div id="modalProducto" class="fixed inset-0 z-[200] hidden">
+        <div class="absolute inset-0 bg-black/85" data-cerrar-modal></div>
+
+        <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:h-fit sm:max-w-md
+                    bg-zinc-950 border-t sm:border border-zinc-800 rounded-t-2xl sm:rounded-2xl
+                    flex flex-col max-h-[94dvh]">
+
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-zinc-800 shrink-0">
+                <h2 id="modalTitulo" class="flex-1 text-base font-black text-amber-400 tracking-wide">NUEVO PRODUCTO</h2>
+                <button type="button" data-cerrar-modal
+                    class="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 active:scale-90 transition-all text-lg">✕</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+
+                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Foto</label>
+                <div class="flex items-center gap-3 mb-5">
+                    <div id="fotoPrevia"
+                        class="w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 flex items-center justify-center text-2xl text-zinc-700">🛍️</div>
+                    <div class="min-w-0 flex-1">
+                        <input type="file" id="fotoInput" accept="image/*" class="hidden">
+                        <button type="button" id="btnFoto"
+                            class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-bold px-3 py-2.5 rounded-xl text-xs active:scale-95 transition-all">
+                            Elegir foto
+                        </button>
+                        <button type="button" id="btnQuitarFoto"
+                            class="hidden w-full mt-1.5 text-zinc-600 hover:text-red-400 text-[11px] font-bold py-1 transition-colors">
+                            quitar la foto
+                        </button>
+                        <p id="fotoMensaje" class="text-[10px] text-zinc-600 mt-1.5 leading-snug">
+                            Se reduce sola antes de subirse.
+                        </p>
+                    </div>
+                </div>
+
+                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Nombre</label>
+                <input type="text" id="campoNombre" maxlength="80" placeholder="Ej: Coca Cola 2 Lts"
+                    class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm mb-4 focus:outline-none focus:border-amber-500">
+
+                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Descripción breve</label>
+                <textarea id="campoDescripcion" rows="2" maxlength="300" placeholder="Ej: Refresco de 2 litros bien frío."
+                    class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm mb-4 resize-none focus:outline-none focus:border-amber-500"></textarea>
+
+                <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Precio en dólares</label>
+                <div class="relative mb-2">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
+                    <input type="number" id="campoPrecio" step="0.01" min="0" placeholder="0.00"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 pl-8 pr-4 text-zinc-100 placeholder-zinc-600 text-sm focus:outline-none focus:border-amber-500">
+                </div>
+                <p id="precioRef" class="text-zinc-600 text-[11px] mb-4 min-h-4"></p>
+
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="campoActivo" checked class="w-4 h-4 shrink-0 accent-amber-500">
+                    <span class="text-zinc-300 text-sm">Visible en la tienda</span>
+                </label>
+
+                <p id="modalError" class="text-red-400 text-xs font-bold mt-4 min-h-4"></p>
+            </div>
+
+            <div class="shrink-0 border-t border-zinc-800 px-5 py-4">
+                <button type="button" id="btnGuardarProducto"
+                    class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3.5 rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                    GUARDAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmacion propia y no confirm(): el del navegador encabeza el cartel
+         con el dominio y no combina con el resto. -->
+    <div id="modalBorrar" class="fixed inset-0 z-[210] bg-black/90 hidden flex-col justify-center items-center p-6">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm text-center">
+            <h2 class="text-lg font-bold text-amber-400 mb-3">¿Borrar este producto?</h2>
+            <p id="borrarNombre" class="text-zinc-400 text-sm mb-1 break-words"></p>
+            <p class="text-zinc-600 text-[11px] mb-6 leading-relaxed">
+                Los pedidos que ya se hicieron no se tocan: guardan el nombre y el precio por su cuenta.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" id="borrarNo"
+                    class="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl active:scale-95 transition-all">
+                    No
+                </button>
+                <button type="button" id="borrarSi"
+                    class="flex-1 bg-red-900/60 border border-red-700/60 text-red-200 font-black py-3 rounded-xl active:scale-95 transition-all">
+                    Sí, borrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aviso"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[300] rounded-xl p-3.5 text-center text-sm font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4"></div>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// PANEL DE LA TIENDA
+//
+// Pagina aparte de admin.html a proposito: ahi vive la consola de audio, los
+// efectos y las sesiones, y meterle mas codigo encima es arriesgar lo que ya
+// funciona por unos productos.
+//
+// Todo pasa por /api/tienda-admin.js con el PIN. Aqui no hay ninguna clave.
+// ---------------------------------------------------------------------------
+
+// La misma que usa admin.html: si ya entro el PIN ahi, aqui no se le vuelve a
+// preguntar.
+const CLAVE_PIN = 'karaoke_pin_operador';
+
+let productos = [];
+let tasa = null;
+let tasaFuente = null;
+
+// null = producto nuevo; un numero = se esta editando ese.
+let editandoId = null;
+// URL de la foto ya subida al bucket, mientras el producto se edita.
+let fotoUrl = null;
+
+// ------------------------------------------------------------------ utilidades
+
+function esc(t) {
+    return String(t == null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function usd(n) {
+    return `$${Number(n).toFixed(2)}`;
+}
+
+function bs(n) {
+    const [entero, dec] = Number(n).toFixed(2).split('.');
+    return `Bs ${entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec}`;
+}
+
+const AVISO_BASE = 'fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[300] ' +
+    'rounded-xl p-3.5 text-center text-sm font-bold shadow-2xl transition-all duration-300 pointer-events-none';
+
+const AVISO_COLORES = {
+    info: 'bg-zinc-800 text-zinc-100 border border-zinc-700',
+    ok: 'bg-emerald-900/95 text-emerald-100 border border-emerald-700',
+    error: 'bg-red-900/95 text-red-100 border border-red-700'
+};
+
+let avisoTimer = null;
+function avisar(texto, tipo = 'info') {
+    const caja = document.getElementById('aviso');
+    caja.className = `${AVISO_BASE} ${AVISO_COLORES[tipo] || AVISO_COLORES.info}`;
+    caja.textContent = texto;
+    if (avisoTimer) clearTimeout(avisoTimer);
+    avisoTimer = setTimeout(() => caja.classList.add('opacity-0', 'translate-y-4'), 2800);
+}
+
+// ---------------------------------------------------------------- llamadas api
+
+async function api(accion, extra = {}) {
+    const pin = localStorage.getItem(CLAVE_PIN);
+    if (!pin) {
+        mostrarPuerta();
+        return { ok: false, error: 'Falta el PIN' };
+    }
+
+    let data;
+    try {
+        const res = await fetch('/api/tienda-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion, pin, ...extra })
+        });
+        data = await res.json();
+    } catch (e) {
+        return { ok: false, error: 'Sin conexión' };
+    }
+
+    // PIN malo: se borra el guardado y se vuelve a pedir, como en admin.html.
+    if (!data.ok && data.error === 'PIN incorrecto') {
+        localStorage.removeItem(CLAVE_PIN);
+        mostrarPuerta();
+    }
+
+    return data;
+}
+
+// ------------------------------------------------------------------- la puerta
+
+function mostrarPuerta() {
+    document.getElementById('puerta').classList.remove('hidden');
+    setTimeout(() => document.getElementById('pinInput').focus(), 100);
+}
+
+function ocultarPuerta() {
+    document.getElementById('puerta').classList.add('hidden');
+}
+
+async function intentarEntrar() {
+    const input = document.getElementById('pinInput');
+    const btn = document.getElementById('pinBtn');
+    const err = document.getElementById('pinError');
+    const pin = input.value.trim();
+    if (!pin) return;
+
+    btn.disabled = true;
+    btn.textContent = 'COMPROBANDO...';
+    err.textContent = '';
+
+    localStorage.setItem(CLAVE_PIN, pin);
+    const data = await api('listar');
+
+    btn.disabled = false;
+    btn.textContent = 'ENTRAR';
+
+    if (data.ok) {
+        input.value = '';
+        ocultarPuerta();
+        aplicarDatos(data);
+        return;
+    }
+
+    // Un fallo de configuracion no es un PIN equivocado: se dice lo que pasa
+    // en vez de dejar a la operadora tecleando el PIN correcto una y otra vez.
+    if (data.sinConfigurar || data.faltaSql) {
+        err.textContent = data.error;
+        return;
+    }
+
+    localStorage.removeItem(CLAVE_PIN);
+    err.textContent = data.error || 'PIN incorrecto';
+    input.value = '';
+    input.focus();
+}
+
+// --------------------------------------------------------------------- pintado
+
+function aplicarDatos(data) {
+    productos = data.productos || [];
+    tasa = data.tasa || null;
+    tasaFuente = data.tasa_fuente || null;
+
+    document.getElementById('usarManual').checked = Boolean(data.config?.usar_tasa_manual);
+    const campoManual = document.getElementById('tasaManual');
+    if (data.config?.tasa_manual != null) campoManual.value = data.config.tasa_manual;
+
+    pintarTasa();
+    pintarProductos();
+}
+
+const NOMBRE_FUENTE = {
+    manual: 'puesta a mano',
+    dolarapi: 'automática (DolarApi)',
+    erapi: 'automática (ExchangeRate) — la principal no respondió',
+    cache: 'última conocida — las APIs no responden',
+    ninguna: 'sin tasa — solo se muestran dólares'
+};
+
+function pintarTasa() {
+    document.getElementById('tasaActual').textContent = tasa ? bs(tasa) : '—';
+    document.getElementById('tasaFuente').textContent = NOMBRE_FUENTE[tasaFuente] || '';
+    refrescarPrecioRef();
+}
+
+async function guardarTasa() {
+    const btn = document.getElementById('btnGuardarTasa');
+    const msg = document.getElementById('tasaMensaje');
+    const usar = document.getElementById('usarManual').checked;
+    const valor = document.getElementById('tasaManual').value.trim();
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    msg.textContent = '';
+
+    const data = await api('guardar_tasa', {
+        usar_tasa_manual: usar,
+        tasa_manual: valor === '' ? null : valor
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+
+    if (!data.ok) {
+        msg.className = 'text-red-400 text-[11px] font-bold mt-2 min-h-4';
+        msg.textContent = data.error || 'No se pudo guardar';
+        return;
+    }
+
+    tasa = data.tasa;
+    tasaFuente = data.tasa_fuente;
+    pintarTasa();
+    pintarProductos();
+
+    msg.className = 'text-emerald-400 text-[11px] font-bold mt-2 min-h-4';
+    msg.textContent = usar ? 'Usando la tasa manual' : 'Usando la tasa automática';
+}
+
+function filaProducto(p, i) {
+    const foto = p.imagen_url
+        ? `<img src="${esc(p.imagen_url)}" alt="" class="w-full h-full object-cover">`
+        : `<div class="w-full h-full flex items-center justify-center text-xl text-zinc-700">🛍️</div>`;
+
+    const oculto = p.activo
+        ? ''
+        : `<span class="inline-block bg-zinc-800 border border-zinc-700 text-zinc-500 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ml-1.5">oculto</span>`;
+
+    const referencia = tasa
+        ? `<span class="text-zinc-600 text-[10px] ml-1.5">${bs(p.precio_usd * tasa)}</span>`
+        : '';
+
+    return `
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex gap-3 items-center ${p.activo ? '' : 'opacity-60'}">
+            <div class="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">${foto}</div>
+
+            <div class="min-w-0 flex-1">
+                <p class="text-zinc-100 text-sm font-bold leading-snug truncate">${esc(p.nombre)}${oculto}</p>
+                <p class="leading-tight">
+                    <span class="text-amber-400 text-sm font-black">${usd(p.precio_usd)}</span>${referencia}
+                </p>
+                <p class="lineas-2 text-zinc-600 text-[10px] leading-snug">${esc(p.descripcion || '')}</p>
+            </div>
+
+            <div class="shrink-0 flex flex-col gap-1">
+                <div class="flex gap-1">
+                    <button type="button" data-subir="${p.id}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}
+                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[10px] active:scale-90 transition-all disabled:opacity-30">▲</button>
+                    <button type="button" data-bajar="${p.id}" aria-label="Bajar" ${i === productos.length - 1 ? 'disabled' : ''}
+                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[10px] active:scale-90 transition-all disabled:opacity-30">▼</button>
+                </div>
+                <div class="flex gap-1">
+                    <button type="button" data-editar="${p.id}" aria-label="Editar"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] active:scale-90 transition-all">✎</button>
+                    <button type="button" data-borrar="${p.id}" aria-label="Borrar"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-red-900/60 text-zinc-500 hover:text-red-300 text-[11px] active:scale-90 transition-all">🗑</button>
+                </div>
+            </div>
+        </div>`;
+}
+
+function pintarProductos() {
+    const cont = document.getElementById('listaProductos');
+
+    if (productos.length === 0) {
+        cont.innerHTML = `
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center">
+                <p class="text-zinc-500 text-sm mb-1">Todavía no hay productos</p>
+                <p class="text-zinc-600 text-[11px]">Dale a «+ NUEVO» para agregar el primero.</p>
+            </div>`;
+        return;
+    }
+
+    cont.innerHTML = productos.map(filaProducto).join('');
+}
+
+function mostrarFaltaConfiguracion(mensaje) {
+    document.getElementById('listaProductos').innerHTML =
+        `<p class="text-amber-500/90 text-xs leading-relaxed">${esc(mensaje)}</p>`;
+}
+
+async function refrescar() {
+    const data = await api('listar');
+
+    if (data.ok) {
+        aplicarDatos(data);
+        return;
+    }
+
+    // Falta el SQL o una variable en Vercel: eso se arregla una vez y se dice
+    // en la lista, no en un aviso que desaparece a los tres segundos.
+    if (data.sinConfigurar || data.faltaSql) {
+        mostrarFaltaConfiguracion(data.error);
+        return;
+    }
+
+    avisar(data.error || 'No se pudo cargar', 'error');
+}
+
+// ------------------------------------------------------------------ el formulario
+
+function abrirModal(id) {
+    editandoId = id ?? null;
+    const p = id ? productos.find((x) => x.id === id) : null;
+
+    document.getElementById('modalTitulo').textContent = p ? 'EDITAR PRODUCTO' : 'NUEVO PRODUCTO';
+    document.getElementById('campoNombre').value = p ? p.nombre : '';
+    document.getElementById('campoDescripcion').value = p ? (p.descripcion || '') : '';
+    document.getElementById('campoPrecio').value = p ? Number(p.precio_usd).toFixed(2) : '';
+    document.getElementById('campoActivo').checked = p ? Boolean(p.activo) : true;
+    document.getElementById('modalError').textContent = '';
+    document.getElementById('fotoMensaje').textContent = 'Se reduce sola antes de subirse.';
+
+    fotoUrl = p ? (p.imagen_url || null) : null;
+    pintarFotoPrevia();
+    refrescarPrecioRef();
+
+    document.getElementById('modalProducto').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function cerrarModal() {
+    document.getElementById('modalProducto').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+    document.getElementById('fotoInput').value = '';
+}
+
+function pintarFotoPrevia() {
+    const caja = document.getElementById('fotoPrevia');
+    if (fotoUrl) {
+        caja.innerHTML = `<img src="${esc(fotoUrl)}" alt="" class="w-full h-full object-cover">`;
+        document.getElementById('btnQuitarFoto').classList.remove('hidden');
+    } else {
+        caja.innerHTML = '🛍️';
+        document.getElementById('btnQuitarFoto').classList.add('hidden');
+    }
+}
+
+// La referencia en bolivares mientras se teclea el precio: evita descubrir
+// despues de guardar que se puso un cero de mas.
+function refrescarPrecioRef() {
+    const p = document.getElementById('precioRef');
+    const valor = Number(document.getElementById('campoPrecio').value);
+    if (!tasa || !Number.isFinite(valor) || valor <= 0) {
+        p.textContent = '';
+        return;
+    }
+    p.textContent = `Se verá como ${bs(valor * tasa)} en la tienda.`;
+}
+
+// Se reduce en el navegador antes de subir. Una foto de camara son 4 MB y la
+// tienda se ve en celulares con datos moviles: sin esto, la cuadricula tarda
+// una eternidad en pintarse.
+const LADO_MAXIMO = 900;
+
+function reducirImagen(file) {
+    return new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        lector.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('Ese archivo no es una imagen'));
+            img.onload = () => {
+                const escala = Math.min(1, LADO_MAXIMO / Math.max(img.width, img.height));
+                const ancho = Math.max(1, Math.round(img.width * escala));
+                const alto = Math.max(1, Math.round(img.height * escala));
+
+                const lienzo = document.createElement('canvas');
+                lienzo.width = ancho;
+                lienzo.height = alto;
+                const ctx = lienzo.getContext('2d');
+                ctx.drawImage(img, 0, 0, ancho, alto);
+
+                // WebP pesa bastante menos, pero no todos los navegadores lo
+                // producen: si no sale, se cae a JPEG sin avisar.
+                let datos = lienzo.toDataURL('image/webp', 0.82);
+                let tipo = 'image/webp';
+                if (!datos.startsWith('data:image/webp')) {
+                    datos = lienzo.toDataURL('image/jpeg', 0.85);
+                    tipo = 'image/jpeg';
+                }
+
+                resolve({ tipo, datos_base64: datos.split(',')[1] });
+            };
+            img.src = lector.result;
+        };
+        lector.readAsDataURL(file);
+    });
+}
+
+async function subirFoto(file) {
+    const msg = document.getElementById('fotoMensaje');
+    const btn = document.getElementById('btnFoto');
+
+    btn.disabled = true;
+    btn.textContent = 'Subiendo...';
+    msg.className = 'text-[10px] text-zinc-500 mt-1.5 leading-snug';
+    msg.textContent = 'Preparando la imagen...';
+
+    try {
+        const reducida = await reducirImagen(file);
+        const data = await api('subir_imagen', reducida);
+
+        if (!data.ok) {
+            msg.className = 'text-[10px] text-red-400 font-bold mt-1.5 leading-snug';
+            msg.textContent = data.error || 'No se pudo subir la foto';
+            return;
+        }
+
+        fotoUrl = data.imagen_url;
+        pintarFotoPrevia();
+        msg.className = 'text-[10px] text-emerald-400 mt-1.5 leading-snug';
+        msg.textContent = 'Foto lista.';
+    } catch (err) {
+        msg.className = 'text-[10px] text-red-400 font-bold mt-1.5 leading-snug';
+        msg.textContent = err.message || 'No se pudo procesar la foto';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Elegir foto';
+        document.getElementById('fotoInput').value = '';
+    }
+}
+
+async function guardarProducto() {
+    const btn = document.getElementById('btnGuardarProducto');
+    const err = document.getElementById('modalError');
+
+    const nombre = document.getElementById('campoNombre').value.trim();
+    const descripcion = document.getElementById('campoDescripcion').value.trim();
+    const precio = document.getElementById('campoPrecio').value.trim();
+    const activo = document.getElementById('campoActivo').checked;
+
+    err.textContent = '';
+
+    if (nombre.length < 2) {
+        err.textContent = 'Ponle un nombre al producto';
+        return;
+    }
+    if (precio === '' || !Number.isFinite(Number(precio)) || Number(precio) < 0) {
+        err.textContent = 'Escribe un precio válido';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'GUARDANDO...';
+
+    const campos = {
+        nombre,
+        descripcion,
+        precio_usd: Number(precio),
+        activo,
+        imagen_url: fotoUrl
+    };
+
+    const data = editandoId
+        ? await api('editar', { id: editandoId, ...campos })
+        : await api('crear', campos);
+
+    btn.disabled = false;
+    btn.textContent = 'GUARDAR';
+
+    if (!data.ok) {
+        err.textContent = data.error || 'No se pudo guardar';
+        return;
+    }
+
+    cerrarModal();
+    avisar(editandoId ? 'Producto actualizado' : 'Producto agregado', 'ok');
+    await refrescar();
+}
+
+// ---------------------------------------------------------------------- borrar
+
+let borrandoId = null;
+
+function pedirBorrar(id) {
+    const p = productos.find((x) => x.id === id);
+    if (!p) return;
+    borrandoId = id;
+    document.getElementById('borrarNombre').textContent = p.nombre;
+    const modal = document.getElementById('modalBorrar');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function cerrarBorrar() {
+    borrandoId = null;
+    const modal = document.getElementById('modalBorrar');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function confirmarBorrar() {
+    if (!borrandoId) return;
+    const id = borrandoId;
+    cerrarBorrar();
+
+    const data = await api('borrar', { id });
+    if (!data.ok) {
+        avisar(data.error || 'No se pudo borrar', 'error');
+        return;
+    }
+    avisar('Producto borrado', 'ok');
+    await refrescar();
+}
+
+// ---------------------------------------------------------------------- eventos
+
+document.getElementById('pinBtn').onclick = intentarEntrar;
+document.getElementById('pinInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') intentarEntrar();
+});
+
+document.getElementById('btnGuardarTasa').addEventListener('click', guardarTasa);
+document.getElementById('btnNuevo').addEventListener('click', () => abrirModal(null));
+document.getElementById('btnGuardarProducto').addEventListener('click', guardarProducto);
+document.getElementById('campoPrecio').addEventListener('input', refrescarPrecioRef);
+
+document.getElementById('btnFoto').addEventListener('click', () => {
+    document.getElementById('fotoInput').click();
+});
+document.getElementById('fotoInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) subirFoto(file);
+});
+document.getElementById('btnQuitarFoto').addEventListener('click', () => {
+    // Solo se suelta la referencia. La foto se queda en el bucket hasta que se
+    // borre el producto: es barato, y perder una foto por un toque sin querer
+    // molesta mas que un archivo de sobra.
+    fotoUrl = null;
+    pintarFotoPrevia();
+});
+
+document.getElementById('borrarNo').addEventListener('click', cerrarBorrar);
+document.getElementById('borrarSi').addEventListener('click', confirmarBorrar);
+
+// Delegado: las filas se repintan en cada cambio.
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-cerrar-modal]')) return cerrarModal();
+
+    const editar = e.target.closest('[data-editar]');
+    if (editar) return abrirModal(Number(editar.dataset.editar));
+
+    const borrar = e.target.closest('[data-borrar]');
+    if (borrar) return pedirBorrar(Number(borrar.dataset.borrar));
+
+    const subir = e.target.closest('[data-subir]');
+    if (subir) return moverProducto(Number(subir.dataset.subir), 'arriba');
+
+    const bajar = e.target.closest('[data-bajar]');
+    if (bajar) return moverProducto(Number(bajar.dataset.bajar), 'abajo');
+});
+
+async function moverProducto(id, direccion) {
+    const data = await api('mover', { id, direccion });
+    if (!data.ok) {
+        avisar(data.error || 'No se pudo mover', 'error');
+        return;
+    }
+    await refrescar();
+}
+
+// Si ya se entro antes en este telefono, no se vuelve a preguntar el PIN.
+(async () => {
+    const guardado = localStorage.getItem(CLAVE_PIN);
+    if (!guardado) {
+        mostrarPuerta();
+        return;
+    }
+
+    const data = await api('listar');
+    if (data.ok) {
+        ocultarPuerta();
+        aplicarDatos(data);
+    } else if (data.sinConfigurar || data.faltaSql) {
+        ocultarPuerta();
+        mostrarFaltaConfiguracion(data.error);
+    } else {
+        localStorage.removeItem(CLAVE_PIN);
+        mostrarPuerta();
+    }
+})();
+</script>
+</body>
+</html>

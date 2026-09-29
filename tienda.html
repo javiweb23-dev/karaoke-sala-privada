@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda - Mi Karaoke Latino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* En el movil, 100vh incluye la franja de la barra del navegador y el
+           pie queda cortado. dvh mide la altura real. */
+        html, body { min-height: 100vh; min-height: 100dvh; }
+
+        /* Titulos y descripciones a dos lineas fijas: sin esto las tarjetas de
+           la cuadricula quedan de alturas distintas y la rejilla se ve torcida. */
+        .lineas-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .sin-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .sin-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans flex flex-col">
+
+    <!-- ─────────────────────────── Cabecera ─────────────────────────── -->
+    <header class="sticky top-0 z-40 bg-zinc-900 border-b border-zinc-800 shadow-lg shadow-black/40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+            <img src="logo.png" alt="Mi Karaoke Latino" class="h-10 w-auto object-contain shrink-0">
+
+            <div class="min-w-0 flex-1">
+                <h1 class="text-base font-black text-amber-400 tracking-wide leading-tight">TIENDA</h1>
+                <p id="tasaCabecera" class="text-[10px] text-zinc-500 truncate">Refrigerios y más</p>
+            </div>
+
+            <button type="button" id="btnCarrito"
+                class="relative shrink-0 flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl px-3 py-2.5 active:scale-95 transition-all">
+                <span class="text-lg leading-none">🛒</span>
+                <span class="text-xs font-bold text-zinc-300 hidden sm:inline">Carrito</span>
+                <span id="carritoBadge"
+                    class="hidden absolute -top-1.5 -right-1.5 bg-amber-500 text-black text-[10px] font-black rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ─────────────────────────── Catalogo ─────────────────────────── -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-28">
+
+        <div id="cargando" class="text-center py-20">
+            <div class="text-4xl mb-3 animate-pulse">🛍️</div>
+            <p class="text-zinc-500 text-sm">Cargando productos...</p>
+        </div>
+
+        <div id="errorCarga" class="hidden text-center py-20">
+            <div class="text-4xl mb-3">😕</div>
+            <h2 class="text-zinc-300 font-bold mb-2">No se pudo cargar la tienda</h2>
+            <p id="errorCargaTexto" class="text-zinc-500 text-sm mb-5 leading-relaxed"></p>
+            <button type="button" onclick="cargarCatalogo()"
+                class="bg-amber-500 hover:bg-amber-400 text-black font-black px-6 py-3 rounded-xl text-sm active:scale-95 transition-all">
+                Reintentar
+            </button>
+        </div>
+
+        <div id="vacio" class="hidden text-center py-20">
+            <div class="text-4xl mb-3">🧊</div>
+            <h2 class="text-zinc-300 font-bold mb-2">Todavía no hay productos</h2>
+            <p class="text-zinc-500 text-sm">Vuelve en un rato.</p>
+        </div>
+
+        <div id="rejilla" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+    </main>
+
+    <!-- Barra inferior. Sale sola cuando hay algo en el carrito: en el movil
+         llegar al icono de arriba obliga a subir toda la pagina. -->
+    <div id="barraInferior"
+        class="fixed bottom-0 left-0 right-0 z-40 bg-zinc-900/98 backdrop-blur border-t border-zinc-800 translate-y-full transition-transform duration-300">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+            <div class="min-w-0 flex-1">
+                <p id="barraCantidad" class="text-[10px] text-zinc-500 uppercase tracking-widest"></p>
+                <p id="barraTotal" class="text-lg font-black text-amber-400 leading-tight"></p>
+                <p id="barraTotalBs" class="text-[10px] text-zinc-500"></p>
+            </div>
+            <button type="button" id="btnVerCarrito"
+                class="shrink-0 bg-amber-500 hover:bg-amber-400 text-black font-black px-6 py-3 rounded-xl text-sm active:scale-95 transition-all">
+                VER PEDIDO
+            </button>
+        </div>
+    </div>
+
+    <!-- ──────────────────────── Carrito y pedido ────────────────────── -->
+    <div id="panelCarrito" class="fixed inset-0 z-[100] hidden">
+        <div id="carritoFondo" class="absolute inset-0 bg-black/80"></div>
+
+        <div class="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[26rem]
+                    bg-zinc-950 border-t sm:border-t-0 sm:border-l border-zinc-800
+                    rounded-t-2xl sm:rounded-none flex flex-col max-h-[92dvh] sm:max-h-none">
+
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-zinc-800 shrink-0">
+                <h2 class="flex-1 text-base font-black text-amber-400 tracking-wide">TU PEDIDO</h2>
+                <button type="button" id="btnCerrarCarrito"
+                    class="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 active:scale-90 transition-all text-lg">✕</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+                <div id="carritoVacio" class="text-center py-14">
+                    <div class="text-4xl mb-3">🛒</div>
+                    <p class="text-zinc-500 text-sm">Tu carrito está vacío</p>
+                </div>
+
+                <div id="carritoLineas" class="flex flex-col gap-3"></div>
+
+                <!-- Los datos del pedido. Solo dos: quien pide y desde donde.
+                     Nada de telefono ni correo: la comida se lleva a la mesa. -->
+                <div id="carritoFormulario" class="hidden mt-6 pt-5 border-t border-zinc-800">
+                    <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">Tu nombre</label>
+                    <input type="text" id="pedidoNombre" maxlength="60" autocomplete="name"
+                        placeholder="Ej: María, Carlos..."
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm mb-4 focus:outline-none focus:border-amber-500">
+
+                    <label class="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1.5">¿Desde dónde pides?</label>
+                    <input type="text" id="pedidoUbicacion" maxlength="80"
+                        placeholder="Ej: Mesa 4, área de la piscina..."
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 px-4 text-zinc-100 placeholder-zinc-600 text-sm focus:outline-none focus:border-amber-500">
+
+                    <p id="pedidoError" class="text-red-400 text-xs font-bold mt-3 min-h-4"></p>
+                </div>
+            </div>
+
+            <div id="carritoPie" class="hidden shrink-0 border-t border-zinc-800 px-5 py-4 bg-zinc-900/50">
+                <div class="flex items-end justify-between mb-3">
+                    <span class="text-zinc-500 text-xs font-bold uppercase tracking-widest">Total</span>
+                    <div class="text-right">
+                        <p id="carritoTotal" class="text-2xl font-black text-amber-400 leading-tight">$0.00</p>
+                        <p id="carritoTotalBs" class="text-[11px] text-zinc-500"></p>
+                    </div>
+                </div>
+                <button type="button" id="btnConfirmar"
+                    class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                    CONFIRMAR PEDIDO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────── Pedido enviado ──────────────────────── -->
+    <div id="panelListo" class="fixed inset-0 z-[110] bg-zinc-950 hidden flex-col justify-center items-center p-6">
+        <div class="text-center max-w-sm">
+            <div class="text-6xl mb-5">✅</div>
+            <h2 class="text-2xl font-black text-amber-400 mb-3">¡Pedido enviado!</h2>
+            <p class="text-zinc-400 text-sm leading-relaxed mb-1">
+                Ya le avisamos al personal. En un momento te lo llevan.
+            </p>
+            <p id="listoNumero" class="text-zinc-600 text-xs font-mono mb-2"></p>
+            <p id="listoAviso" class="hidden text-amber-500/90 text-xs leading-relaxed mb-2"></p>
+            <button type="button" id="btnSeguir"
+                class="mt-6 w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+                Pedir algo más
+            </button>
+        </div>
+    </div>
+
+    <div id="aviso"
+        class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[200] rounded-xl p-3.5 text-center text-sm font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4"></div>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// LA TIENDA
+//
+// Pagina aparte del karaoke a proposito: no comparte codigo con index.html ni
+// mira si hay sesion abierta. Quien pide refrigerios muchas veces ni va a
+// cantar, y tiene que poder pedir con la sala cerrada.
+//
+// Los precios que se ven aqui son informativos. El total que se cobra lo
+// recalcula el servidor leyendo la base de datos, porque cualquiera puede
+// editar lo que manda el navegador.
+// ---------------------------------------------------------------------------
+
+const CLAVE_CARRITO = 'karaoke_tienda_carrito';
+
+let productos = [];
+let tasa = null;
+let tasaFuente = null;
+
+// id de producto -> cantidad. Se guarda en el telefono para que recargar la
+// pagina sin querer no vacie el carrito a medio llenar.
+let carrito = new Map();
+
+// ------------------------------------------------------------------ utilidades
+
+// Los nombres los escribe el operador, pero igual se escapan: basta un
+// apostrofo o un "<" en una descripcion para descuadrar la tarjeta entera.
+function esc(texto) {
+    return String(texto == null ? '' : texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function usd(n) {
+    return `$${Number(n).toFixed(2)}`;
+}
+
+// Bolivares al estilo de aqui: punto para miles, coma para decimales.
+function bs(n) {
+    const [entero, dec] = Number(n).toFixed(2).split('.');
+    return `Bs ${entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec}`;
+}
+
+function refBs(usdMonto) {
+    return tasa ? bs(usdMonto * tasa) : '';
+}
+
+// La base se repite entera al mostrar el aviso en vez de ir quitando clases de
+// color con una expresion regular: "text-center" y "text-sm" tambien empiezan
+// por text- y se borrarian con ellas.
+const AVISO_BASE = 'fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[200] ' +
+    'rounded-xl p-3.5 text-center text-sm font-bold shadow-2xl ' +
+    'transition-all duration-300 pointer-events-none';
+
+const AVISO_COLORES = {
+    info: 'bg-zinc-800 text-zinc-100 border border-zinc-700',
+    ok: 'bg-emerald-900/95 text-emerald-100 border border-emerald-700',
+    error: 'bg-red-900/95 text-red-100 border border-red-700'
+};
+
+let avisoTimer = null;
+function mostrarAviso(texto, tipo = 'info') {
+    const caja = document.getElementById('aviso');
+    caja.className = `${AVISO_BASE} ${AVISO_COLORES[tipo] || AVISO_COLORES.info}`;
+    caja.textContent = texto;
+
+    if (avisoTimer) clearTimeout(avisoTimer);
+    avisoTimer = setTimeout(() => {
+        caja.classList.add('opacity-0', 'translate-y-4');
+    }, 2600);
+}
+
+// -------------------------------------------------------------- carrito guardado
+
+function guardarCarrito() {
+    try {
+        localStorage.setItem(CLAVE_CARRITO, JSON.stringify([...carrito]));
+    } catch (e) {
+        // Modo privado o almacenamiento lleno. El carrito sigue en memoria.
+    }
+}
+
+function recuperarCarrito() {
+    try {
+        const guardado = JSON.parse(localStorage.getItem(CLAVE_CARRITO) || '[]');
+        if (Array.isArray(guardado)) carrito = new Map(guardado);
+    } catch (e) {
+        carrito = new Map();
+    }
+}
+
+// Un producto que el operador borro o desactivo no puede quedarse en el
+// carrito de alguien que dejo la pagina abierta desde ayer.
+function limpiarCarritoDeFantasmas() {
+    const vivos = new Set(productos.map((p) => p.id));
+    let quitados = 0;
+    for (const id of [...carrito.keys()]) {
+        if (!vivos.has(id)) {
+            carrito.delete(id);
+            quitados++;
+        }
+    }
+    if (quitados > 0) {
+        guardarCarrito();
+        mostrarAviso('Algunos productos ya no están disponibles', 'info');
+    }
+}
+
+// ------------------------------------------------------------------- catalogo
+
+async function cargarCatalogo() {
+    document.getElementById('cargando').classList.remove('hidden');
+    document.getElementById('errorCarga').classList.add('hidden');
+    document.getElementById('vacio').classList.add('hidden');
+    document.getElementById('rejilla').innerHTML = '';
+
+    let data;
+    try {
+        const res = await fetch('/api/tienda-productos');
+        data = await res.json();
+    } catch (e) {
+        data = { ok: false, error: 'Sin conexión. Revisa tus datos o el wifi.' };
+    }
+
+    document.getElementById('cargando').classList.add('hidden');
+
+    if (!data.ok) {
+        document.getElementById('errorCargaTexto').textContent =
+            data.error || 'Inténtalo de nuevo en un momento.';
+        document.getElementById('errorCarga').classList.remove('hidden');
+        return;
+    }
+
+    productos = data.productos || [];
+    tasa = data.tasa || null;
+    tasaFuente = data.tasa_fuente || null;
+
+    pintarTasaCabecera();
+    limpiarCarritoDeFantasmas();
+
+    if (productos.length === 0) {
+        document.getElementById('vacio').classList.remove('hidden');
+        return;
+    }
+
+    pintarRejilla();
+    refrescarTotales();
+}
+
+function pintarTasaCabecera() {
+    const p = document.getElementById('tasaCabecera');
+    if (!tasa) {
+        // Sin tasa no se disimula: se dice que los precios estan en dolares y
+        // ya. Inventar una referencia en bolivares seria peor que no ponerla.
+        p.textContent = 'Precios en dólares';
+        return;
+    }
+    const etiqueta = tasaFuente === 'manual' ? 'Tasa del día' : 'Tasa BCV';
+    p.textContent = `${etiqueta}: ${bs(tasa)}`;
+}
+
+function tarjeta(p) {
+    const foto = p.imagen_url
+        ? `<img src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" loading="lazy"
+                class="absolute inset-0 w-full h-full object-cover">`
+        : `<div class="absolute inset-0 flex items-center justify-center text-4xl text-zinc-700">🛍️</div>`;
+
+    const descripcion = p.descripcion
+        ? `<p class="lineas-2 text-zinc-500 text-[11px] leading-snug mb-2">${esc(p.descripcion)}</p>`
+        : `<div class="mb-2"></div>`;
+
+    const referencia = tasa
+        ? `<p class="text-zinc-600 text-[10px] leading-none mt-0.5">${refBs(p.precio_usd)}</p>`
+        : '';
+
+    return `
+        <article class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col">
+            <div class="relative w-full aspect-square bg-zinc-950">${foto}</div>
+
+            <div class="p-3 flex flex-col flex-1">
+                <h3 class="lineas-2 text-zinc-100 font-bold text-sm leading-snug mb-1">${esc(p.nombre)}</h3>
+                ${descripcion}
+
+                <div class="mt-auto">
+                    <p class="text-amber-400 font-black text-lg leading-none">${usd(p.precio_usd)}</p>
+                    ${referencia}
+                    <div class="mt-2.5" data-control="${p.id}"></div>
+                </div>
+            </div>
+        </article>`;
+}
+
+function pintarRejilla() {
+    document.getElementById('rejilla').innerHTML = productos.map(tarjeta).join('');
+    productos.forEach((p) => pintarControl(p.id));
+}
+
+// Igual que en Amazon: un boton "Agregar" que al usarse se convierte en el
+// selector de cantidad. Asi la tarjeta no gasta sitio en un "0" que nadie
+// necesita ver.
+function pintarControl(id) {
+    const caja = document.querySelector(`[data-control="${id}"]`);
+    if (!caja) return;
+
+    const cantidad = carrito.get(id) || 0;
+
+    if (cantidad === 0) {
+        caja.innerHTML = `
+            <button type="button" data-agregar="${id}"
+                class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 rounded-xl text-xs active:scale-95 transition-all">
+                AGREGAR
+            </button>`;
+        return;
+    }
+
+    // A 1 unidad, el boton de menos quita el producto: es lo que espera quien
+    // se equivoco al agregarlo, y evita tener que buscarlo en el carrito.
+    caja.innerHTML = `
+        <div class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-700 rounded-xl p-1">
+            <button type="button" data-menos="${id}" aria-label="Quitar uno"
+                class="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-black active:scale-90 transition-all">
+                ${cantidad === 1 ? '🗑' : '−'}
+            </button>
+            <span class="flex-1 text-center text-sm font-black text-amber-400">${cantidad}</span>
+            <button type="button" data-mas="${id}" aria-label="Agregar uno"
+                class="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-black active:scale-90 transition-all">
+                +
+            </button>
+        </div>`;
+}
+
+// --------------------------------------------------------------------- carrito
+
+const MAX_POR_PRODUCTO = 99;
+
+function cambiarCantidad(id, delta) {
+    const actual = carrito.get(id) || 0;
+    const nueva = Math.min(MAX_POR_PRODUCTO, Math.max(0, actual + delta));
+
+    if (nueva === 0) carrito.delete(id);
+    else carrito.set(id, nueva);
+
+    guardarCarrito();
+    pintarControl(id);
+    refrescarTotales();
+
+    // Los mismos botones existen dentro del carrito abierto: hay que repintarlo
+    // o el numero de la tarjeta y el de la linea dirian cosas distintas.
+    if (!document.getElementById('panelCarrito').classList.contains('hidden')) {
+        pintarCarrito();
+    }
+}
+
+function totalUnidades() {
+    let n = 0;
+    for (const c of carrito.values()) n += c;
+    return n;
+}
+
+function totalUsd() {
+    let t = 0;
+    for (const [id, cantidad] of carrito) {
+        const p = productos.find((x) => x.id === id);
+        if (p) t += p.precio_usd * cantidad;
+    }
+    return Number(t.toFixed(2));
+}
+
+function refrescarTotales() {
+    const unidades = totalUnidades();
+    const total = totalUsd();
+
+    const badge = document.getElementById('carritoBadge');
+    badge.textContent = unidades;
+    badge.classList.toggle('hidden', unidades === 0);
+
+    const barra = document.getElementById('barraInferior');
+    barra.classList.toggle('translate-y-full', unidades === 0);
+
+    document.getElementById('barraCantidad').textContent =
+        unidades === 1 ? '1 producto' : `${unidades} productos`;
+    document.getElementById('barraTotal').textContent = usd(total);
+    document.getElementById('barraTotalBs').textContent = refBs(total);
+}
+
+function lineaCarrito(p, cantidad) {
+    const foto = p.imagen_url
+        ? `<img src="${esc(p.imagen_url)}" alt="" class="w-full h-full object-cover">`
+        : `<div class="w-full h-full flex items-center justify-center text-xl text-zinc-700">🛍️</div>`;
+
+    return `
+        <div class="flex gap-3 items-center">
+            <div class="w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800">${foto}</div>
+
+            <div class="min-w-0 flex-1">
+                <p class="text-zinc-100 text-sm font-bold leading-snug truncate">${esc(p.nombre)}</p>
+                <p class="text-zinc-500 text-[11px]">${usd(p.precio_usd)} c/u</p>
+                <p class="text-amber-400 text-sm font-black">${usd(p.precio_usd * cantidad)}</p>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+                <button type="button" data-menos="${p.id}" aria-label="Quitar uno"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black active:scale-90 transition-all">
+                    ${cantidad === 1 ? '🗑' : '−'}
+                </button>
+                <span class="w-7 text-center text-sm font-black text-zinc-200">${cantidad}</span>
+                <button type="button" data-mas="${p.id}" aria-label="Agregar uno"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black active:scale-90 transition-all">
+                    +
+                </button>
+            </div>
+        </div>`;
+}
+
+function pintarCarrito() {
+    const vacio = carrito.size === 0;
+
+    document.getElementById('carritoVacio').classList.toggle('hidden', !vacio);
+    document.getElementById('carritoFormulario').classList.toggle('hidden', vacio);
+    document.getElementById('carritoPie').classList.toggle('hidden', vacio);
+
+    const cont = document.getElementById('carritoLineas');
+    if (vacio) {
+        cont.innerHTML = '';
+        return;
+    }
+
+    // Se recorre el catalogo y no el carrito para que las lineas salgan en el
+    // mismo orden que la tienda, no en el orden en que se fueron agregando.
+    cont.innerHTML = productos
+        .filter((p) => carrito.has(p.id))
+        .map((p) => lineaCarrito(p, carrito.get(p.id)))
+        .join('');
+
+    const total = totalUsd();
+    document.getElementById('carritoTotal').textContent = usd(total);
+    document.getElementById('carritoTotalBs').textContent = refBs(total);
+}
+
+function abrirCarrito() {
+    document.getElementById('panelCarrito').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    pintarCarrito();
+}
+
+function cerrarCarrito() {
+    document.getElementById('panelCarrito').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+// ------------------------------------------------------------------- confirmar
+
+async function confirmarPedido() {
+    const btn = document.getElementById('btnConfirmar');
+    const err = document.getElementById('pedidoError');
+    const nombre = document.getElementById('pedidoNombre').value.trim();
+    const ubicacion = document.getElementById('pedidoUbicacion').value.trim();
+
+    err.textContent = '';
+
+    if (nombre.length < 2) {
+        err.textContent = 'Escribe tu nombre';
+        document.getElementById('pedidoNombre').focus();
+        return;
+    }
+    if (ubicacion.length < 2) {
+        err.textContent = 'Escribe desde dónde pides';
+        document.getElementById('pedidoUbicacion').focus();
+        return;
+    }
+    if (carrito.size === 0) {
+        err.textContent = 'Tu carrito está vacío';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'ENVIANDO...';
+
+    let data;
+    try {
+        const res = await fetch('/api/tienda-pedido', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre,
+                ubicacion,
+                items: [...carrito].map(([id, cantidad]) => ({ id, cantidad }))
+            })
+        });
+        data = await res.json();
+    } catch (e) {
+        data = { ok: false, error: 'Sin conexión. Inténtalo otra vez.' };
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'CONFIRMAR PEDIDO';
+
+    if (!data.ok) {
+        err.textContent = data.error || 'No se pudo enviar el pedido';
+
+        // Un producto se agoto mientras llenaban el carrito: se recarga el
+        // catalogo para que vean la tienda como esta de verdad.
+        if (Array.isArray(data.no_disponibles)) cargarCatalogo();
+        return;
+    }
+
+    // Pedido dentro: se vacia el carrito para que no se mande dos veces por
+    // darle otra vez al boton sin querer.
+    carrito.clear();
+    guardarCarrito();
+    cerrarCarrito();
+    refrescarTotales();
+    pintarRejilla();
+
+    document.getElementById('listoNumero').textContent =
+        data.pedido_id ? `Pedido #${data.pedido_id}` : '';
+
+    const avisoListo = document.getElementById('listoAviso');
+    if (data.avisado === false) {
+        // Honestidad: el pedido quedo registrado pero el aviso no salio. Si no
+        // se le dice, se queda esperando algo que nadie sabe que pidio.
+        avisoListo.textContent = 'Ojo: el aviso automático no salió. Confírmalo con el personal.';
+        avisoListo.classList.remove('hidden');
+    } else {
+        avisoListo.classList.add('hidden');
+    }
+
+    document.getElementById('panelListo').classList.remove('hidden');
+    document.getElementById('panelListo').classList.add('flex');
+}
+
+// ---------------------------------------------------------------------- eventos
+
+// Delegado en el documento: las tarjetas se repintan a cada rato y enganchar
+// un listener por boton los perderia en cada repintado.
+document.addEventListener('click', (e) => {
+    const agregar = e.target.closest('[data-agregar]');
+    if (agregar) return cambiarCantidad(Number(agregar.dataset.agregar), 1);
+
+    const mas = e.target.closest('[data-mas]');
+    if (mas) return cambiarCantidad(Number(mas.dataset.mas), 1);
+
+    const menos = e.target.closest('[data-menos]');
+    if (menos) return cambiarCantidad(Number(menos.dataset.menos), -1);
+});
+
+document.getElementById('btnCarrito').addEventListener('click', abrirCarrito);
+document.getElementById('btnVerCarrito').addEventListener('click', abrirCarrito);
+document.getElementById('btnCerrarCarrito').addEventListener('click', cerrarCarrito);
+document.getElementById('carritoFondo').addEventListener('click', cerrarCarrito);
+document.getElementById('btnConfirmar').addEventListener('click', confirmarPedido);
+
+document.getElementById('btnSeguir').addEventListener('click', () => {
+    const listo = document.getElementById('panelListo');
+    listo.classList.add('hidden');
+    listo.classList.remove('flex');
+    document.getElementById('pedidoNombre').value = '';
+    document.getElementById('pedidoUbicacion').value = '';
+    cargarCatalogo();
+});
+
+document.getElementById('pedidoUbicacion').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmarPedido();
+});
+
+recuperarCarrito();
+refrescarTotales();
+cargarCatalogo();
+</script>
+</body>
+</html>

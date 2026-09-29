@@ -13,7 +13,16 @@ const required = [
   'videos_disponibles.js'
 ];
 
-const optional = ['logo.png', 'carteles_qr_sala_privada.html', 'efectos_disponibles.js', 'musica_cierre_disponible.js'];
+// La tienda va en optional y no en required a proposito: si algun dia se quita,
+// el despliegue del karaoke tiene que seguir pasando igual.
+const optional = [
+  'logo.png',
+  'carteles_qr_sala_privada.html',
+  'efectos_disponibles.js',
+  'musica_cierre_disponible.js',
+  'tienda.html',
+  'tienda-admin.html'
+];
 
 // videos_disponibles.js lo genera "npm run actualizar" en la maquina donde
 // estan los MP4, y viaja ya hecho en el repositorio. Aqui no hay carpeta de

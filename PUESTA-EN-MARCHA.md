@@ -203,6 +203,74 @@ reproductor. El `ADMIN_PIN` protege las sesiones, no los demás botones.
 
 ---
 
+## 4. Tienda de refrigerios
+
+Hielo, refrescos, vasos, helados. La piden sobre todo las personas que están en
+el área y **no vienen a cantar**, así que la tienda funciona con la sala cerrada,
+sin código y sin sesión.
+
+Cuando alguien confirma el pedido te llega un mensaje a Telegram, al mismo chat
+donde recibes las alertas del operador, con la lista, quién pidió y desde dónde.
+
+### Configuración
+
+1. Ejecuta [sql/011-tienda.sql](sql/011-tienda.sql) en Supabase (SQL Editor →
+   New query → Run). Crea las tablas, el bucket de fotos y cuatro productos de
+   prueba.
+2. **No hace falta ninguna variable nueva** en Vercel: usa las que ya tienes
+   (`ADMIN_PIN`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `TELEGRAM_BOT_TOKEN`,
+   `TELEGRAM_CHAT_ID`).
+
+### Las tres páginas
+
+| Página | Para quién | Pide PIN |
+|---|---|---|
+| [tienda.html](tienda.html) | El cliente. Catálogo y carrito. | No |
+| [tienda-admin.html](tienda-admin.html) | Tú. Productos, fotos y tasa. | Sí |
+| [admin.html](admin.html) | Ya lo conoces. Ahora tiene el botón **🛒 PEDIR COMIDA**. | Sí |
+
+En la pantalla del PIN del admin hay además un botón **Comprar en la Tienda**:
+es para quien escanea el QR del control remoto sin ser del staff y se quedaba
+atascado pidiendo una clave que nadie le va a dar.
+
+El cartel de QR ([carteles_qr_sala_privada.html](carteles_qr_sala_privada.html))
+trae una tarjeta nueva, **PEDIR REFRIGERIOS Y OTROS**, para colgar en el área.
+
+### Agregar productos
+
+Entra a `tienda-admin.html` con tu PIN → **+ NUEVO**. Nombre, descripción breve,
+precio en dólares y la foto, que se reduce sola antes de subirse. Las flechas
+▲▼ cambian el orden en que se ven, y el interruptor **Visible en la tienda**
+oculta un producto sin borrarlo: para cuando se acaba el hielo y vuelve mañana.
+
+### La tasa en bolívares
+
+Los precios se guardan **en dólares**. Los bolívares son solo una referencia
+que se calcula con la tasa del BCV, que se trae de internet sola.
+
+Esas APIs no son oficiales y a veces se caen. Si eso pasa, la tienda **sigue
+vendiendo**: muestra la última tasa que consiguió, o solo dólares. Y si la ves
+mal, en `tienda-admin.html` marcas **Usar tasa manual**, escribes el número y
+guardas. Mientras esté marcado, manda tu número y no se consulta internet.
+
+Cada pedido guarda la tasa que se usó en ese momento, así el historial sigue
+cuadrando aunque la tasa cambie después.
+
+### Dónde ver los pedidos
+
+Supabase → Table Editor → `tienda_pedidos`, ordenando por `creado_en` de mayor
+a menor. La columna `estado` empieza en `nuevo`; si te sirve llevar la cuenta,
+cámbiala a `entregado` a mano.
+
+### Qué NO toca del karaoke
+
+Nada. Son tablas aparte (`tienda_productos`, `tienda_pedidos`, `tienda_config`),
+páginas aparte y endpoints aparte. Si borras las tres tablas, el karaoke sigue
+funcionando igual. Al final de `sql/011-tienda.sql` están las líneas para
+quitarlo todo.
+
+---
+
 ## La URL de Vercel en el reproductor
 
 En [reproductor.html](reproductor.html) hay una constante:

@@ -36,6 +36,15 @@
             <div class="url">https://karaoke-sala-privada.vercel.app/index.html</div>
         </div>
 
+        <!-- Tarjeta Tienda. Esta va en el area, no solo en la sala: la pide
+             gente que no viene a cantar, y no necesita codigo ni sesion. -->
+        <div class="card">
+            <h2>PEDIR REFRIGERIOS Y OTROS</h2>
+            <p>🛒 Hielo, refrescos, vasos y más</p>
+            <div class="qr-box" id="qr-tienda"></div>
+            <div class="url">https://karaoke-sala-privada.vercel.app/tienda.html</div>
+        </div>
+
         <!-- Tarjeta Admin -->
         <div class="card">
             <h2>CONTROL REMOTO</h2>
@@ -57,6 +66,16 @@
         // Generar QR Cliente
         new QRCode(document.getElementById("qr-cliente"), {
             text: "https://karaoke-sala-privada.vercel.app/index.html",
+            width: 250,
+            height: 250,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        // Generar QR Tienda
+        new QRCode(document.getElementById("qr-tienda"), {
+            text: "https://karaoke-sala-privada.vercel.app/tienda.html",
             width: 250,
             height: 250,
             colorDark : "#000000",
