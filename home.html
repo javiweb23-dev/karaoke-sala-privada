@@ -308,32 +308,54 @@
 
 <!-- ════════════════════════════════════════════════════════ PRECIOS ═══ -->
 <section id="precios" class="py-24 px-5">
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-5xl mx-auto">
 
         <div class="aparece text-center mb-12">
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="preciosTitulo"></h2>
             <p class="text-zinc-400 text-lg" data-t="preciosTexto"></p>
         </div>
 
-        <div class="aparece bg-gradient-to-b from-zinc-900 to-zinc-900/40 border border-zinc-800
-                    rounded-3xl p-8 sm:p-12 text-center">
+        <div class="grid lg:grid-cols-2 gap-6 items-stretch">
 
-            <!-- ⚠️ PRECIO: si algun dia cambia, se cambia AQUI y en las dos
-                 traducciones de mas abajo (precioNota). -->
-            <p class="text-zinc-500 text-sm font-bold uppercase tracking-[0.15em] mb-3" data-t="precioEtiqueta"></p>
-            <p class="text-6xl sm:text-7xl font-black text-amber-400 tracking-tight mb-2">$20</p>
-            <p class="text-zinc-300 text-lg font-medium mb-8" data-t="precioUnidad"></p>
+            <!-- La foto va a la IZQUIERDA, al reves que en "La sala": asi las
+                 dos secciones con foto no se ven calcadas al bajar.
 
-            <div class="border-t border-zinc-800 pt-8 space-y-3 text-left max-w-sm mx-auto mb-9" id="precioDetalles"></div>
+                 Esta viene con la chica pegada a su izquierda y medio encuadre
+                 de fondo vacio, por eso el object-position tira hacia ahi. -->
+            <div class="aparece relative rounded-2xl overflow-hidden border border-zinc-800
+                        bg-zinc-900 min-h-[300px] lg:min-h-0 order-2 lg:order-1">
+                <img src="fotos/precios.jpg" alt="" loading="lazy"
+                     class="absolute inset-0 w-full h-full object-cover object-[22%_40%]"
+                     style="filter:saturate(.82) brightness(.94)">
+                <div class="absolute inset-0 pointer-events-none"
+                     style="background:
+                        radial-gradient(110% 80% at 30% 40%, transparent 42%, rgba(9,9,11,.55) 100%),
+                        linear-gradient(to bottom, rgba(9,9,11,.45) 0%, rgba(9,9,11,0) 28%),
+                        linear-gradient(to top, rgba(9,9,11,.72) 0%, rgba(9,9,11,0) 40%)"></div>
+            </div>
 
-            <a id="waPrecios" href="#" target="_blank" rel="noopener"
-               class="inline-block bg-amber-400 hover:bg-amber-300 text-black font-bold
-                      px-8 py-4 rounded-xl transition-colors shadow-lg shadow-amber-400/20"
-               data-t="btnReservarLargo"></a>
+            <!-- La tarjeta, ajustada a lo que lleva dentro: antes ocupaba el
+                 ancho entero para cuatro lineas y sobraba aire por todos lados. -->
+            <div class="aparece bg-gradient-to-b from-zinc-900 to-zinc-900/40 border border-zinc-800
+                        rounded-2xl p-7 sm:p-8 flex flex-col justify-center order-1 lg:order-2">
+
+                <!-- ⚠️ PRECIO: si cambia, se cambia AQUI y en precioUnidad
+                     y precioDetalles de las dos traducciones. -->
+                <p class="text-zinc-500 text-xs font-bold uppercase tracking-[0.15em] mb-2" data-t="precioEtiqueta"></p>
+                <p class="text-5xl sm:text-6xl font-black text-amber-400 tracking-tight leading-none mb-2">$20</p>
+                <p class="text-zinc-300 font-medium mb-6" data-t="precioUnidad"></p>
+
+                <div class="border-t border-zinc-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
+
+                <a id="waPrecios" href="#" target="_blank" rel="noopener"
+                   class="block text-center bg-amber-400 hover:bg-amber-300 text-black font-bold
+                          px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-amber-400/20"
+                   data-t="btnReservarLargo"></a>
+            </div>
         </div>
 
         <!-- La tienda de refrigerios, que ya existe y funciona aparte. -->
-        <div class="aparece mt-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6
+        <div class="aparece mt-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6
                     flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="text-center sm:text-left">
                 <p class="font-bold text-zinc-100 mb-1" data-t="tiendaTitulo"></p>
@@ -518,7 +540,7 @@ const TEXTOS = {
                       'Lo que ves aquí es una muestra: son más de 1.000 artistas, y cada ' +
                       'semana entran canciones nuevas.',
 
-        preciosTitulo: 'Precios claros',
+        preciosTitulo: 'Precios',
         preciosTexto: 'Sin letra pequeña ni consumo mínimo.',
         precioEtiqueta: 'Desde',
         precioUnidad: 'por hora · hasta 10 personas',
@@ -616,7 +638,7 @@ const TEXTOS = {
                       'What you see here is just a taste: over 1,000 artists, with new songs ' +
                       'coming in every week.',
 
-        preciosTitulo: 'Clear pricing',
+        preciosTitulo: 'Pricing',
         preciosTexto: 'No fine print, no minimum spend.',
         precioEtiqueta: 'From',
         precioUnidad: 'per hour · up to 10 people',
