@@ -201,7 +201,7 @@
             <p class="text-zinc-400 text-lg leading-relaxed" data-t="sistemaTexto"></p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-5" id="ventajas"></div>
+        <div class="grid sm:grid-cols-2 gap-5" id="ventajas"></div>
 
         <div class="aparece mt-12 text-center">
             <p class="text-zinc-500 text-sm italic" data-t="sistemaPie"></p>
@@ -492,11 +492,17 @@ const TEXTOS = {
 
         ventajas: [
             { t: 'Nadie acapara el micrófono',
-              d: 'El turno se reparte solo: si tú ya cantaste y otro está esperando, va el otro. Se acabó la pelea por la lista.' },
+              d: 'El turno se reparte solo: si tú ya cantaste y otro está esperando, va el otro. Se acabó la pelea por la lista. Y si te arrepientes, quitas tu canción desde tu propio teléfono.',
+              img: 'fotos/app-cola.jpg', pos: 'object-[50%_22%]' },
             { t: 'Buscas como en Spotify',
-              d: 'Escribes el artista o el pedazo de letra que recuerdas y aparece. Aunque lo escribas mal, lo encuentra.' },
+              d: 'Escribes el artista o el pedazo de letra que recuerdas y aparece. Aunque lo escribas mal, lo encuentra. Y puedes filtrar por género o por idioma.',
+              img: 'fotos/app-buscar.jpg', pos: 'object-top' },
             { t: 'El tono se ajusta a tu voz',
-              d: 'Si la canción está muy alta o muy baja, se sube o se baja en el momento sin que se oiga raro.' }
+              d: 'Si la canción está muy alta o muy baja, se sube o se baja en el momento sin que se oiga raro. Tres tonos arriba y tres abajo.',
+              img: 'fotos/app-control.jpg', pos: 'object-top' },
+            { t: 'Tú mandas en la sala',
+              d: 'Pausa, vuelve a empezar o pasa a la siguiente cuando quieras. Y si alguien se luce le lanzas aplausos; si desafina, grillos.',
+              img: 'fotos/app-control.jpg', pos: 'object-bottom' }
         ],
 
         equipos: [
@@ -593,11 +599,17 @@ const TEXTOS = {
 
         ventajas: [
             { t: 'Nobody hogs the mic',
-              d: 'Turns are shared automatically: if you just sang and someone is waiting, they go next. No more fighting over the list.' },
+              d: 'Turns are shared automatically: if you just sang and someone is waiting, they go next. No more fighting over the list. Changed your mind? Drop your song from your own phone.',
+              img: 'fotos/app-cola.jpg', pos: 'object-[50%_22%]' },
             { t: 'Search like on Spotify',
-              d: 'Type the artist or the bit of the lyric you remember and it shows up. It finds it even if you spell it wrong.' },
+              d: 'Type the artist or the bit of the lyric you remember and it shows up. It finds it even if you spell it wrong. You can filter by genre or language too.',
+              img: 'fotos/app-buscar.jpg', pos: 'object-top' },
             { t: 'The key fits your voice',
-              d: 'If a song sits too high or too low, raise or lower it on the spot without it sounding strange.' }
+              d: 'If a song sits too high or too low, raise or lower it on the spot without it sounding strange. Three steps up, three down.',
+              img: 'fotos/app-control.jpg', pos: 'object-top' },
+            { t: 'You run the room',
+              d: 'Pause, start over or skip to the next one whenever you like. And if someone nails it, send applause; if they miss, crickets.',
+              img: 'fotos/app-control.jpg', pos: 'object-bottom' }
         ],
 
         equipos: [
@@ -728,10 +740,20 @@ function aplicarIdioma() {
         </div>`).join('');
 
     // Las tres ventajas del sistema.
+    // La captura va recortada a una franja: la pantalla entera de un movil es
+    // larguisima y la tarjeta quedaria como una columna. Con object-position
+    // se elige que parte de la captura se enseña.
     document.getElementById('ventajas').innerHTML = t.ventajas.map((v) => `
-        <div class="aparece bg-zinc-950/60 border border-zinc-800 rounded-2xl p-7">
-            <h3 class="font-bold text-amber-400 mb-3 leading-snug">${escapar(v.t)}</h3>
-            <p class="text-zinc-400 text-sm leading-relaxed">${escapar(v.d)}</p>
+        <div class="aparece bg-zinc-950/60 border border-zinc-800 rounded-2xl overflow-hidden
+                    hover:border-zinc-700 transition-colors">
+            <div class="h-56 bg-zinc-900 border-b border-zinc-800 overflow-hidden">
+                <img src="${v.img}" alt="" loading="lazy"
+                     class="w-full h-full object-cover ${v.pos}">
+            </div>
+            <div class="p-7">
+                <h3 class="font-bold text-amber-400 mb-3 leading-snug">${escapar(v.t)}</h3>
+                <p class="text-zinc-400 text-sm leading-relaxed">${escapar(v.d)}</p>
+            </div>
         </div>`).join('');
 
     // La lista de equipos.
