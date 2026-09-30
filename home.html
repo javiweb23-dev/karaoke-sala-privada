@@ -282,7 +282,8 @@
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="generosTitulo"></h2>
             <p class="text-zinc-400 text-lg leading-relaxed mb-10 max-w-2xl mx-auto" data-t="generosTexto"></p>
         </div>
-        <div id="generos" class="aparece flex flex-wrap justify-center gap-2.5"></div>
+        <div id="generos" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-left"></div>
+        <p class="text-zinc-600 text-xs mt-6" data-t="generosPie"></p>
     </div>
 </section>
 
@@ -496,6 +497,7 @@ const TEXTOS = {
         salaTexto: 'La sala está tratada acústicamente, así que el sonido no rebota ni se escapa. ' +
                    'Pueden cantar a todo pulmón sin molestar a nadie y sin que nadie los oiga.',
 
+        generosPie: 'Y 28 géneros más: bachata, cumbia, ranchera, tropical, italiano, gaita...',
         generosTitulo: 'Para todos los gustos',
         generosTexto: 'De la salsa que se sabe tu tío al K-pop que solo se sabe tu sobrina. ' +
                       'Y todas las semanas entran canciones nuevas.',
@@ -560,9 +562,6 @@ const TEXTOS = {
             'Pueden traer su comida y bebida'
         ],
 
-        generos: ['Salsa', 'Merengue', 'Reggaetón', 'Rock', 'Pop', 'Baladas', 'K-pop',
-                  'Música llanera', 'Vallenato', 'Bachata', 'Rock en español', 'Ranchera',
-                  'Bolero', 'Cumbia', 'Pop en inglés', 'Italiano']
     },
 
     en: {
@@ -604,6 +603,7 @@ const TEXTOS = {
         salaTexto: 'The room is acoustically treated, so the sound does not bounce around or leak out. ' +
                    'Sing your lungs out without bothering anyone, and without anyone hearing you.',
 
+        generosPie: 'Plus 28 more genres: bachata, cumbia, ranchera, tropical, Italian, gaita...',
         generosTitulo: 'Something for everyone',
         generosTexto: 'From the salsa your uncle knows by heart to the K-pop only your niece can sing. ' +
                       'And new songs come in every week.',
@@ -668,9 +668,6 @@ const TEXTOS = {
             'Bring your own food and drink'
         ],
 
-        generos: ['Salsa', 'Merengue', 'Reggaeton', 'Rock', 'Pop', 'Ballads', 'K-pop',
-                  'Llanera', 'Vallenato', 'Bachata', 'Spanish rock', 'Ranchera',
-                  'Bolero', 'Cumbia', 'English pop', 'Italian']
     }
 };
 
@@ -718,6 +715,30 @@ const REDES = {
     instagram: 'mikaraokelatino',
     tiktok: null            // <-- poner 'karaoke.latino7' cuando ya haya videos
 };
+
+// Los generos, con lo que hay de verdad en el catalogo. Las cifras y los
+// nombres salen de canciones.js: no son adorno, son la prueba de que la
+// lista es honda.
+//
+// Van nombres y no fotos a proposito. La foto de un artista lleva encima el
+// copyright del fotografo Y el derecho de imagen del propio artista; puesta
+// en la web de un negocio da a entender que el te patrocina, y eso es lo que
+// acaba en carta del abogado. El nombre, en cambio, es un hecho: esas
+// canciones estan en la sala.
+const GENEROS = [
+    { es: 'Pop',             en: 'Pop',            n: 937, a: 'Michael Jackson · Shakira · Thalía' },
+    { es: 'Salsa',           en: 'Salsa',          n: 352, a: 'Marc Anthony · Gilberto Santa Rosa · Héctor Lavoe' },
+    { es: 'Baladas',         en: 'Ballads',        n: 313, a: 'José José · Ana Gabriel · Camilo Sesto' },
+    { es: 'Reggaetón',       en: 'Reggaeton',      n: 305, a: 'Daddy Yankee · Karol G · Bad Bunny' },
+    { es: 'Merengue',        en: 'Merengue',       n: 211, a: 'Juan Luis Guerra · Olga Tañón · Elvis Crespo' },
+    { es: 'Rock en español', en: 'Spanish rock',   n: 205, a: 'Maná · Alejandra Guzmán · Caramelos de Cianuro' },
+    { es: 'Rock',            en: 'Rock',           n: 176, a: 'The Beatles · Imagine Dragons · Aerosmith' },
+    { es: 'Mexicana',        en: 'Mexican',        n: 149, a: 'Vicente Fernández · Juan Gabriel · Pedro Infante' },
+    { es: 'Música llanera',  en: 'Llanera',        n:  80, a: 'Reynaldo Armas · Simón Díaz · Luis Silva' },
+    { es: 'Vallenato',       en: 'Vallenato',      n:  65, a: 'Silvestre Dangond · Binomio de Oro · Diomedes Díaz' },
+    { es: 'Bolero',          en: 'Bolero',         n:  64, a: 'Julio Jaramillo · Felipe Pirela · Armando Manzanero' },
+    { es: 'K-pop',           en: 'K-pop',          n:  43, a: 'BTS · Stray Kids · KATSEYE' }
+];
 
 const WHATSAPP = '584121591072';
 const MENSAJES_WA = {
@@ -841,10 +862,16 @@ function aplicarIdioma() {
             <span class="text-zinc-400 text-sm">${escapar(d)}</span>
         </div>`).join('');
 
-    // Los generos.
-    document.getElementById('generos').innerHTML = t.generos.map((g) => `
-        <span class="bg-zinc-800/60 border border-zinc-700/60 text-zinc-300 text-sm
-                     font-medium px-4 py-2 rounded-full">${escapar(g)}</span>`).join('');
+    // Los generos, con su cifra y tres nombres de los que de verdad estan.
+    document.getElementById('generos').innerHTML = GENEROS.map((g) => `
+        <div class="aparece bg-zinc-950/60 border border-zinc-800 rounded-xl px-4 py-3.5
+                    text-left hover:border-amber-500/40 transition-colors">
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+                <h3 class="font-bold text-zinc-100 text-sm">${escapar(g[idioma])}</h3>
+                <span class="text-amber-400 font-black text-sm flex-shrink-0">${g.n}</span>
+            </div>
+            <p class="text-zinc-500 text-[11px] leading-snug">${escapar(g.a)}</p>
+        </div>`).join('');
 
     pintarResenas();
     observarAparicion();
