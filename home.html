@@ -253,13 +253,21 @@
                 <ul id="equipos" class="space-y-3.5"></ul>
             </div>
 
-            <div class="aparece grid grid-cols-2 gap-4">
-                <!-- FOTOS DE LA SALA: cuatro. La primera es la que manda. -->
-                <div class="foto-hueco aspect-[4/5] rounded-2xl border border-zinc-800 col-span-2 flex items-center justify-center">
-                    <span class="text-zinc-700 text-xs font-bold tracking-wider uppercase" data-t="fotoPendiente"></span>
-                </div>
-                <div class="foto-hueco aspect-square rounded-2xl border border-zinc-800"></div>
-                <div class="foto-hueco aspect-square rounded-2xl border border-zinc-800"></div>
+            <!-- UNA SOLA FOTO. Para cambiarla, se deja otra en fotos/ con este
+                 mismo nombre y ya esta.
+
+                 La foto tiene fondo blanco de estudio, que sobre esta web
+                 canta: el velo de abajo la asienta en el negro sin apagar el
+                 amarillo de la camisa, que justo es el color de la casa. -->
+            <div class="aparece relative rounded-2xl overflow-hidden border border-zinc-800
+                        aspect-[4/3] sm:aspect-square bg-zinc-900">
+                <img src="fotos/sala-principal.jpg" alt="" loading="lazy"
+                     class="w-full h-full object-cover object-[50%_28%]">
+                <div class="absolute inset-0 pointer-events-none"
+                     style="background:
+                        radial-gradient(115% 88% at 50% 42%, transparent 40%, rgba(9,9,11,.50) 100%),
+                        linear-gradient(to bottom, rgba(9,9,11,.58) 0%, rgba(9,9,11,0) 30%),
+                        linear-gradient(to top, rgba(9,9,11,.80) 0%, rgba(9,9,11,0) 42%)"></div>
             </div>
         </div>
     </div>
