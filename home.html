@@ -136,7 +136,6 @@
         </a>
 
         <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-zinc-400">
-            <a href="#como" class="hover:text-amber-400 transition-colors" data-t="navComo"></a>
             <a href="#sistema" class="hover:text-amber-400 transition-colors" data-t="navSistema"></a>
             <a href="#sala" class="hover:text-amber-400 transition-colors" data-t="navSala"></a>
             <a href="#precios" class="hover:text-amber-400 transition-colors" data-t="navPrecios"></a>
@@ -199,10 +198,10 @@
                           shadow-lg shadow-amber-400/20">
                     <span data-t="btnReservarLargo"></span>
                 </a>
-                <a href="#como"
+                <a href="#sistema"
                    class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900
                           text-zinc-200 font-bold text-base px-7 py-4 rounded-xl
-                          transition-colors text-center" data-t="btnComoFunciona"></a>
+                          transition-colors text-center" data-t="btnSistema"></a>
             </div>
         </div>
     </div>
@@ -231,23 +230,6 @@
             <svg class="w-7 h-7 mx-auto mb-3 text-amber-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.8 20.4v-1.7a3.9 3.9 0 0 0-3.9-3.9H6.5a3.9 3.9 0 0 0-3.9 3.9v1.7"/><circle cx="9.2" cy="7.6" r="3.4"/><path d="M21.4 20.4v-1.7a3.9 3.9 0 0 0-2.9-3.77"/><path d="M15.1 4.4a3.9 3.9 0 0 1 0 6.4"/></svg>
             <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">15</p>
             <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
-        </div>
-    </div>
-</section>
-
-
-<!-- ═══════════════════════════════════════════════════ COMO FUNCIONA ═══ -->
-<section id="como" class="py-24 px-5">
-    <div class="max-w-6xl mx-auto">
-        <div class="aparece text-center max-w-2xl mx-auto mb-16">
-            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="comoTitulo"></h2>
-            <p class="text-zinc-400 text-lg leading-relaxed" data-t="comoTexto"></p>
-        </div>
-
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <!-- Los cuatro pasos se pintan desde JS para no repetir el molde
-                 cuatro veces en dos idiomas. -->
-            <div id="pasos" class="contents"></div>
         </div>
     </div>
 </section>
@@ -319,8 +301,7 @@
         <div class="cintillo mb-4 -mx-5"><div class="cintillo-pista" id="cintillo1"></div></div>
         <div class="cintillo mb-12 -mx-5"><div class="cintillo-pista al-reves" id="cintillo2"></div></div>
 
-        <div id="generos" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-left"></div>
-        <p class="text-zinc-600 text-xs mt-6" data-t="generosPie"></p>
+        <p class="text-zinc-500 text-sm mt-8 max-w-2xl mx-auto leading-relaxed" data-t="generosPie"></p>
     </div>
 </section>
 
@@ -496,7 +477,6 @@
 // =========================================================================
 const TEXTOS = {
     es: {
-        navComo: 'Cómo funciona',
         navSistema: 'Nuestro sistema',
         navSala: 'La sala',
         navPrecios: 'Precios',
@@ -504,7 +484,7 @@ const TEXTOS = {
 
         btnReservar: 'Reservar',
         btnReservarLargo: 'Reservar por WhatsApp',
-        btnComoFunciona: 'Ver cómo funciona',
+        btnSistema: 'Ver nuestro sistema',
         btnWhatsapp: 'Escríbenos por WhatsApp',
         btnVerTienda: 'Ver la tienda',
         btnDejarResena: 'Deja tu reseña',
@@ -520,8 +500,6 @@ const TEXTOS = {
         cifraPantalla: 'Pantalla',
         cifraPersonas: 'Personas',
 
-        comoTitulo: 'Cómo funciona',
-        comoTexto: 'Cuatro pasos y están cantando. No hay que aprender nada ni pelear con un control remoto.',
 
         sistemaEtiqueta: 'Lo que nos hace distintos',
         sistemaTitulo: 'Tu celular es el control',
@@ -534,7 +512,7 @@ const TEXTOS = {
         salaTexto: 'La sala está tratada acústicamente, así que el sonido no rebota ni se escapa. ' +
                    'Pueden cantar a todo pulmón sin molestar a nadie y sin que nadie los oiga.',
 
-        generosPie: 'Y 28 géneros más: bachata, cumbia, ranchera, tropical, italiano, gaita...',
+        generosPie: '40 géneros en total: salsa, merengue, reggaetón, rock, baladas, k-pop, llanera, vallenato, bachata, cumbia, ranchera, bolero, italiano, gaita y muchos más.',
         generosTitulo: 'Para todos los gustos',
         generosTexto: 'De la salsa que se sabe tu tío al K-pop que solo se sabe tu sobrina. ' +
                       'Lo que ves aquí es una muestra: son más de 1.000 artistas, y cada ' +
@@ -560,12 +538,6 @@ const TEXTOS = {
         footerHorario: 'Todos los días desde las 8:00 pm · previa reservación',
 
 
-        pasos: [
-            { t: 'Reservas',  d: 'Nos escribes por WhatsApp, eliges el día y la hora, y apartas con el 50%.' },
-            { t: 'Escaneas',  d: 'Al llegar, cada quien escanea el QR de la mesa con su propio teléfono.' },
-            { t: 'Pides',     d: 'Buscas tu canción entre más de 4.000 y la pides. Puedes pedir varias.' },
-            { t: 'Cantan',    d: 'El sistema reparte los turnos para que todos canten. Tú solo agarra el micrófono.' }
-        ],
 
         ventajas: [
             { t: 'Nadie acapara el micrófono',
@@ -603,7 +575,6 @@ const TEXTOS = {
     },
 
     en: {
-        navComo: 'How it works',
         navSistema: 'Our system',
         navSala: 'The room',
         navPrecios: 'Pricing',
@@ -611,7 +582,7 @@ const TEXTOS = {
 
         btnReservar: 'Book',
         btnReservarLargo: 'Book on WhatsApp',
-        btnComoFunciona: 'See how it works',
+        btnSistema: 'See our system',
         btnWhatsapp: 'Message us on WhatsApp',
         btnVerTienda: 'See the menu',
         btnDejarResena: 'Leave your review',
@@ -627,8 +598,6 @@ const TEXTOS = {
         cifraPantalla: 'Screen',
         cifraPersonas: 'People',
 
-        comoTitulo: 'How it works',
-        comoTexto: 'Four steps and you are singing. Nothing to learn, no remote control to fight over.',
 
         sistemaEtiqueta: 'What makes us different',
         sistemaTitulo: 'Your phone is the remote',
@@ -641,7 +610,7 @@ const TEXTOS = {
         salaTexto: 'The room is acoustically treated, so the sound does not bounce around or leak out. ' +
                    'Sing your lungs out without bothering anyone, and without anyone hearing you.',
 
-        generosPie: 'Plus 28 more genres: bachata, cumbia, ranchera, tropical, Italian, gaita...',
+        generosPie: '40 genres in all: salsa, merengue, reggaeton, rock, ballads, k-pop, llanera, vallenato, bachata, cumbia, ranchera, bolero, Italian, gaita and many more.',
         generosTitulo: 'Something for everyone',
         generosTexto: 'From the salsa your uncle knows by heart to the K-pop only your niece can sing. ' +
                       'What you see here is just a taste: over 1,000 artists, with new songs ' +
@@ -667,12 +636,6 @@ const TEXTOS = {
         footerHorario: 'Every day from 8:00 pm · by reservation',
 
 
-        pasos: [
-            { t: 'Book',    d: 'Message us on WhatsApp, pick your day and time, and hold it with 50%.' },
-            { t: 'Scan',    d: 'When you arrive, everyone scans the QR code on the table with their own phone.' },
-            { t: 'Request', d: 'Find your song among 4,000+ and request it. Request as many as you like.' },
-            { t: 'Sing',    d: 'The system shares out the turns so everyone gets to sing. You just grab the mic.' }
-        ],
 
         ventajas: [
             { t: 'Nobody hogs the mic',
@@ -755,15 +718,6 @@ const REDES = {
     tiktok: null            // <-- poner 'karaoke.latino7' cuando ya haya videos
 };
 
-// Los generos, con lo que hay de verdad en el catalogo. Las cifras y los
-// nombres salen de canciones.js: no son adorno, son la prueba de que la
-// lista es honda.
-//
-// Van nombres y no fotos a proposito. La foto de un artista lleva encima el
-// copyright del fotografo Y el derecho de imagen del propio artista; puesta
-// en la web de un negocio da a entender que el te patrocina, y eso es lo que
-// acaba en carta del abogado. El nombre, en cambio, es un hecho: esas
-// canciones estan en la sala.
 // Las caratulas del cintillo. Son de canciones que estan en el catalogo, y
 // vienen de la API de iTunes, la misma que la app usa para las portadas.
 const PORTADAS = [
@@ -805,20 +759,6 @@ const PORTADAS = [
     { f: 'binomio-de-oro.jpg', a: 'Binomio de Oro' }
 ];
 
-const GENEROS = [
-    { es: 'Pop',             en: 'Pop',            n: 937, a: 'Michael Jackson · Shakira · Thalía' },
-    { es: 'Salsa',           en: 'Salsa',          n: 352, a: 'Marc Anthony · Gilberto Santa Rosa · Héctor Lavoe' },
-    { es: 'Baladas',         en: 'Ballads',        n: 313, a: 'José José · Ana Gabriel · Camilo Sesto' },
-    { es: 'Reggaetón',       en: 'Reggaeton',      n: 305, a: 'Daddy Yankee · Karol G · Bad Bunny' },
-    { es: 'Merengue',        en: 'Merengue',       n: 211, a: 'Juan Luis Guerra · Olga Tañón · Elvis Crespo' },
-    { es: 'Rock en español', en: 'Spanish rock',   n: 205, a: 'Maná · Alejandra Guzmán · Caramelos de Cianuro' },
-    { es: 'Rock',            en: 'Rock',           n: 176, a: 'The Beatles · Imagine Dragons · Aerosmith' },
-    { es: 'Mexicana',        en: 'Mexican',        n: 149, a: 'Vicente Fernández · Juan Gabriel · Pedro Infante' },
-    { es: 'Música llanera',  en: 'Llanera',        n:  80, a: 'Reynaldo Armas · Simón Díaz · Luis Silva' },
-    { es: 'Vallenato',       en: 'Vallenato',      n:  65, a: 'Silvestre Dangond · Binomio de Oro · Diomedes Díaz' },
-    { es: 'Bolero',          en: 'Bolero',         n:  64, a: 'Julio Jaramillo · Felipe Pirela · Armando Manzanero' },
-    { es: 'K-pop',           en: 'K-pop',          n:  43, a: 'BTS · Stray Kids · KATSEYE' }
-];
 
 const WHATSAPP = '584121591072';
 const MENSAJES_WA = {
@@ -870,37 +810,6 @@ function aplicarIdioma() {
     });
 
     // Los cuatro pasos.
-    // Las fotos son de Pexels, libres para uso comercial y sin obligacion de
-    // creditos. Se eligieron oscuras a proposito: las de fondo blanco, que son
-    // la mayoria en los bancos de imagenes, cantaban sobre esta web.
-    const FOTOS_PASOS = [
-        'fotos/paso-1-reservas.jpg',
-        'fotos/paso-2-escanea.jpg',
-        'fotos/paso-3-pide.jpg',
-        'fotos/paso-4-canta.jpg'
-    ];
-
-    document.getElementById('pasos').innerHTML = t.pasos.map((p, i) => `
-        <div class="aparece bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden
-                    hover:border-zinc-700 transition-colors">
-            <div class="relative h-36 bg-zinc-950 overflow-hidden">
-                <img src="${FOTOS_PASOS[i]}" alt="" loading="lazy"
-                     class="w-full h-full object-cover">
-                <!-- El numero va sobre la foto, sobre un degradado que lo
-                     despega del fondo sea cual sea la foto. -->
-                <div class="absolute inset-x-0 bottom-0 h-16
-                            bg-gradient-to-t from-zinc-900 to-transparent"></div>
-                <div class="absolute bottom-3 left-4 w-9 h-9 rounded-lg
-                            bg-zinc-950/80 backdrop-blur border border-amber-400/40
-                            flex items-center justify-center">
-                    <span class="text-amber-400 font-black text-sm">${i + 1}</span>
-                </div>
-            </div>
-            <div class="p-6 pt-5">
-                <h3 class="font-bold text-zinc-100 mb-2">${escapar(p.t)}</h3>
-                <p class="text-zinc-400 text-sm leading-relaxed">${escapar(p.d)}</p>
-            </div>
-        </div>`).join('');
 
     // Las tres ventajas del sistema.
     // Cada captura va dentro de un telefono. Las dos del control de audio son
@@ -958,16 +867,6 @@ function aplicarIdioma() {
     pintarCintillo('cintillo1', PORTADAS.slice(0, mitad));
     pintarCintillo('cintillo2', PORTADAS.slice(mitad));
 
-    // Los generos, con su cifra y tres nombres de los que de verdad estan.
-    document.getElementById('generos').innerHTML = GENEROS.map((g) => `
-        <div class="aparece bg-zinc-950/60 border border-zinc-800 rounded-xl px-4 py-3.5
-                    text-left hover:border-amber-500/40 transition-colors">
-            <div class="flex items-baseline justify-between gap-2 mb-1">
-                <h3 class="font-bold text-zinc-100 text-sm">${escapar(g[idioma])}</h3>
-                <span class="text-amber-400 font-black text-sm flex-shrink-0">${g.n}</span>
-            </div>
-            <p class="text-zinc-500 text-[11px] leading-snug">${escapar(g.a)}</p>
-        </div>`).join('');
 
     pintarResenas();
     observarAparicion();
