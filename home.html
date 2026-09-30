@@ -12,6 +12,33 @@
 
 <link rel="icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+    // ------------------------------------------------------------------
+    // La paleta, sacada del logo
+    // ------------------------------------------------------------------
+    //   marca   el degradado del microfono: de naranja rojizo a dorado.
+    //           El 500 es el corazon del logo, el que mas pixeles ocupa.
+    //   noche   negro CALIDO. El de antes (#09090B) tiraba a azul y con el
+    //           naranja al lado se veia sucio.
+    //   crema   los grises, tambien calidos, para que no desentonen.
+    //   fiesta  el magenta. Va con cuentagotas: existe para que el naranja
+    //           no este solo, no para competir con el.
+    // ------------------------------------------------------------------
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    marca:  { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+                    noche:  { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613',
+                              800: '#241D18', 700: '#362C25' },
+                    crema:  { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93',
+                              500: '#85796D', 600: '#635A50', 700: '#443D36' },
+                    fiesta: '#F0338C'
+                }
+            }
+        }
+    };
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -53,12 +80,12 @@
     .velo-hero {
         background:
             linear-gradient(to right,
-                rgba(9,9,11,.95) 0%,  rgba(9,9,11,.88) 26%,
-                rgba(9,9,11,.55) 52%, rgba(9,9,11,.30) 78%,
-                rgba(9,9,11,.28) 100%),
+                rgba(13,11,9,.95) 0%,  rgba(13,11,9,.88) 26%,
+                rgba(13,11,9,.55) 52%, rgba(13,11,9,.30) 78%,
+                rgba(13,11,9,.28) 100%),
             linear-gradient(to bottom,
-                rgba(9,9,11,.55) 0%,  rgba(9,9,11,.05) 20%,
-                rgba(9,9,11,.35) 72%, rgb(9,9,11) 100%);
+                rgba(13,11,9,.55) 0%,  rgba(13,11,9,.05) 20%,
+                rgba(13,11,9,.35) 72%, rgb(13,11,9) 100%);
     }
 
     /* En el telefono el texto ocupa todo el ancho, asi que un velo lateral no
@@ -67,9 +94,9 @@
     @media (max-width: 767px) {
         .velo-hero {
             background: linear-gradient(to bottom,
-                rgba(9,9,11,.60) 0%,  rgba(9,9,11,.42) 22%,
-                rgba(9,9,11,.80) 48%, rgba(9,9,11,.92) 72%,
-                rgb(9,9,11) 100%);
+                rgba(13,11,9,.60) 0%,  rgba(13,11,9,.42) 22%,
+                rgba(13,11,9,.80) 48%, rgba(13,11,9,.92) 72%,
+                rgb(13,11,9) 100%);
         }
     }
 
@@ -77,9 +104,36 @@
        se veian como un trozo de pantalla arrancado; dentro de un telefono se
        entiende de que son sin tener que explicarlo. */
     .telefono {
-        background: linear-gradient(160deg, #3f3f46 0%, #18181b 45%, #27272a 100%);
+        background: linear-gradient(160deg, #4A3E35 0%, #15110E 45%, #241D18 100%);
         box-shadow: 0 18px 40px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.05) inset;
     }
+
+    /* El degradado del logo, aplicado a texto. El microfono del logo va de
+       dorado a naranja rojizo; las cifras grandes hacen lo mismo. Un naranja
+       plano se veia correcto pero muerto. */
+    .degradado-marca {
+        background: linear-gradient(135deg, #FFC000 0%, #FF8000 52%, #FF5A1F 100%);
+        -webkit-background-clip: text;
+                background-clip: text;
+        color: transparent;
+    }
+
+    /* Resplandores. Son las luces de colores que de verdad hay en la sala,
+       traidas a la pagina: manchas muy difusas detras del contenido, que se
+       notan sin que nadie sepa por que. */
+    .resplandor { position: relative; isolation: isolate; }
+    .resplandor::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: var(--luz);
+    }
+    .luz-naranja { --luz: radial-gradient(60% 55% at 15% 0%, rgba(255,128,0,.13), transparent 70%); }
+    .luz-fiesta  { --luz: radial-gradient(55% 50% at 85% 10%, rgba(240,51,140,.11), transparent 70%); }
+    .luz-doble   { --luz: radial-gradient(50% 45% at 8% 100%, rgba(255,128,0,.12), transparent 70%),
+                          radial-gradient(45% 40% at 92% 0%, rgba(240,51,140,.10), transparent 70%); }
 
     /* ------------------------------------------------------------------
        El cintillo de caratulas
@@ -124,10 +178,10 @@
 </style>
 </head>
 
-<body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
+<body class="bg-noche-950 text-crema-100 font-sans antialiased">
 
 <!-- ══════════════════════════════════════════════════════════ BARRA ═══ -->
-<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800/80">
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-noche-950/80 border-b border-noche-800/80">
     <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
 
         <a href="#inicio" class="flex items-center gap-2.5 flex-shrink-0">
@@ -135,26 +189,26 @@
             <span class="font-black tracking-tight text-[15px] hidden sm:block">KARAOKE LATINO</span>
         </a>
 
-        <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-zinc-400">
-            <a href="#sistema" class="hover:text-amber-400 transition-colors" data-t="navSistema"></a>
-            <a href="#sala" class="hover:text-amber-400 transition-colors" data-t="navSala"></a>
-            <a href="#precios" class="hover:text-amber-400 transition-colors" data-t="navPrecios"></a>
-            <a href="#resenas" class="hover:text-amber-400 transition-colors" data-t="navResenas"></a>
+        <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-crema-400">
+            <a href="#sistema" class="hover:text-marca-500 transition-colors" data-t="navSistema"></a>
+            <a href="#sala" class="hover:text-marca-500 transition-colors" data-t="navSala"></a>
+            <a href="#precios" class="hover:text-marca-500 transition-colors" data-t="navPrecios"></a>
+            <a href="#resenas" class="hover:text-marca-500 transition-colors" data-t="navResenas"></a>
         </nav>
 
         <div class="flex items-center gap-2.5 flex-shrink-0">
             <!-- Cambio de idioma. La bandera que se ve es la del idioma en
                  el que esta la pagina ahora mismo. -->
             <button id="btnIdioma" type="button"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700
-                       hover:border-amber-500/60 hover:bg-zinc-900 transition-colors"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-noche-700
+                       hover:border-marca-500/60 hover:bg-noche-900 transition-colors"
                 aria-label="Cambiar idioma / Switch language">
                 <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
-                <span id="banderaTexto" class="text-[11px] font-bold text-zinc-400 tracking-wider"></span>
+                <span id="banderaTexto" class="text-[11px] font-bold text-crema-400 tracking-wider"></span>
             </button>
 
             <a id="waBarra" href="#" target="_blank" rel="noopener"
-               class="bg-amber-400 hover:bg-amber-300 text-black font-bold text-[13px]
+               class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-[13px]
                       px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
                data-t="btnReservar"></a>
         </div>
@@ -177,30 +231,30 @@
     <div class="relative max-w-6xl mx-auto px-5 py-20 w-full">
         <div class="max-w-2xl">
 
-            <p class="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30
-                      text-amber-300 text-[11px] font-bold tracking-[0.15em] uppercase
+            <p class="inline-flex items-center gap-2 bg-marca-500/10 border border-marca-500/30
+                      text-marca-400 text-[11px] font-bold tracking-[0.15em] uppercase
                       px-3 py-1.5 rounded-full mb-6">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-marca-500"></span>
                 <span data-t="heroEtiqueta"></span>
             </p>
 
             <h1 class="text-[2.6rem] sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-6">
                 <span data-t="heroTitulo1"></span><br>
-                <span class="text-amber-400" data-t="heroTitulo2"></span>
+                <span class="degradado-marca" data-t="heroTitulo2"></span>
             </h1>
 
-            <p class="text-zinc-300 text-lg sm:text-xl leading-relaxed mb-9 max-w-xl" data-t="heroTexto"></p>
+            <p class="text-crema-300 text-lg sm:text-xl leading-relaxed mb-9 max-w-xl" data-t="heroTexto"></p>
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <a id="waHero" href="#" target="_blank" rel="noopener"
-                   class="bg-amber-400 hover:bg-amber-300 text-black font-bold text-base
+                   class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-base
                           px-7 py-4 rounded-xl transition-colors text-center
-                          shadow-lg shadow-amber-400/20">
+                          shadow-lg shadow-marca-500/25">
                     <span data-t="btnReservarLargo"></span>
                 </a>
                 <a href="#sistema"
-                   class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900
-                          text-zinc-200 font-bold text-base px-7 py-4 rounded-xl
+                   class="border border-noche-700 hover:border-crema-500 hover:bg-noche-900
+                          text-crema-100 font-bold text-base px-7 py-4 rounded-xl
                           transition-colors text-center" data-t="btnSistema"></a>
             </div>
         </div>
@@ -209,61 +263,61 @@
 
 
 <!-- ══════════════════════════════════════════════════════════ CIFRAS ═══ -->
-<section class="border-y border-zinc-800/80 bg-zinc-900/30">
-    <div class="max-w-6xl mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-zinc-800/80">
+<section class="border-y border-noche-800/80 bg-noche-900/30">
+    <div class="max-w-6xl mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-noche-800/80">
         <div class="py-8 px-4 text-center">
-            <svg class="w-7 h-7 mx-auto mb-3 text-amber-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17.25V5.4l11-2.15v11.6"/><path d="M9 9.3l11-2.15"/><ellipse cx="6.6" cy="18.4" rx="2.45" ry="2.1" fill="currentColor" stroke="none" transform="rotate(-18 6.6 18.4)"/><ellipse cx="17.6" cy="16.2" rx="2.45" ry="2.1" fill="currentColor" stroke="none" transform="rotate(-18 17.6 16.2)"/></svg>
-            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">4.000+</p>
-            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraCanciones"></p>
+            <svg class="w-7 h-7 mx-auto mb-3 text-marca-500/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17.25V5.4l11-2.15v11.6"/><path d="M9 9.3l11-2.15"/><ellipse cx="6.6" cy="18.4" rx="2.45" ry="2.1" fill="currentColor" stroke="none" transform="rotate(-18 6.6 18.4)"/><ellipse cx="17.6" cy="16.2" rx="2.45" ry="2.1" fill="currentColor" stroke="none" transform="rotate(-18 17.6 16.2)"/></svg>
+            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">4.000+</p>
+            <p class="text-[11px] sm:text-xs text-crema-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraCanciones"></p>
         </div>
         <div class="py-8 px-4 text-center">
-            <svg class="w-7 h-7 mx-auto mb-3 text-amber-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.9 2.6 7.6 12 12.3l9.4-4.7z"/><path d="M2.6 12.2 12 16.9l9.4-4.7"/><path d="M2.6 16.4 12 21.1l9.4-4.7"/></svg>
-            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">40</p>
-            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraGeneros"></p>
+            <svg class="w-7 h-7 mx-auto mb-3 text-marca-500/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.9 2.6 7.6 12 12.3l9.4-4.7z"/><path d="M2.6 12.2 12 16.9l9.4-4.7"/><path d="M2.6 16.4 12 21.1l9.4-4.7"/></svg>
+            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">40</p>
+            <p class="text-[11px] sm:text-xs text-crema-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraGeneros"></p>
         </div>
         <div class="py-8 px-4 text-center">
-            <svg class="w-7 h-7 mx-auto mb-3 text-amber-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.4" y="3.9" width="19.2" height="13.2" rx="2.2"/><path d="M12 17.1v3.2"/><path d="M8.3 20.3h7.4"/></svg>
-            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">65″</p>
-            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPantalla"></p>
+            <svg class="w-7 h-7 mx-auto mb-3 text-marca-500/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.4" y="3.9" width="19.2" height="13.2" rx="2.2"/><path d="M12 17.1v3.2"/><path d="M8.3 20.3h7.4"/></svg>
+            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">65″</p>
+            <p class="text-[11px] sm:text-xs text-crema-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPantalla"></p>
         </div>
         <div class="py-8 px-4 text-center">
-            <svg class="w-7 h-7 mx-auto mb-3 text-amber-400/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.8 20.4v-1.7a3.9 3.9 0 0 0-3.9-3.9H6.5a3.9 3.9 0 0 0-3.9 3.9v1.7"/><circle cx="9.2" cy="7.6" r="3.4"/><path d="M21.4 20.4v-1.7a3.9 3.9 0 0 0-2.9-3.77"/><path d="M15.1 4.4a3.9 3.9 0 0 1 0 6.4"/></svg>
-            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">15</p>
-            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
+            <svg class="w-7 h-7 mx-auto mb-3 text-marca-500/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.8 20.4v-1.7a3.9 3.9 0 0 0-3.9-3.9H6.5a3.9 3.9 0 0 0-3.9 3.9v1.7"/><circle cx="9.2" cy="7.6" r="3.4"/><path d="M21.4 20.4v-1.7a3.9 3.9 0 0 0-2.9-3.77"/><path d="M15.1 4.4a3.9 3.9 0 0 1 0 6.4"/></svg>
+            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">15</p>
+            <p class="text-[11px] sm:text-xs text-crema-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
         </div>
     </div>
 </section>
 
 
 <!-- ════════════════════════════════════════════════════════ SISTEMA ═══ -->
-<section id="sistema" class="py-24 px-5 bg-zinc-900/30 border-y border-zinc-800/80">
+<section id="sistema" class="resplandor luz-naranja py-24 px-5 bg-noche-900/30 border-y border-noche-800/80">
     <div class="max-w-6xl mx-auto">
 
         <div class="aparece text-center max-w-2xl mx-auto mb-16">
-            <p class="text-amber-400 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="sistemaEtiqueta"></p>
+            <p class="text-marca-500 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="sistemaEtiqueta"></p>
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="sistemaTitulo"></h2>
-            <p class="text-zinc-400 text-lg leading-relaxed" data-t="sistemaTexto"></p>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="sistemaTexto"></p>
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-5" id="ventajas"></div>
 
         <div class="aparece mt-12 text-center">
-            <p class="text-zinc-500 text-sm italic" data-t="sistemaPie"></p>
+            <p class="text-crema-500 text-sm italic" data-t="sistemaPie"></p>
         </div>
     </div>
 </section>
 
 
 <!-- ═══════════════════════════════════════════════════════════ SALA ═══ -->
-<section id="sala" class="py-24 px-5">
+<section id="sala" class="resplandor luz-fiesta py-24 px-5">
     <div class="max-w-6xl mx-auto">
 
         <div class="grid lg:grid-cols-2 gap-14 items-center">
 
             <div class="aparece">
-                <p class="text-amber-400 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="salaEtiqueta"></p>
+                <p class="text-marca-500 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="salaEtiqueta"></p>
                 <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5" data-t="salaTitulo"></h2>
-                <p class="text-zinc-400 text-lg leading-relaxed mb-8" data-t="salaTexto"></p>
+                <p class="text-crema-400 text-lg leading-relaxed mb-8" data-t="salaTexto"></p>
 
                 <ul id="equipos" class="space-y-3.5"></ul>
             </div>
@@ -274,15 +328,15 @@
                  La foto tiene fondo blanco de estudio, que sobre esta web
                  canta: el velo de abajo la asienta en el negro sin apagar el
                  amarillo de la camisa, que justo es el color de la casa. -->
-            <div class="aparece relative rounded-2xl overflow-hidden border border-zinc-800
-                        aspect-[4/3] sm:aspect-square bg-zinc-900">
+            <div class="aparece relative rounded-2xl overflow-hidden border border-noche-800
+                        aspect-[4/3] sm:aspect-square bg-noche-900">
                 <img src="fotos/sala-principal.jpg" alt="" loading="lazy"
                      class="w-full h-full object-cover object-[50%_28%]">
                 <div class="absolute inset-0 pointer-events-none"
                      style="background:
-                        radial-gradient(115% 88% at 50% 42%, transparent 40%, rgba(9,9,11,.50) 100%),
-                        linear-gradient(to bottom, rgba(9,9,11,.58) 0%, rgba(9,9,11,0) 30%),
-                        linear-gradient(to top, rgba(9,9,11,.80) 0%, rgba(9,9,11,0) 42%)"></div>
+                        radial-gradient(115% 88% at 50% 42%, transparent 40%, rgba(13,11,9,.50) 100%),
+                        linear-gradient(to bottom, rgba(13,11,9,.58) 0%, rgba(13,11,9,0) 30%),
+                        linear-gradient(to top, rgba(13,11,9,.80) 0%, rgba(13,11,9,0) 42%)"></div>
             </div>
         </div>
     </div>
@@ -290,29 +344,29 @@
 
 
 <!-- ══════════════════════════════════════════════════════ GENEROS ════ -->
-<section class="py-24 px-5 bg-zinc-900/30 border-y border-zinc-800/80">
+<section class="py-24 px-5 bg-noche-900/30 border-y border-noche-800/80">
     <div class="max-w-5xl mx-auto text-center">
         <div class="aparece">
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="generosTitulo"></h2>
-            <p class="text-zinc-400 text-lg leading-relaxed mb-10 max-w-2xl mx-auto" data-t="generosTexto"></p>
+            <p class="text-crema-400 text-lg leading-relaxed mb-10 max-w-2xl mx-auto" data-t="generosTexto"></p>
         </div>
         <!-- El cintillo va antes que los generos: entra por los ojos y deja
              claro de un vistazo que la lista no son cuatro nombres. -->
         <div class="cintillo mb-4 -mx-5"><div class="cintillo-pista" id="cintillo1"></div></div>
         <div class="cintillo mb-12 -mx-5"><div class="cintillo-pista al-reves" id="cintillo2"></div></div>
 
-        <p class="text-zinc-500 text-sm mt-8 max-w-2xl mx-auto leading-relaxed" data-t="generosPie"></p>
+        <p class="text-crema-500 text-sm mt-8 max-w-2xl mx-auto leading-relaxed" data-t="generosPie"></p>
     </div>
 </section>
 
 
 <!-- ════════════════════════════════════════════════════════ PRECIOS ═══ -->
-<section id="precios" class="py-24 px-5">
+<section id="precios" class="resplandor luz-doble py-24 px-5">
     <div class="max-w-5xl mx-auto">
 
         <div class="aparece text-center mb-12">
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="preciosTitulo"></h2>
-            <p class="text-zinc-400 text-lg" data-t="preciosTexto"></p>
+            <p class="text-crema-400 text-lg" data-t="preciosTexto"></p>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-6 items-stretch">
@@ -322,48 +376,48 @@
 
                  Esta viene con la chica pegada a su izquierda y medio encuadre
                  de fondo vacio, por eso el object-position tira hacia ahi. -->
-            <div class="aparece relative rounded-2xl overflow-hidden border border-zinc-800
-                        bg-zinc-900 min-h-[300px] lg:min-h-0 order-2 lg:order-1">
+            <div class="aparece relative rounded-2xl overflow-hidden border border-noche-800
+                        bg-noche-900 min-h-[300px] lg:min-h-0 order-2 lg:order-1">
                 <img src="fotos/precios.jpg" alt="" loading="lazy"
                      class="absolute inset-0 w-full h-full object-cover object-[22%_40%]"
                      style="filter:saturate(.82) brightness(.94)">
                 <div class="absolute inset-0 pointer-events-none"
                      style="background:
-                        radial-gradient(110% 80% at 30% 40%, transparent 42%, rgba(9,9,11,.55) 100%),
-                        linear-gradient(to bottom, rgba(9,9,11,.45) 0%, rgba(9,9,11,0) 28%),
-                        linear-gradient(to top, rgba(9,9,11,.72) 0%, rgba(9,9,11,0) 40%)"></div>
+                        radial-gradient(110% 80% at 30% 40%, transparent 42%, rgba(13,11,9,.55) 100%),
+                        linear-gradient(to bottom, rgba(13,11,9,.45) 0%, rgba(13,11,9,0) 28%),
+                        linear-gradient(to top, rgba(13,11,9,.72) 0%, rgba(13,11,9,0) 40%)"></div>
             </div>
 
             <!-- La tarjeta, ajustada a lo que lleva dentro: antes ocupaba el
                  ancho entero para cuatro lineas y sobraba aire por todos lados. -->
-            <div class="aparece bg-gradient-to-b from-zinc-900 to-zinc-900/40 border border-zinc-800
+            <div class="aparece bg-gradient-to-b from-noche-900 to-noche-900/40 border border-noche-800
                         rounded-2xl p-7 sm:p-8 flex flex-col justify-center order-1 lg:order-2">
 
                 <!-- ⚠️ PRECIO: si cambia, se cambia AQUI y en precioUnidad
                      y precioDetalles de las dos traducciones. -->
-                <p class="text-zinc-500 text-xs font-bold uppercase tracking-[0.15em] mb-2" data-t="precioEtiqueta"></p>
-                <p class="text-5xl sm:text-6xl font-black text-amber-400 tracking-tight leading-none mb-2">$20</p>
-                <p class="text-zinc-300 font-medium mb-6" data-t="precioUnidad"></p>
+                <p class="text-crema-500 text-xs font-bold uppercase tracking-[0.15em] mb-2" data-t="precioEtiqueta"></p>
+                <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$20</p>
+                <p class="text-crema-300 font-medium mb-6" data-t="precioUnidad"></p>
 
-                <div class="border-t border-zinc-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
+                <div class="border-t border-noche-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
 
                 <a id="waPrecios" href="#" target="_blank" rel="noopener"
-                   class="block text-center bg-amber-400 hover:bg-amber-300 text-black font-bold
-                          px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-amber-400/20"
+                   class="block text-center bg-marca-500 hover:bg-marca-400 text-black font-bold
+                          px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-marca-500/25"
                    data-t="btnReservarLargo"></a>
             </div>
         </div>
 
         <!-- La tienda de refrigerios, que ya existe y funciona aparte. -->
-        <div class="aparece mt-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6
+        <div class="aparece mt-8 bg-noche-900/50 border border-noche-800 rounded-2xl p-6
                     flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="text-center sm:text-left">
-                <p class="font-bold text-zinc-100 mb-1" data-t="tiendaTitulo"></p>
-                <p class="text-zinc-500 text-sm" data-t="tiendaTexto"></p>
+                <p class="font-bold text-crema-100 mb-1" data-t="tiendaTitulo"></p>
+                <p class="text-crema-500 text-sm" data-t="tiendaTexto"></p>
             </div>
             <a href="tienda.html"
-               class="flex-shrink-0 border border-zinc-700 hover:border-amber-500/60 hover:bg-zinc-800
-                      text-zinc-200 font-bold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+               class="flex-shrink-0 border border-noche-700 hover:border-marca-500/60 hover:bg-noche-800
+                      text-crema-100 font-bold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
                data-t="btnVerTienda"></a>
         </div>
     </div>
@@ -371,20 +425,20 @@
 
 
 <!-- ════════════════════════════════════════════════════════ RESENAS ═══ -->
-<section id="resenas" class="py-24 px-5 bg-zinc-900/30 border-t border-zinc-800/80">
+<section id="resenas" class="resplandor luz-fiesta py-24 px-5 bg-noche-900/30 border-t border-noche-800/80">
     <div class="max-w-6xl mx-auto">
 
         <div class="aparece text-center max-w-2xl mx-auto mb-14">
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="resenasTitulo"></h2>
-            <p class="text-zinc-400 text-lg leading-relaxed" data-t="resenasTexto"></p>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="resenasTexto"></p>
         </div>
 
         <div id="listaResenas" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10"></div>
 
         <div class="text-center">
             <a href="resenas.html"
-               class="inline-block border border-zinc-700 hover:border-amber-500/60 hover:bg-zinc-900
-                      text-zinc-200 font-bold px-7 py-3.5 rounded-xl transition-colors"
+               class="inline-block border border-noche-700 hover:border-marca-500/60 hover:bg-noche-900
+                      text-crema-100 font-bold px-7 py-3.5 rounded-xl transition-colors"
                data-t="btnDejarResena"></a>
         </div>
     </div>
@@ -392,13 +446,13 @@
 
 
 <!-- ═════════════════════════════════════════════════════════ CIERRE ═══ -->
-<section class="py-24 px-5 border-t border-zinc-800/80">
+<section class="py-24 px-5 border-t border-noche-800/80">
     <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5" data-t="cierreTitulo"></h2>
-        <p class="text-zinc-400 text-lg leading-relaxed mb-9" data-t="cierreTexto"></p>
+        <p class="text-crema-400 text-lg leading-relaxed mb-9" data-t="cierreTexto"></p>
         <a id="waCierre" href="#" target="_blank" rel="noopener"
-           class="inline-flex items-center gap-2.5 bg-amber-400 hover:bg-amber-300 text-black
-                  font-bold text-lg px-9 py-4 rounded-xl transition-colors shadow-lg shadow-amber-400/20">
+           class="inline-flex items-center gap-2.5 bg-marca-500 hover:bg-marca-400 text-black
+                  font-bold text-lg px-9 py-4 rounded-xl transition-colors shadow-lg shadow-marca-500/25">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
                 <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
@@ -416,8 +470,8 @@
 <div class="fixed bottom-5 right-5 z-40 flex flex-col items-center gap-3">
 
     <button id="btnArriba" type="button"
-        class="w-11 h-11 rounded-full bg-zinc-800/90 backdrop-blur border border-zinc-700
-               hover:border-amber-500/60 hover:text-amber-400 text-zinc-300
+        class="w-11 h-11 rounded-full bg-noche-800/90 backdrop-blur border border-noche-700
+               hover:border-marca-500/60 hover:text-marca-500 text-crema-300
                shadow-lg flex items-center justify-center transition-all duration-300
                opacity-0 translate-y-2 pointer-events-none"
         aria-label="Ir al inicio">
@@ -440,41 +494,41 @@
 </div>
 
 
-<footer class="border-t border-zinc-800 py-14 px-5">
+<footer class="border-t border-noche-800 py-14 px-5">
     <div class="max-w-6xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-center gap-8">
 
             <div class="flex flex-col items-center md:items-start gap-3">
                 <img src="logo.png" alt="Karaoke Latino" class="h-11 w-auto object-contain">
-                <p class="text-zinc-500 text-sm" data-t="footerUbicacion"></p>
-                <p class="text-zinc-600 text-xs" data-t="footerHorario"></p>
+                <p class="text-crema-500 text-sm" data-t="footerUbicacion"></p>
+                <p class="text-crema-600 text-xs" data-t="footerHorario"></p>
             </div>
 
             <div class="flex items-center gap-3">
                 <a href="https://instagram.com/mikaraokelatino" target="_blank" rel="noopener"
-                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
-                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   class="w-11 h-11 rounded-xl border border-noche-800 hover:border-marca-500/60
+                          hover:bg-noche-900 flex items-center justify-center transition-colors"
                    aria-label="Instagram">
-                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg class="w-5 h-5 text-crema-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.3-.5.2-.9.4-1.2.8-.4.3-.6.7-.8 1.2-.1.4-.3 1-.3 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.3 2.1.2.5.4.9.8 1.2.3.4.7.6 1.2.8.4.1 1 .3 2.1.3 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.3.5-.2.9-.4 1.2-.8.4-.3.6-.7.8-1.2.1-.4.3-1 .3-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.3-2.1-.2-.5-.4-.9-.8-1.2-.3-.4-.7-.6-1.2-.8-.4-.1-1-.3-2.1-.3-1.2-.1-1.6-.1-4.7-.1z"/>
                         <path d="M12 15.3a3.3 3.3 0 110-6.6 3.3 3.3 0 010 6.6zm0-8.4a5.1 5.1 0 100 10.2 5.1 5.1 0 000-10.2zm6.5-.2a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"/>
                     </svg>
                 </a>
 
                 <a id="tiktok" href="#" target="_blank" rel="noopener"
-                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
-                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   class="w-11 h-11 rounded-xl border border-noche-800 hover:border-marca-500/60
+                          hover:bg-noche-900 flex items-center justify-center transition-colors"
                    aria-label="TikTok">
-                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg class="w-5 h-5 text-crema-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M16.6 5.8a4.3 4.3 0 01-1-2.8h-3v12.1a2.5 2.5 0 11-1.8-2.4V9.6a5.6 5.6 0 103.8 5.3V9.3a7.3 7.3 0 004.3 1.4V7.6a4.3 4.3 0 01-2.3-1.8z"/>
                     </svg>
                 </a>
 
                 <a id="waFooter" href="#" target="_blank" rel="noopener"
-                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
-                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   class="w-11 h-11 rounded-xl border border-noche-800 hover:border-marca-500/60
+                          hover:bg-noche-900 flex items-center justify-center transition-colors"
                    aria-label="WhatsApp">
-                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg class="w-5 h-5 text-crema-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
                         <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
                     </svg>
@@ -482,7 +536,7 @@
             </div>
         </div>
 
-        <p class="text-center text-zinc-700 text-xs mt-10">
+        <p class="text-center text-noche-700 text-xs mt-10">
             © <span id="anio"></span> Karaoke Latino · Lechería, Venezuela
         </p>
     </div>
@@ -801,7 +855,7 @@ function escapar(t) {
 function estrellas(n) {
     let html = '';
     for (let i = 1; i <= 5; i++) {
-        html += '<svg class="w-4 h-4 ' + (i <= n ? 'text-amber-400' : 'text-zinc-700') +
+        html += '<svg class="w-4 h-4 ' + (i <= n ? 'text-marca-500' : 'text-noche-700') +
                 '" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
                 '<path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/></svg>';
     }
@@ -844,33 +898,33 @@ function aplicarIdioma() {
             <div class="telefono w-[228px] lg:w-[186px] rounded-[1.9rem] p-[6px] mb-6">
                 <div class="relative overflow-hidden rounded-[1.55rem] bg-black aspect-[9/16]">
                     <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10
-                                h-[3px] w-9 rounded-full bg-zinc-600/70"></div>
+                                h-[3px] w-9 rounded-full bg-crema-600/70"></div>
                     <img src="${v.img}" alt="" loading="lazy"
                          class="w-full h-full object-cover ${v.pos}"
                          style="${v.zoom || ''}">
                 </div>
             </div>
 
-            <h3 class="font-bold text-amber-400 mb-2.5 leading-snug">${escapar(v.t)}</h3>
-            <p class="text-zinc-400 text-sm leading-relaxed">${escapar(v.d)}</p>
+            <h3 class="font-bold text-marca-500 mb-2.5 leading-snug">${escapar(v.t)}</h3>
+            <p class="text-crema-400 text-sm leading-relaxed">${escapar(v.d)}</p>
         </div>`).join('');
 
     // La lista de equipos.
     document.getElementById('equipos').innerHTML = t.equipos.map((e) => `
         <li class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg class="w-5 h-5 text-marca-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0z"/>
             </svg>
-            <span class="text-zinc-300">${escapar(e)}</span>
+            <span class="text-crema-300">${escapar(e)}</span>
         </li>`).join('');
 
     // Lo que incluye el precio.
     document.getElementById('precioDetalles').innerHTML = t.precioDetalles.map((d) => `
         <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-zinc-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg class="w-5 h-5 text-crema-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0z"/>
             </svg>
-            <span class="text-zinc-400 text-sm">${escapar(d)}</span>
+            <span class="text-crema-400 text-sm">${escapar(d)}</span>
         </div>`).join('');
 
     // El cintillo. Dos filas, cada una con la mitad de las caratulas y en
@@ -880,8 +934,8 @@ function aplicarIdioma() {
         const una = (p) => `
             <figure class="flex-shrink-0 w-[104px] sm:w-[124px] m-0">
                 <img src="fotos/portadas/${p.f}" alt="" loading="lazy"
-                     class="w-full aspect-square object-cover rounded-xl border border-zinc-800">
-                <figcaption class="text-zinc-500 text-[10px] mt-1.5 text-center truncate">${escapar(p.a)}</figcaption>
+                     class="w-full aspect-square object-cover rounded-xl border border-noche-800">
+                <figcaption class="text-crema-500 text-[10px] mt-1.5 text-center truncate">${escapar(p.a)}</figcaption>
             </figure>`;
         // Dos veces la misma lista: es lo que hace que el bucle no se note.
         document.getElementById(id).innerHTML = lista.map(una).join('') + lista.map(una).join('');
@@ -907,25 +961,25 @@ function pintarResenas() {
     if (!caja) return;
 
     if (resenasCargadas === null) {
-        caja.innerHTML = '<p class="col-span-full text-center text-zinc-600 text-sm py-8">···</p>';
+        caja.innerHTML = '<p class="col-span-full text-center text-crema-600 text-sm py-8">···</p>';
         return;
     }
 
     if (resenasCargadas.length === 0) {
-        caja.innerHTML = '<p class="col-span-full text-center text-zinc-600 py-8">' +
+        caja.innerHTML = '<p class="col-span-full text-center text-crema-600 py-8">' +
             escapar(TEXTOS[idioma].resenasVacio) + '</p>';
         return;
     }
 
     caja.innerHTML = resenasCargadas.map((r) => `
-        <article class="aparece bg-zinc-950/60 border border-zinc-800 rounded-2xl overflow-hidden
-                        flex flex-col hover:border-zinc-700 transition-colors">
+        <article class="aparece bg-noche-950/60 border border-noche-800 rounded-2xl overflow-hidden
+                        flex flex-col hover:border-noche-700 transition-colors">
             ${r.foto_url ? `<img src="${escapar(r.foto_url)}" alt=""
-                 loading="lazy" class="w-full h-44 object-cover border-b border-zinc-800">` : ''}
+                 loading="lazy" class="w-full h-44 object-cover border-b border-noche-800">` : ''}
             <div class="p-6 flex flex-col flex-1">
                 ${estrellas(r.estrellas)}
-                <p class="text-zinc-300 text-sm leading-relaxed my-4 flex-1">${escapar(r.texto)}</p>
-                <p class="text-zinc-500 text-xs font-bold tracking-wide">${escapar(r.nombre)}</p>
+                <p class="text-crema-300 text-sm leading-relaxed my-4 flex-1">${escapar(r.texto)}</p>
+                <p class="text-crema-500 text-xs font-bold tracking-wide">${escapar(r.nombre)}</p>
             </div>
         </article>`).join('');
 
@@ -1038,8 +1092,8 @@ function alDesplazarse() {
     }
     enlacesMenu.forEach((a) => {
         const suya = a.getAttribute('href').slice(1) === activa;
-        a.classList.toggle('text-amber-400', suya);
-        a.classList.toggle('text-zinc-400', !suya);
+        a.classList.toggle('text-marca-500', suya);
+        a.classList.toggle('text-crema-400', !suya);
     });
 }
 

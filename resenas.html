@@ -9,13 +9,40 @@
 
 <link rel="icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+    // ------------------------------------------------------------------
+    // La paleta, sacada del logo
+    // ------------------------------------------------------------------
+    //   marca   el degradado del microfono: de naranja rojizo a dorado.
+    //           El 500 es el corazon del logo, el que mas pixeles ocupa.
+    //   noche   negro CALIDO. El de antes (#09090B) tiraba a azul y con el
+    //           naranja al lado se veia sucio.
+    //   crema   los grises, tambien calidos, para que no desentonen.
+    //   fiesta  el magenta. Va con cuentagotas: existe para que el naranja
+    //           no este solo, no para competir con el.
+    // ------------------------------------------------------------------
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    marca:  { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+                    noche:  { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613',
+                              800: '#241D18', 700: '#362C25' },
+                    crema:  { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93',
+                              500: '#85796D', 600: '#635A50', 700: '#443D36' },
+                    fiesta: '#F0338C'
+                }
+            }
+        }
+    };
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-noche-950 text-crema-100 font-sans antialiased min-h-screen flex flex-col">
 
 <!-- ═══════════════════════════════════════════════════════════ BARRA ═══ -->
-<header class="border-b border-zinc-800/80">
+<header class="border-b border-noche-800/80">
     <div class="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between">
         <a href="/" class="flex items-center gap-2.5">
             <img src="logo.png" alt="Karaoke Latino" class="h-9 w-auto object-contain">
@@ -23,11 +50,11 @@
         </a>
 
         <button id="btnIdioma" type="button"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700
-                   hover:border-amber-500/60 hover:bg-zinc-900 transition-colors"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-noche-700
+                   hover:border-marca-500/60 hover:bg-noche-900 transition-colors"
             aria-label="Cambiar idioma / Switch language">
             <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
-            <span id="banderaTexto" class="text-[11px] font-bold text-zinc-400 tracking-wider"></span>
+            <span id="banderaTexto" class="text-[11px] font-bold text-crema-400 tracking-wider"></span>
         </button>
     </div>
 </header>
@@ -41,11 +68,11 @@
     <nav aria-label="Ruta" class="mb-8">
         <ol class="flex items-center gap-2 text-xs">
             <li>
-                <a href="/" class="text-zinc-500 hover:text-amber-400 transition-colors"
+                <a href="/" class="text-crema-500 hover:text-marca-500 transition-colors"
                    data-t="migaInicio"></a>
             </li>
-            <li aria-hidden="true" class="text-zinc-700">›</li>
-            <li class="text-zinc-300 font-medium" aria-current="page" data-t="migaActual"></li>
+            <li aria-hidden="true" class="text-noche-700">›</li>
+            <li class="text-crema-300 font-medium" aria-current="page" data-t="migaActual"></li>
         </ol>
     </nav>
 
@@ -54,83 +81,83 @@
 
         <div class="text-center mb-10">
             <h1 class="text-3xl sm:text-4xl font-black tracking-tight mb-3" data-t="titulo"></h1>
-            <p class="text-zinc-400 leading-relaxed" data-t="subtitulo"></p>
+            <p class="text-crema-400 leading-relaxed" data-t="subtitulo"></p>
         </div>
 
         <!-- Estrellas -->
         <div class="mb-7">
-            <label class="block text-zinc-400 text-sm font-bold mb-3" data-t="etiquetaEstrellas"></label>
+            <label class="block text-crema-400 text-sm font-bold mb-3" data-t="etiquetaEstrellas"></label>
             <div id="selectorEstrellas" class="flex gap-1.5 justify-start"></div>
         </div>
 
         <!-- Nombre -->
         <div class="mb-6">
-            <label for="campoNombre" class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaNombre"></label>
+            <label for="campoNombre" class="block text-crema-400 text-sm font-bold mb-2" data-t="etiquetaNombre"></label>
             <input id="campoNombre" type="text" maxlength="40" autocomplete="given-name"
-                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-100
-                       placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition-colors">
-            <p class="text-zinc-600 text-xs mt-2" data-t="ayudaNombre"></p>
+                class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3.5 text-crema-100
+                       placeholder-crema-600 focus:outline-none focus:border-marca-500 transition-colors">
+            <p class="text-crema-600 text-xs mt-2" data-t="ayudaNombre"></p>
         </div>
 
         <!-- Reseña -->
         <div class="mb-7">
-            <label for="campoTexto" class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaTexto"></label>
+            <label for="campoTexto" class="block text-crema-400 text-sm font-bold mb-2" data-t="etiquetaTexto"></label>
             <textarea id="campoTexto" rows="5" maxlength="600"
-                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-100
-                       placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition-colors
+                class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3.5 text-crema-100
+                       placeholder-crema-600 focus:outline-none focus:border-marca-500 transition-colors
                        resize-none leading-relaxed"></textarea>
-            <p class="text-right text-zinc-600 text-xs mt-1.5"><span id="cuenta">0</span>/600</p>
+            <p class="text-right text-crema-600 text-xs mt-1.5"><span id="cuenta">0</span>/600</p>
         </div>
 
         <!-- Foto, opcional -->
         <div class="mb-8">
-            <label class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaFoto"></label>
+            <label class="block text-crema-400 text-sm font-bold mb-2" data-t="etiquetaFoto"></label>
 
             <label for="campoFoto" id="cajaFoto"
-                class="block border-2 border-dashed border-zinc-700 hover:border-amber-500/60
+                class="block border-2 border-dashed border-noche-700 hover:border-marca-500/60
                        rounded-xl p-6 text-center cursor-pointer transition-colors">
-                <svg class="w-8 h-8 mx-auto text-zinc-600 mb-2" viewBox="0 0 24 24" fill="none"
+                <svg class="w-8 h-8 mx-auto text-crema-600 mb-2" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                     <path d="M3 9a2 2 0 012-2h1.6l1-1.6A1 1 0 018.4 5h7.2a1 1 0 01.8.4l1 1.6H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                     <circle cx="12" cy="13" r="3.2"/>
                 </svg>
-                <span class="text-zinc-500 text-sm" data-t="textoFoto"></span>
+                <span class="text-crema-500 text-sm" data-t="textoFoto"></span>
             </label>
             <input id="campoFoto" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
 
             <!-- Vista previa, cuando eligen una -->
             <div id="previaFoto" class="hidden mt-3 relative">
-                <img id="previaImagen" alt="" class="w-full h-52 object-cover rounded-xl border border-zinc-700">
+                <img id="previaImagen" alt="" class="w-full h-52 object-cover rounded-xl border border-noche-700">
                 <button type="button" id="btnQuitarFoto"
-                    class="absolute top-2 right-2 w-9 h-9 rounded-lg bg-zinc-950/80 backdrop-blur
-                           border border-zinc-700 hover:border-red-500/60 hover:text-red-400
-                           text-zinc-300 font-bold transition-colors">×</button>
+                    class="absolute top-2 right-2 w-9 h-9 rounded-lg bg-noche-950/80 backdrop-blur
+                           border border-noche-700 hover:border-red-500/60 hover:text-red-400
+                           text-crema-300 font-bold transition-colors">×</button>
             </div>
         </div>
 
         <p id="error" class="hidden mb-4 text-red-400 text-sm text-center"></p>
 
         <button id="btnEnviar" type="button"
-            class="w-full bg-amber-400 hover:bg-amber-300 disabled:bg-zinc-800 disabled:text-zinc-600
+            class="w-full bg-marca-500 hover:bg-marca-400 disabled:bg-noche-800 disabled:text-crema-600
                    text-black font-bold text-base py-4 rounded-xl transition-colors"
             data-t="btnEnviar"></button>
 
-        <p class="text-center text-zinc-600 text-xs mt-4 leading-relaxed" data-t="avisoRevision"></p>
+        <p class="text-center text-crema-600 text-xs mt-4 leading-relaxed" data-t="avisoRevision"></p>
     </div>
 
 
     <!-- ══════════════════════════════════════════════════════ GRACIAS ═══ -->
     <div id="gracias" class="hidden text-center py-12">
-        <div class="w-20 h-20 rounded-full bg-amber-400/10 border border-amber-400/30
+        <div class="w-20 h-20 rounded-full bg-marca-500/10 border border-marca-500/30
                     flex items-center justify-center mx-auto mb-7">
-            <svg class="w-10 h-10 text-amber-400" viewBox="0 0 24 24" fill="none"
+            <svg class="w-10 h-10 text-marca-500" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <path d="M5 13l4 4L19 7"/>
             </svg>
         </div>
         <h2 class="text-3xl font-black tracking-tight mb-3" data-t="graciasTitulo"></h2>
-        <p class="text-zinc-400 leading-relaxed mb-9 max-w-sm mx-auto" data-t="graciasTexto"></p>
-        <a href="/" class="inline-block bg-amber-400 hover:bg-amber-300 text-black font-bold
+        <p class="text-crema-400 leading-relaxed mb-9 max-w-sm mx-auto" data-t="graciasTexto"></p>
+        <a href="/" class="inline-block bg-marca-500 hover:bg-marca-400 text-black font-bold
                            px-7 py-3.5 rounded-xl transition-colors" data-t="btnVolver"></a>
     </div>
 
@@ -148,8 +175,8 @@
     </svg>
 </a>
 
-<footer class="border-t border-zinc-800 py-8 px-5 text-center">
-    <p class="text-zinc-700 text-xs">© <span id="anio"></span> Karaoke Latino · Lechería</p>
+<footer class="border-t border-noche-800 py-8 px-5 text-center">
+    <p class="text-noche-700 text-xs">© <span id="anio"></span> Karaoke Latino · Lechería</p>
 </footer>
 
 
@@ -284,7 +311,7 @@ function pintarEstrellas() {
     document.getElementById('selectorEstrellas').innerHTML = [1, 2, 3, 4, 5].map((n) => `
         <button type="button" data-valor="${n}" aria-label="${n}"
             class="p-1 transition-transform hover:scale-110">
-            <svg class="w-9 h-9 ${n <= puntuacion ? 'text-amber-400' : 'text-zinc-700'}"
+            <svg class="w-9 h-9 ${n <= puntuacion ? 'text-marca-500' : 'text-noche-700'}"
                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/>
             </svg>
