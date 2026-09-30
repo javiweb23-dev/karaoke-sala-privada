@@ -2,9 +2,11 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "public",
+  "redirects": [
+    { "source": "/index.html", "destination": "/karaoke", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/", "destination": "/home.html" },
-    { "source": "/karaoke", "destination": "/index.html" },
+    { "source": "/karaoke", "destination": "/karaoke.html" },
     { "source": "/resenas", "destination": "/resenas.html" }
   ]
 }

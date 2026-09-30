@@ -61,10 +61,23 @@ if (fs.existsSync(publicDir)) {
 }
 fs.mkdirSync(publicDir, { recursive: true });
 
+// En el repo los archivos NO cambian de nombre: index.html sigue siendo la
+// app, y los scripts y las pruebas la leen de ahi como siempre. Lo que cambia
+// es el nombre con el que se PUBLICA.
+//
+// Hace falta porque en Vercel el archivo real gana sobre las reglas de
+// reescritura: mientras exista public/index.html, "/" sirve ese archivo y la
+// regla nunca llega a aplicarse. Asi que se publica la web en ese sitio y la
+// app al lado, sin renombrar nada aqui dentro.
+const publicarComo = {
+  'home.html':  'index.html',     // la web publica queda en la raiz
+  'index.html': 'karaoke.html'    // la app, en su propia direccion
+};
+
 for (const file of [...required, ...optional]) {
   const src = path.join(root, file);
   if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.join(publicDir, file));
+    fs.copyFileSync(src, path.join(publicDir, publicarComo[file] || file));
   }
 }
 
