@@ -17,6 +17,10 @@
 <style>
     html { scroll-behavior: smooth; }
 
+    /* La barra de arriba es fija y mide 64 px. Sin esto, al saltar a una
+       seccion su titulo queda escondido justo debajo. */
+    section[id] { scroll-margin-top: 4rem; }
+
     /* ------------------------------------------------------------------
        Hueco de foto
        ------------------------------------------------------------------
@@ -801,6 +805,28 @@ document.getElementById('btnIdioma').addEventListener('click', () => {
     idioma = idioma === 'es' ? 'en' : 'es';
     aplicarIdioma();
 });
+
+// Los enlaces del menu movian la pagina poniendo "#como" y demas en la barra
+// de direcciones. Funcionaba, pero se ve descuidado y encima deja la
+// direccion rara si alguien la copia para compartirla. Se desplaza a mano y
+// la direccion se queda limpia.
+document.querySelectorAll('a[href^="#"]').forEach((enlace) => {
+    enlace.addEventListener('click', (ev) => {
+        const destino = document.getElementById(enlace.getAttribute('href').slice(1));
+        if (!destino) return;               // por si el enlace apunta a nada
+        ev.preventDefault();
+        // El hero es el principio de la pagina: ahi se sube del todo, para que
+        // no quede un dedo de hueco por encima.
+        if (destino.id === 'inicio') window.scrollTo({ top: 0, behavior: 'smooth' });
+        else destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+
+// Si llegan con un "#algo" pegado (de un enlace viejo o de compartir), se
+// quita de la barra sin recargar ni perder el sitio.
+if (location.hash) {
+    history.replaceState(null, '', location.pathname + location.search);
+}
 
 document.getElementById('anio').textContent = new Date().getFullYear();
 
