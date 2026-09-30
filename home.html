@@ -81,6 +81,38 @@
         box-shadow: 0 18px 40px -12px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.05) inset;
     }
 
+    /* ------------------------------------------------------------------
+       El cintillo de caratulas
+       ------------------------------------------------------------------
+       La pista lleva la lista DOS veces seguidas y se desplaza hasta el -50%.
+       Justo en ese punto el segundo juego esta donde arrancó el primero, asi
+       que al volver a cero no se nota el salto y parece infinito.
+
+       Las caratulas salen de la API de iTunes, la misma que ya usa la app
+       para las portadas de la lista. Cada una es de una cancion que esta de
+       verdad en la sala.
+       ------------------------------------------------------------------ */
+    .cintillo {
+        overflow: hidden;
+        /* Se desvanece por los lados para que no se vea el corte seco. */
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+                mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+    }
+    .cintillo-pista {
+        display: flex;
+        gap: 14px;
+        width: max-content;
+        animation: correr 70s linear infinite;
+    }
+    .cintillo-pista.al-reves { animation-direction: reverse; }
+    .cintillo:hover .cintillo-pista { animation-play-state: paused; }
+    @keyframes correr { to { transform: translateX(-50%); } }
+
+    /* A quien le moleste el movimiento se le deja quieto. */
+    @media (prefers-reduced-motion: reduce) {
+        .cintillo-pista { animation: none; }
+    }
+
     /* Aparecer al hacer scroll. Si el navegador no soporta el observador, las
        secciones se quedan visibles: nunca se esconde nada sin poder mostrarlo. */
     .aparece { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
@@ -282,6 +314,11 @@
             <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="generosTitulo"></h2>
             <p class="text-zinc-400 text-lg leading-relaxed mb-10 max-w-2xl mx-auto" data-t="generosTexto"></p>
         </div>
+        <!-- El cintillo va antes que los generos: entra por los ojos y deja
+             claro de un vistazo que la lista no son cuatro nombres. -->
+        <div class="cintillo mb-4 -mx-5"><div class="cintillo-pista" id="cintillo1"></div></div>
+        <div class="cintillo mb-12 -mx-5"><div class="cintillo-pista al-reves" id="cintillo2"></div></div>
+
         <div id="generos" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-left"></div>
         <p class="text-zinc-600 text-xs mt-6" data-t="generosPie"></p>
     </div>
@@ -500,7 +537,8 @@ const TEXTOS = {
         generosPie: 'Y 28 géneros más: bachata, cumbia, ranchera, tropical, italiano, gaita...',
         generosTitulo: 'Para todos los gustos',
         generosTexto: 'De la salsa que se sabe tu tío al K-pop que solo se sabe tu sobrina. ' +
-                      'Y todas las semanas entran canciones nuevas.',
+                      'Lo que ves aquí es una muestra: son más de 1.000 artistas, y cada ' +
+                      'semana entran canciones nuevas.',
 
         preciosTitulo: 'Precios claros',
         preciosTexto: 'Sin letra pequeña ni consumo mínimo.',
@@ -606,7 +644,8 @@ const TEXTOS = {
         generosPie: 'Plus 28 more genres: bachata, cumbia, ranchera, tropical, Italian, gaita...',
         generosTitulo: 'Something for everyone',
         generosTexto: 'From the salsa your uncle knows by heart to the K-pop only your niece can sing. ' +
-                      'And new songs come in every week.',
+                      'What you see here is just a taste: over 1,000 artists, with new songs ' +
+                      'coming in every week.',
 
         preciosTitulo: 'Clear pricing',
         preciosTexto: 'No fine print, no minimum spend.',
@@ -725,6 +764,47 @@ const REDES = {
 // en la web de un negocio da a entender que el te patrocina, y eso es lo que
 // acaba en carta del abogado. El nombre, en cambio, es un hecho: esas
 // canciones estan en la sala.
+// Las caratulas del cintillo. Son de canciones que estan en el catalogo, y
+// vienen de la API de iTunes, la misma que la app usa para las portadas.
+const PORTADAS = [
+    { f: 'marc-anthony.jpg', a: 'Marc Anthony' },
+    { f: 'daddy-yankee.jpg', a: 'Daddy Yankee' },
+    { f: 'juan-luis-guerra.jpg', a: 'Juan Luis Guerra' },
+    { f: 'vicente-fernandez.jpg', a: 'Vicente Fernandez' },
+    { f: 'shakira.jpg', a: 'Shakira' },
+    { f: 'michael-jackson.jpg', a: 'Michael Jackson' },
+    { f: 'jose-jose.jpg', a: 'Jose Jose' },
+    { f: 'mana.jpg', a: 'Mana' },
+    { f: 'karol-g.jpg', a: 'Karol g' },
+    { f: 'bad-bunny.jpg', a: 'Bad Bunny' },
+    { f: 'gilberto-santa-rosa.jpg', a: 'Gilberto Santa Rosa' },
+    { f: 'juan-gabriel.jpg', a: 'Juan Gabriel' },
+    { f: 'olga-ta-on.jpg', a: 'Olga Tañon' },
+    { f: 'silvestre-dangond.jpg', a: 'Silvestre Dangond' },
+    { f: 'reynaldo-armas.jpg', a: 'Reynaldo Armas' },
+    { f: 'bts.jpg', a: 'Bts' },
+    { f: 'the-beatles.jpg', a: 'The Beatles' },
+    { f: 'luis-miguel.jpg', a: 'Luis Miguel' },
+    { f: 'ana-gabriel.jpg', a: 'Ana Gabriel' },
+    { f: 'camilo-sesto.jpg', a: 'Camilo Sesto' },
+    { f: 'hector-lavoe.jpg', a: 'Hector Lavoe' },
+    { f: 'elvis-crespo.jpg', a: 'Elvis Crespo' },
+    { f: 'alejandra-guzman.jpg', a: 'Alejandra Guzman' },
+    { f: 'julio-jaramillo.jpg', a: 'Julio Jaramillo' },
+    { f: 'thalia.jpg', a: 'Thalia' },
+    { f: 'ricardo-arjona.jpg', a: 'Ricardo Arjona' },
+    { f: 'don-omar.jpg', a: 'Don Omar' },
+    { f: 'imagine-dragons.jpg', a: 'Imagine Dragons' },
+    { f: 'simon-diaz.jpg', a: 'Simon Diaz' },
+    { f: 'oscar-de-leon.jpg', a: 'Oscar de Leon' },
+    { f: 'ruben-blades.jpg', a: 'Ruben Blades' },
+    { f: 'jerry-rivera.jpg', a: 'Jerry Rivera' },
+    { f: 'chayanne.jpg', a: 'Chayanne' },
+    { f: 'roberto-carlos.jpg', a: 'Roberto Carlos' },
+    { f: 'grupo-niche.jpg', a: 'Grupo Niche' },
+    { f: 'binomio-de-oro.jpg', a: 'Binomio de Oro' }
+];
+
 const GENEROS = [
     { es: 'Pop',             en: 'Pop',            n: 937, a: 'Michael Jackson · Shakira · Thalía' },
     { es: 'Salsa',           en: 'Salsa',          n: 352, a: 'Marc Anthony · Gilberto Santa Rosa · Héctor Lavoe' },
@@ -861,6 +941,22 @@ function aplicarIdioma() {
             </svg>
             <span class="text-zinc-400 text-sm">${escapar(d)}</span>
         </div>`).join('');
+
+    // El cintillo. Dos filas, cada una con la mitad de las caratulas y en
+    // sentido contrario: asi no parecen la misma cinta repetida.
+    const mitad = Math.ceil(PORTADAS.length / 2);
+    const pintarCintillo = (id, lista) => {
+        const una = (p) => `
+            <figure class="flex-shrink-0 w-[104px] sm:w-[124px] m-0">
+                <img src="fotos/portadas/${p.f}" alt="" loading="lazy"
+                     class="w-full aspect-square object-cover rounded-xl border border-zinc-800">
+                <figcaption class="text-zinc-500 text-[10px] mt-1.5 text-center truncate">${escapar(p.a)}</figcaption>
+            </figure>`;
+        // Dos veces la misma lista: es lo que hace que el bucle no se note.
+        document.getElementById(id).innerHTML = lista.map(una).join('') + lista.map(una).join('');
+    };
+    pintarCintillo('cintillo1', PORTADAS.slice(0, mitad));
+    pintarCintillo('cintillo2', PORTADAS.slice(mitad));
 
     // Los generos, con su cifra y tres nombres de los que de verdad estan.
     document.getElementById('generos').innerHTML = GENEROS.map((g) => `
