@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reseñas · Panel</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen">
+
+<!-- Puerta. Mismo PIN que el panel del karaoke: uno solo que recordar. -->
+<div id="puerta" class="fixed inset-0 bg-zinc-950 z-50 flex flex-col justify-center items-center p-6">
+    <div class="w-full max-w-xs text-center">
+        <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
+        <h1 class="text-lg font-bold text-zinc-200 mb-1">Reseñas de la web</h1>
+        <p class="text-zinc-500 text-xs mb-6">Introduce el PIN para continuar</p>
+
+        <input type="password" id="campoPin" autocomplete="off" inputmode="numeric"
+            class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-center
+                   text-2xl tracking-[0.3em] text-zinc-100 focus:outline-none focus:border-amber-500">
+        <p id="errorPin" class="hidden text-red-400 text-xs mt-3"></p>
+
+        <button id="btnEntrar" type="button"
+            class="w-full mt-4 bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors">
+            Entrar
+        </button>
+    </div>
+</div>
+
+
+<div class="max-w-3xl mx-auto px-5 py-8">
+
+    <header class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="" class="h-10 w-auto object-contain">
+            <div>
+                <h1 class="font-black tracking-tight">Reseñas</h1>
+                <p class="text-zinc-600 text-xs">Lo que sale en la web lo decides tú</p>
+            </div>
+        </div>
+        <button id="btnRefrescar" type="button"
+            class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 text-zinc-300
+                   text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+            Refrescar
+        </button>
+    </header>
+
+    <div id="aviso" class="hidden mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4
+                           text-red-300 text-sm leading-relaxed"></div>
+
+    <!-- Pendientes -->
+    <section class="mb-12">
+        <h2 class="text-amber-400 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+            Esperando tu visto bueno · <span id="cuentaPendientes">0</span>
+        </h2>
+        <div id="pendientes" class="space-y-4"></div>
+    </section>
+
+    <!-- Publicadas -->
+    <section class="mb-12">
+        <h2 class="text-zinc-500 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+            Publicadas en la web · <span id="cuentaPublicadas">0</span>
+        </h2>
+        <div id="publicadas" class="space-y-4"></div>
+    </section>
+
+    <!-- Descartadas -->
+    <section>
+        <h2 class="text-zinc-700 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+            Descartadas · <span id="cuentaDescartadas">0</span>
+        </h2>
+        <div id="descartadas" class="space-y-4"></div>
+    </section>
+</div>
+
+
+<script>
+const CLAVE_PIN = 'karaoke_pin_operador';   // el mismo que ya usa admin.html
+let resenas = [];
+
+function escapar(t) {
+    const d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+}
+
+function pin() {
+    try { return localStorage.getItem(CLAVE_PIN) || ''; } catch (e) { return ''; }
+}
+
+async function llamar(accion, extra = {}) {
+    const res = await fetch('/api/resenas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion, pin: pin(), ...extra })
+    });
+    return res.json();
+}
+
+function mostrarAviso(texto) {
+    const a = document.getElementById('aviso');
+    a.textContent = texto;
+    a.classList.remove('hidden');
+}
+
+function estrellas(n) {
+    let h = '';
+    for (let i = 1; i <= 5; i++) {
+        h += '<svg class="w-3.5 h-3.5 ' + (i <= n ? 'text-amber-400' : 'text-zinc-700') +
+             '" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/></svg>';
+    }
+    return '<div class="flex gap-0.5">' + h + '</div>';
+}
+
+function fecha(iso) {
+    try {
+        return new Date(iso).toLocaleDateString('es-VE', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        });
+    } catch (e) { return ''; }
+}
+
+// Los botones cambian segun donde este la reseña: no tiene sentido ofrecer
+// "publicar" en una que ya esta publicada.
+function botones(r) {
+    const base = 'text-xs font-bold px-4 py-2 rounded-lg transition-colors border';
+
+    if (r.estado === 'pendiente') {
+        return `<button onclick="cambiar(${r.id},'publicar')"
+                    class="${base} bg-amber-400 hover:bg-amber-300 text-black border-amber-400">Publicar</button>
+                <button onclick="cambiar(${r.id},'descartar')"
+                    class="${base} border-zinc-700 hover:border-red-500/60 hover:text-red-400 text-zinc-400">Descartar</button>`;
+    }
+    if (r.estado === 'publicada') {
+        return `<button onclick="cambiar(${r.id},'descartar')"
+                    class="${base} border-zinc-700 hover:border-red-500/60 hover:text-red-400 text-zinc-400">Quitar de la web</button>`;
+    }
+    return `<button onclick="cambiar(${r.id},'publicar')"
+                class="${base} border-zinc-700 hover:border-amber-500/60 hover:text-amber-400 text-zinc-400">Publicar</button>`;
+}
+
+function tarjeta(r) {
+    const borde = r.estado === 'pendiente' ? 'border-amber-500/30' : 'border-zinc-800';
+    return `
+    <article class="bg-zinc-900/50 border ${borde} rounded-2xl overflow-hidden">
+        ${r.foto_url ? `<img src="${escapar(r.foto_url)}" alt="" loading="lazy"
+             class="w-full h-52 object-cover border-b border-zinc-800">` : ''}
+        <div class="p-5">
+            <div class="flex items-start justify-between gap-4 mb-3">
+                <div>
+                    <p class="font-bold text-zinc-100">${escapar(r.nombre)}</p>
+                    <p class="text-zinc-600 text-xs">${fecha(r.creada_en)}</p>
+                </div>
+                ${estrellas(r.estrellas)}
+            </div>
+            <p class="text-zinc-300 text-sm leading-relaxed mb-5">${escapar(r.texto)}</p>
+            <div class="flex flex-wrap gap-2">${botones(r)}</div>
+        </div>
+    </article>`;
+}
+
+function pintar() {
+    const grupos = {
+        pendiente:  { caja: 'pendientes',   cuenta: 'cuentaPendientes',   vacio: 'Nada esperando. Todo al día.' },
+        publicada:  { caja: 'publicadas',   cuenta: 'cuentaPublicadas',   vacio: 'Todavía no has publicado ninguna.' },
+        descartada: { caja: 'descartadas',  cuenta: 'cuentaDescartadas',  vacio: 'Ninguna descartada.' }
+    };
+
+    for (const [estado, g] of Object.entries(grupos)) {
+        const lista = resenas.filter((r) => r.estado === estado);
+        document.getElementById(g.cuenta).textContent = lista.length;
+        document.getElementById(g.caja).innerHTML = lista.length
+            ? lista.map(tarjeta).join('')
+            : `<p class="text-zinc-700 italic text-sm">${g.vacio}</p>`;
+    }
+}
+
+async function cambiar(id, accion) {
+    const r = await llamar(accion, { id });
+    if (!r.ok) return mostrarAviso(r.error || 'No se pudo cambiar.');
+
+    // Se cambia en la lista que ya tenemos en vez de volver a pedirlo todo:
+    // asi el boton responde al instante.
+    const fila = resenas.find((x) => x.id === id);
+    if (fila) fila.estado = accion === 'publicar' ? 'publicada'
+                          : accion === 'descartar' ? 'descartada' : 'pendiente';
+    pintar();
+}
+
+async function cargar() {
+    const r = await llamar('listar');
+
+    if (!r.ok) {
+        if (r.error === 'PIN incorrecto') {
+            try { localStorage.removeItem(CLAVE_PIN); } catch (e) {}
+            return location.reload();
+        }
+        return mostrarAviso(r.error || 'No se pudieron cargar las reseñas.');
+    }
+
+    document.getElementById('aviso').classList.add('hidden');
+    resenas = r.resenas || [];
+    pintar();
+}
+
+
+// ---------------------------------------------------------------- la puerta
+async function entrar() {
+    const campo = document.getElementById('campoPin');
+    const err = document.getElementById('errorPin');
+    const valor = campo.value.trim();
+    if (!valor) return;
+
+    try { localStorage.setItem(CLAVE_PIN, valor); } catch (e) {}
+
+    const r = await llamar('listar');
+    if (!r.ok && r.error === 'PIN incorrecto') {
+        try { localStorage.removeItem(CLAVE_PIN); } catch (e) {}
+        err.textContent = 'PIN incorrecto.';
+        err.classList.remove('hidden');
+        campo.value = '';
+        return;
+    }
+
+    document.getElementById('puerta').classList.add('hidden');
+    if (r.ok) { resenas = r.resenas || []; pintar(); }
+    else mostrarAviso(r.error || 'No se pudieron cargar las reseñas.');
+}
+
+document.getElementById('btnEntrar').addEventListener('click', entrar);
+document.getElementById('campoPin').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') entrar();
+});
+document.getElementById('btnRefrescar').addEventListener('click', cargar);
+
+// Si el PIN ya estaba guardado de usar el panel del karaoke, se entra directo.
+if (pin()) {
+    document.getElementById('puerta').classList.add('hidden');
+    cargar();
+} else {
+    setTimeout(() => document.getElementById('campoPin').focus(), 100);
+}
+</script>
+</body>
+</html>

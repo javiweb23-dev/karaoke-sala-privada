@@ -2,8 +2,9 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "functions": {
-    "api/alerta-operador.js": { "maxDuration": 30 },
-    "api/tienda-pedido.js": { "maxDuration": 30 }
-  }
+  "rewrites": [
+    { "source": "/", "destination": "/home.html" },
+    { "source": "/karaoke", "destination": "/index.html" },
+    { "source": "/resenas", "destination": "/resenas.html" }
+  ]
 }

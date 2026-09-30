@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deja tu reseña · Karaoke Latino</title>
+<meta name="description" content="Cuéntanos cómo te fue en Karaoke Latino. Toma medio minuto.">
+<meta name="robots" content="noindex">
+
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col">
+
+<!-- ═══════════════════════════════════════════════════════════ BARRA ═══ -->
+<header class="border-b border-zinc-800/80">
+    <div class="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2.5">
+            <img src="logo.png" alt="Karaoke Latino" class="h-9 w-auto object-contain">
+            <span class="font-black tracking-tight text-[15px]">KARAOKE LATINO</span>
+        </a>
+
+        <button id="btnIdioma" type="button"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700
+                   hover:border-amber-500/60 hover:bg-zinc-900 transition-colors"
+            aria-label="Cambiar idioma / Switch language">
+            <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
+            <span id="banderaTexto" class="text-[11px] font-bold text-zinc-400 tracking-wider"></span>
+        </button>
+    </div>
+</header>
+
+
+<main class="flex-1 px-5 py-12">
+<div class="max-w-lg mx-auto">
+
+    <!-- ═══════════════════════════════════════════════════ FORMULARIO ═══ -->
+    <div id="formulario">
+
+        <div class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight mb-3" data-t="titulo"></h1>
+            <p class="text-zinc-400 leading-relaxed" data-t="subtitulo"></p>
+        </div>
+
+        <!-- Estrellas -->
+        <div class="mb-7">
+            <label class="block text-zinc-400 text-sm font-bold mb-3" data-t="etiquetaEstrellas"></label>
+            <div id="selectorEstrellas" class="flex gap-1.5 justify-start"></div>
+        </div>
+
+        <!-- Nombre -->
+        <div class="mb-6">
+            <label for="campoNombre" class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaNombre"></label>
+            <input id="campoNombre" type="text" maxlength="40" autocomplete="given-name"
+                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-100
+                       placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition-colors">
+            <p class="text-zinc-600 text-xs mt-2" data-t="ayudaNombre"></p>
+        </div>
+
+        <!-- Reseña -->
+        <div class="mb-7">
+            <label for="campoTexto" class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaTexto"></label>
+            <textarea id="campoTexto" rows="5" maxlength="600"
+                class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-100
+                       placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition-colors
+                       resize-none leading-relaxed"></textarea>
+            <p class="text-right text-zinc-600 text-xs mt-1.5"><span id="cuenta">0</span>/600</p>
+        </div>
+
+        <!-- Foto, opcional -->
+        <div class="mb-8">
+            <label class="block text-zinc-400 text-sm font-bold mb-2" data-t="etiquetaFoto"></label>
+
+            <label for="campoFoto" id="cajaFoto"
+                class="block border-2 border-dashed border-zinc-700 hover:border-amber-500/60
+                       rounded-xl p-6 text-center cursor-pointer transition-colors">
+                <svg class="w-8 h-8 mx-auto text-zinc-600 mb-2" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M3 9a2 2 0 012-2h1.6l1-1.6A1 1 0 018.4 5h7.2a1 1 0 01.8.4l1 1.6H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    <circle cx="12" cy="13" r="3.2"/>
+                </svg>
+                <span class="text-zinc-500 text-sm" data-t="textoFoto"></span>
+            </label>
+            <input id="campoFoto" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+
+            <!-- Vista previa, cuando eligen una -->
+            <div id="previaFoto" class="hidden mt-3 relative">
+                <img id="previaImagen" alt="" class="w-full h-52 object-cover rounded-xl border border-zinc-700">
+                <button type="button" id="btnQuitarFoto"
+                    class="absolute top-2 right-2 w-9 h-9 rounded-lg bg-zinc-950/80 backdrop-blur
+                           border border-zinc-700 hover:border-red-500/60 hover:text-red-400
+                           text-zinc-300 font-bold transition-colors">×</button>
+            </div>
+        </div>
+
+        <p id="error" class="hidden mb-4 text-red-400 text-sm text-center"></p>
+
+        <button id="btnEnviar" type="button"
+            class="w-full bg-amber-400 hover:bg-amber-300 disabled:bg-zinc-800 disabled:text-zinc-600
+                   text-black font-bold text-base py-4 rounded-xl transition-colors"
+            data-t="btnEnviar"></button>
+
+        <p class="text-center text-zinc-600 text-xs mt-4 leading-relaxed" data-t="avisoRevision"></p>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════════════ GRACIAS ═══ -->
+    <div id="gracias" class="hidden text-center py-12">
+        <div class="w-20 h-20 rounded-full bg-amber-400/10 border border-amber-400/30
+                    flex items-center justify-center mx-auto mb-7">
+            <svg class="w-10 h-10 text-amber-400" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <path d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <h2 class="text-3xl font-black tracking-tight mb-3" data-t="graciasTitulo"></h2>
+        <p class="text-zinc-400 leading-relaxed mb-9 max-w-sm mx-auto" data-t="graciasTexto"></p>
+        <a href="/" class="inline-block bg-amber-400 hover:bg-amber-300 text-black font-bold
+                           px-7 py-3.5 rounded-xl transition-colors" data-t="btnVolver"></a>
+    </div>
+
+</div>
+</main>
+
+
+<footer class="border-t border-zinc-800 py-8 px-5 text-center">
+    <p class="text-zinc-700 text-xs">© <span id="anio"></span> Karaoke Latino · Lechería</p>
+</footer>
+
+
+<script>
+// =========================================================================
+// Textos
+// =========================================================================
+const TEXTOS = {
+    es: {
+        titulo: '¿Cómo te fue?',
+        subtitulo: 'Cuéntanos en dos líneas. Nos ayuda muchísimo y te toma medio minuto.',
+        etiquetaEstrellas: '¿Qué tal estuvo?',
+        etiquetaNombre: 'Tu nombre',
+        ayudaNombre: 'Solo el nombre, como te llaman tus amigos. Nada más.',
+        etiquetaTexto: 'Tu reseña',
+        etiquetaFoto: 'Una foto (opcional)',
+        textoFoto: 'Toca para subir una foto de la noche',
+        btnEnviar: 'Enviar mi reseña',
+        avisoRevision: 'La revisamos antes de publicarla, para que no se cuele nada raro.',
+        graciasTitulo: '¡Gracias!',
+        graciasTexto: 'Ya la recibimos. La publicamos en la web apenas le echemos un ojo. Nos vemos en la próxima.',
+        btnVolver: 'Volver al inicio',
+
+        placeholderNombre: 'Ej: María',
+        placeholderTexto: '¿Qué tal la sala, el sonido, las canciones? Escribe como le contarías a un amigo.',
+
+        errorNombre: 'Escribe tu nombre.',
+        errorTexto: 'Cuéntanos un poquito más (al menos 10 letras).',
+        errorFotoGrande: 'Esa foto pesa demasiado. Prueba con otra.',
+        errorFotoTipo: 'El archivo tiene que ser una foto (JPG, PNG o WEBP).',
+        errorEnvio: 'No se pudo enviar. Revisa tu internet e inténtalo de nuevo.',
+        enviando: 'Enviando...'
+    },
+    en: {
+        titulo: 'How was it?',
+        subtitulo: 'Tell us in a couple of lines. It helps us a lot and takes half a minute.',
+        etiquetaEstrellas: 'Your rating',
+        etiquetaNombre: 'Your name',
+        ayudaNombre: 'Just your first name, the one your friends use. Nothing else.',
+        etiquetaTexto: 'Your review',
+        etiquetaFoto: 'A photo (optional)',
+        textoFoto: 'Tap to upload a photo from the night',
+        btnEnviar: 'Send my review',
+        avisoRevision: 'We read it before publishing, just so nothing odd slips through.',
+        graciasTitulo: 'Thank you!',
+        graciasTexto: 'We got it. It will go up on the site as soon as we take a look. See you next time.',
+        btnVolver: 'Back to home',
+
+        placeholderNombre: 'e.g. Maria',
+        placeholderTexto: 'How was the room, the sound, the songs? Write it like you would tell a friend.',
+
+        errorNombre: 'Please write your name.',
+        errorTexto: 'Tell us a little more (at least 10 characters).',
+        errorFotoGrande: 'That photo is too heavy. Try another one.',
+        errorFotoTipo: 'The file needs to be a photo (JPG, PNG or WEBP).',
+        errorEnvio: 'Could not send it. Check your connection and try again.',
+        enviando: 'Sending...'
+    }
+};
+
+const BANDERAS = {
+    es: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#CF142B"/>' +
+            '<rect width="30" height="13.34" fill="#00247D"/>' +
+            '<rect width="30" height="6.67" fill="#FFCC00"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="9.6" cy="11.9" r=".78"/><circle cx="11.4" cy="10.9" r=".78"/>' +
+                '<circle cx="13.4" cy="10.3" r=".78"/><circle cx="15" cy="10.1" r=".78"/>' +
+                '<circle cx="16.6" cy="10.3" r=".78"/><circle cx="18.6" cy="10.9" r=".78"/>' +
+                '<circle cx="20.4" cy="11.9" r=".78"/><circle cx="15" cy="13.2" r=".78"/>' +
+            '</g>' +
+        '</svg>',
+    en: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#fff"/>' +
+            '<g fill="#B22234">' +
+                '<rect width="30" height="1.54" y="0"/><rect width="30" height="1.54" y="3.08"/>' +
+                '<rect width="30" height="1.54" y="6.15"/><rect width="30" height="1.54" y="9.23"/>' +
+                '<rect width="30" height="1.54" y="12.3"/><rect width="30" height="1.54" y="15.38"/>' +
+                '<rect width="30" height="1.54" y="18.46"/>' +
+            '</g>' +
+            '<rect width="13" height="10.77" fill="#3C3B6E"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="2.2" cy="2" r=".62"/><circle cx="5.5" cy="2" r=".62"/>' +
+                '<circle cx="8.8" cy="2" r=".62"/><circle cx="11.5" cy="2" r=".62"/>' +
+                '<circle cx="3.8" cy="4.2" r=".62"/><circle cx="7.1" cy="4.2" r=".62"/>' +
+                '<circle cx="10.2" cy="4.2" r=".62"/>' +
+                '<circle cx="2.2" cy="6.4" r=".62"/><circle cx="5.5" cy="6.4" r=".62"/>' +
+                '<circle cx="8.8" cy="6.4" r=".62"/><circle cx="11.5" cy="6.4" r=".62"/>' +
+                '<circle cx="3.8" cy="8.6" r=".62"/><circle cx="7.1" cy="8.6" r=".62"/>' +
+                '<circle cx="10.2" cy="8.6" r=".62"/>' +
+            '</g>' +
+        '</svg>'
+};
+
+const cliente = supabase.createClient(
+    'https://mefrjbmjfdphdqndpzcw.supabase.co',
+    'sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8'
+);
+
+let idioma = 'es';
+let puntuacion = 5;
+let fotoElegida = null;
+
+
+// ------------------------------------------------------------------ idioma
+function aplicarIdioma() {
+    const t = TEXTOS[idioma];
+    document.documentElement.lang = idioma;
+
+    document.querySelectorAll('[data-t]').forEach((el) => {
+        const v = t[el.dataset.t];
+        if (typeof v === 'string') el.textContent = v;
+    });
+
+    document.getElementById('campoNombre').placeholder = t.placeholderNombre;
+    document.getElementById('campoTexto').placeholder = t.placeholderTexto;
+
+    const otro = idioma === 'es' ? 'en' : 'es';
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[otro];
+    document.getElementById('banderaTexto').textContent = otro.toUpperCase();
+
+    try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
+}
+
+
+// --------------------------------------------------------------- estrellas
+function pintarEstrellas() {
+    document.getElementById('selectorEstrellas').innerHTML = [1, 2, 3, 4, 5].map((n) => `
+        <button type="button" data-valor="${n}" aria-label="${n}"
+            class="p-1 transition-transform hover:scale-110">
+            <svg class="w-9 h-9 ${n <= puntuacion ? 'text-amber-400' : 'text-zinc-700'}"
+                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/>
+            </svg>
+        </button>`).join('');
+
+    document.querySelectorAll('#selectorEstrellas button').forEach((b) => {
+        b.addEventListener('click', () => {
+            puntuacion = Number(b.dataset.valor);
+            pintarEstrellas();
+        });
+    });
+}
+
+
+// -------------------------------------------------------------------- foto
+// Se encoge antes de subirla. Un celular de hoy saca fotos de 4 o 5 MB y no
+// hace ninguna falta: en la web se ve a 400 px de alto.
+function encogerFoto(archivo) {
+    return new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onerror = () => reject(new Error('lectura'));
+        lector.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('imagen'));
+            img.onload = () => {
+                const MAX = 1400;
+                let { width: an, height: al } = img;
+                if (an > MAX || al > MAX) {
+                    const f = Math.min(MAX / an, MAX / al);
+                    an = Math.round(an * f);
+                    al = Math.round(al * f);
+                }
+                const lienzo = document.createElement('canvas');
+                lienzo.width = an;
+                lienzo.height = al;
+                lienzo.getContext('2d').drawImage(img, 0, 0, an, al);
+                lienzo.toBlob(
+                    (b) => b ? resolve(b) : reject(new Error('blob')),
+                    'image/jpeg', 0.82
+                );
+            };
+            img.src = lector.result;
+        };
+        lector.readAsDataURL(archivo);
+    });
+}
+
+document.getElementById('campoFoto').addEventListener('change', (ev) => {
+    const archivo = ev.target.files && ev.target.files[0];
+    if (!archivo) return;
+
+    if (!/^image\/(jpeg|png|webp)$/.test(archivo.type)) {
+        return mostrarError(TEXTOS[idioma].errorFotoTipo);
+    }
+    if (archivo.size > 15 * 1024 * 1024) {
+        return mostrarError(TEXTOS[idioma].errorFotoGrande);
+    }
+
+    fotoElegida = archivo;
+    ocultarError();
+
+    const url = URL.createObjectURL(archivo);
+    document.getElementById('previaImagen').src = url;
+    document.getElementById('previaFoto').classList.remove('hidden');
+    document.getElementById('cajaFoto').classList.add('hidden');
+});
+
+document.getElementById('btnQuitarFoto').addEventListener('click', () => {
+    fotoElegida = null;
+    document.getElementById('campoFoto').value = '';
+    document.getElementById('previaFoto').classList.add('hidden');
+    document.getElementById('cajaFoto').classList.remove('hidden');
+});
+
+
+// ------------------------------------------------------------------ avisos
+function mostrarError(texto) {
+    const e = document.getElementById('error');
+    e.textContent = texto;
+    e.classList.remove('hidden');
+}
+function ocultarError() {
+    document.getElementById('error').classList.add('hidden');
+}
+
+
+// ------------------------------------------------------------------ enviar
+async function enviar() {
+    const t = TEXTOS[idioma];
+    const nombre = document.getElementById('campoNombre').value.trim();
+    const texto = document.getElementById('campoTexto').value.trim();
+
+    if (nombre.length < 2) return mostrarError(t.errorNombre);
+    if (texto.length < 10) return mostrarError(t.errorTexto);
+
+    ocultarError();
+    const btn = document.getElementById('btnEnviar');
+    btn.disabled = true;
+    btn.textContent = t.enviando;
+
+    try {
+        let urlFoto = null;
+
+        if (fotoElegida) {
+            const comprimida = await encogerFoto(fotoElegida);
+            const nombreArchivo = Date.now() + '-' +
+                Math.random().toString(36).slice(2, 10) + '.jpg';
+
+            const { error: errSubida } = await cliente.storage
+                .from('resenas')
+                .upload(nombreArchivo, comprimida, { contentType: 'image/jpeg' });
+
+            if (errSubida) throw errSubida;
+
+            urlFoto = cliente.storage.from('resenas')
+                .getPublicUrl(nombreArchivo).data.publicUrl;
+        }
+
+        const { error } = await cliente.rpc('dejar_resena', {
+            p_nombre: nombre,
+            p_texto: texto,
+            p_estrellas: puntuacion,
+            p_foto: urlFoto
+        });
+        if (error) throw error;
+
+        document.getElementById('formulario').classList.add('hidden');
+        document.getElementById('gracias').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (e) {
+        console.warn('[Reseña]', e.message);
+        mostrarError(t.errorEnvio);
+        btn.disabled = false;
+        btn.textContent = t.btnEnviar;
+    }
+}
+
+
+// ---------------------------------------------------------------- arranque
+document.getElementById('btnEnviar').addEventListener('click', enviar);
+
+document.getElementById('campoTexto').addEventListener('input', (e) => {
+    document.getElementById('cuenta').textContent = e.target.value.length;
+});
+
+document.getElementById('btnIdioma').addEventListener('click', () => {
+    idioma = idioma === 'es' ? 'en' : 'es';
+    aplicarIdioma();
+});
+
+document.getElementById('anio').textContent = new Date().getFullYear();
+
+try {
+    const guardado = localStorage.getItem('kl_idioma');
+    if (guardado === 'es' || guardado === 'en') {
+        idioma = guardado;
+    } else if (!String(navigator.language || '').toLowerCase().startsWith('es')) {
+        idioma = 'en';
+    }
+} catch (e) {}
+
+pintarEstrellas();
+aplicarIdioma();
+</script>
+</body>
+</html>

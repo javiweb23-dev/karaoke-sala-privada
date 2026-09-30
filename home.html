@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karaoke Latino · Sala privada en Lechería</title>
+<meta name="description" content="Sala privada de karaoke en Lechería. Más de 4.000 canciones, pantalla de 65 pulgadas, tres micrófonos inalámbricos y un sistema donde pides desde tu propio celular.">
+
+<meta property="og:title" content="Karaoke Latino · Sala privada en Lechería">
+<meta property="og:description" content="Más de 4.000 canciones, pantalla de 65″ y la sala solo para ustedes.">
+<meta property="og:type" content="website">
+
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+    html { scroll-behavior: smooth; }
+
+    /* ------------------------------------------------------------------
+       Hueco de foto
+       ------------------------------------------------------------------
+       Javier todavia no tiene las fotos buenas. Cada hueco es un bloque con
+       degradado y un icono, para que la pagina no se vea rota mientras tanto.
+
+       PARA PONER UNA FOTO DE VERDAD:
+       cambia  <div class="foto-hueco"> ... </div>
+       por     <img src="fotos/loquesea.jpg" alt="" class="w-full h-full object-cover">
+       ------------------------------------------------------------------ */
+    .foto-hueco {
+        background:
+            radial-gradient(circle at 30% 20%, rgba(251,191,36,.10), transparent 60%),
+            linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%);
+    }
+
+    /* El degradado de arriba del hero, para que el texto se lea sobre
+       cualquier foto que se ponga despues. */
+    .velo-hero {
+        background: linear-gradient(to bottom,
+            rgba(9,9,11,.55) 0%, rgba(9,9,11,.80) 55%, rgb(9,9,11) 100%);
+    }
+
+    /* Aparecer al hacer scroll. Si el navegador no soporta el observador, las
+       secciones se quedan visibles: nunca se esconde nada sin poder mostrarlo. */
+    .aparece { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+    .aparece.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+        .aparece { opacity: 1; transform: none; transition: none; }
+        html { scroll-behavior: auto; }
+    }
+</style>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
+
+<!-- ══════════════════════════════════════════════════════════ BARRA ═══ -->
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800/80">
+    <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
+
+        <a href="#inicio" class="flex items-center gap-2.5 flex-shrink-0">
+            <img src="logo.png" alt="Karaoke Latino" class="h-9 w-auto object-contain">
+            <span class="font-black tracking-tight text-[15px] hidden sm:block">KARAOKE LATINO</span>
+        </a>
+
+        <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-zinc-400">
+            <a href="#como" class="hover:text-amber-400 transition-colors" data-t="navComo"></a>
+            <a href="#sistema" class="hover:text-amber-400 transition-colors" data-t="navSistema"></a>
+            <a href="#sala" class="hover:text-amber-400 transition-colors" data-t="navSala"></a>
+            <a href="#precios" class="hover:text-amber-400 transition-colors" data-t="navPrecios"></a>
+            <a href="#resenas" class="hover:text-amber-400 transition-colors" data-t="navResenas"></a>
+        </nav>
+
+        <div class="flex items-center gap-2.5 flex-shrink-0">
+            <!-- Cambio de idioma. La bandera que se ve es la del idioma al que
+                 vas a cambiar, no la del que estas leyendo: asi se entiende
+                 sin tener que explicarlo. -->
+            <button id="btnIdioma" type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700
+                       hover:border-amber-500/60 hover:bg-zinc-900 transition-colors"
+                aria-label="Cambiar idioma / Switch language">
+                <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
+                <span id="banderaTexto" class="text-[11px] font-bold text-zinc-400 tracking-wider"></span>
+            </button>
+
+            <a id="waBarra" href="#" target="_blank" rel="noopener"
+               class="bg-amber-400 hover:bg-amber-300 text-black font-bold text-[13px]
+                      px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+               data-t="btnReservar"></a>
+        </div>
+    </div>
+</header>
+
+
+<!-- ═══════════════════════════════════════════════════════════ HERO ═══ -->
+<section id="inicio" class="relative min-h-[88vh] flex items-center pt-16 overflow-hidden">
+
+    <!-- FOTO DE PORTADA: aquí va la mejor foto de la sala llena, cantando. -->
+    <div class="foto-hueco absolute inset-0"></div>
+    <div class="velo-hero absolute inset-0"></div>
+
+    <div class="relative max-w-6xl mx-auto px-5 py-20 w-full">
+        <div class="max-w-2xl">
+
+            <p class="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30
+                      text-amber-300 text-[11px] font-bold tracking-[0.15em] uppercase
+                      px-3 py-1.5 rounded-full mb-6">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span data-t="heroEtiqueta"></span>
+            </p>
+
+            <h1 class="text-[2.6rem] sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-6">
+                <span data-t="heroTitulo1"></span><br>
+                <span class="text-amber-400" data-t="heroTitulo2"></span>
+            </h1>
+
+            <p class="text-zinc-300 text-lg sm:text-xl leading-relaxed mb-9 max-w-xl" data-t="heroTexto"></p>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a id="waHero" href="#" target="_blank" rel="noopener"
+                   class="bg-amber-400 hover:bg-amber-300 text-black font-bold text-base
+                          px-7 py-4 rounded-xl transition-colors text-center
+                          shadow-lg shadow-amber-400/20">
+                    <span data-t="btnReservarLargo"></span>
+                </a>
+                <a href="#como"
+                   class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900
+                          text-zinc-200 font-bold text-base px-7 py-4 rounded-xl
+                          transition-colors text-center" data-t="btnComoFunciona"></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════ CIFRAS ═══ -->
+<section class="border-y border-zinc-800/80 bg-zinc-900/30">
+    <div class="max-w-6xl mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-zinc-800/80">
+        <div class="py-8 px-4 text-center">
+            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">4.000+</p>
+            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraCanciones"></p>
+        </div>
+        <div class="py-8 px-4 text-center">
+            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">40</p>
+            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraGeneros"></p>
+        </div>
+        <div class="py-8 px-4 text-center">
+            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">65″</p>
+            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPantalla"></p>
+        </div>
+        <div class="py-8 px-4 text-center">
+            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">12</p>
+            <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════ COMO FUNCIONA ═══ -->
+<section id="como" class="py-24 px-5">
+    <div class="max-w-6xl mx-auto">
+        <div class="aparece text-center max-w-2xl mx-auto mb-16">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="comoTitulo"></h2>
+            <p class="text-zinc-400 text-lg leading-relaxed" data-t="comoTexto"></p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- Los cuatro pasos se pintan desde JS para no repetir el molde
+                 cuatro veces en dos idiomas. -->
+            <div id="pasos" class="contents"></div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ SISTEMA ═══ -->
+<section id="sistema" class="py-24 px-5 bg-zinc-900/30 border-y border-zinc-800/80">
+    <div class="max-w-6xl mx-auto">
+
+        <div class="aparece text-center max-w-2xl mx-auto mb-16">
+            <p class="text-amber-400 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="sistemaEtiqueta"></p>
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="sistemaTitulo"></h2>
+            <p class="text-zinc-400 text-lg leading-relaxed" data-t="sistemaTexto"></p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-5" id="ventajas"></div>
+
+        <div class="aparece mt-12 text-center">
+            <p class="text-zinc-500 text-sm italic" data-t="sistemaPie"></p>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ SALA ═══ -->
+<section id="sala" class="py-24 px-5">
+    <div class="max-w-6xl mx-auto">
+
+        <div class="grid lg:grid-cols-2 gap-14 items-center">
+
+            <div class="aparece">
+                <p class="text-amber-400 text-[11px] font-bold tracking-[0.2em] uppercase mb-3" data-t="salaEtiqueta"></p>
+                <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5" data-t="salaTitulo"></h2>
+                <p class="text-zinc-400 text-lg leading-relaxed mb-8" data-t="salaTexto"></p>
+
+                <ul id="equipos" class="space-y-3.5"></ul>
+            </div>
+
+            <div class="aparece grid grid-cols-2 gap-4">
+                <!-- FOTOS DE LA SALA: cuatro. La primera es la que manda. -->
+                <div class="foto-hueco aspect-[4/5] rounded-2xl border border-zinc-800 col-span-2 flex items-center justify-center">
+                    <span class="text-zinc-700 text-xs font-bold tracking-wider uppercase" data-t="fotoPendiente"></span>
+                </div>
+                <div class="foto-hueco aspect-square rounded-2xl border border-zinc-800"></div>
+                <div class="foto-hueco aspect-square rounded-2xl border border-zinc-800"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════ GENEROS ════ -->
+<section class="py-24 px-5 bg-zinc-900/30 border-y border-zinc-800/80">
+    <div class="max-w-5xl mx-auto text-center">
+        <div class="aparece">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="generosTitulo"></h2>
+            <p class="text-zinc-400 text-lg leading-relaxed mb-10 max-w-2xl mx-auto" data-t="generosTexto"></p>
+        </div>
+        <div id="generos" class="aparece flex flex-wrap justify-center gap-2.5"></div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ PRECIOS ═══ -->
+<section id="precios" class="py-24 px-5">
+    <div class="max-w-3xl mx-auto">
+
+        <div class="aparece text-center mb-12">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="preciosTitulo"></h2>
+            <p class="text-zinc-400 text-lg" data-t="preciosTexto"></p>
+        </div>
+
+        <div class="aparece bg-gradient-to-b from-zinc-900 to-zinc-900/40 border border-zinc-800
+                    rounded-3xl p-8 sm:p-12 text-center">
+
+            <!-- ⚠️ PRECIO: si algun dia cambia, se cambia AQUI y en las dos
+                 traducciones de mas abajo (precioNota). -->
+            <p class="text-zinc-500 text-sm font-bold uppercase tracking-[0.15em] mb-3" data-t="precioEtiqueta"></p>
+            <p class="text-6xl sm:text-7xl font-black text-amber-400 tracking-tight mb-2">$2</p>
+            <p class="text-zinc-300 text-lg font-medium mb-8" data-t="precioUnidad"></p>
+
+            <div class="border-t border-zinc-800 pt-8 space-y-3 text-left max-w-sm mx-auto mb-9" id="precioDetalles"></div>
+
+            <a id="waPrecios" href="#" target="_blank" rel="noopener"
+               class="inline-block bg-amber-400 hover:bg-amber-300 text-black font-bold
+                      px-8 py-4 rounded-xl transition-colors shadow-lg shadow-amber-400/20"
+               data-t="btnReservarLargo"></a>
+        </div>
+
+        <!-- La tienda de refrigerios, que ya existe y funciona aparte. -->
+        <div class="aparece mt-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6
+                    flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-center sm:text-left">
+                <p class="font-bold text-zinc-100 mb-1" data-t="tiendaTitulo"></p>
+                <p class="text-zinc-500 text-sm" data-t="tiendaTexto"></p>
+            </div>
+            <a href="tienda.html"
+               class="flex-shrink-0 border border-zinc-700 hover:border-amber-500/60 hover:bg-zinc-800
+                      text-zinc-200 font-bold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+               data-t="btnVerTienda"></a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ RESENAS ═══ -->
+<section id="resenas" class="py-24 px-5 bg-zinc-900/30 border-t border-zinc-800/80">
+    <div class="max-w-6xl mx-auto">
+
+        <div class="aparece text-center max-w-2xl mx-auto mb-14">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="resenasTitulo"></h2>
+            <p class="text-zinc-400 text-lg leading-relaxed" data-t="resenasTexto"></p>
+        </div>
+
+        <div id="listaResenas" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10"></div>
+
+        <div class="text-center">
+            <a href="resenas.html"
+               class="inline-block border border-zinc-700 hover:border-amber-500/60 hover:bg-zinc-900
+                      text-zinc-200 font-bold px-7 py-3.5 rounded-xl transition-colors"
+               data-t="btnDejarResena"></a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═════════════════════════════════════════════════════════ CIERRE ═══ -->
+<section class="py-24 px-5 border-t border-zinc-800/80">
+    <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5" data-t="cierreTitulo"></h2>
+        <p class="text-zinc-400 text-lg leading-relaxed mb-9" data-t="cierreTexto"></p>
+        <a id="waCierre" href="#" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2.5 bg-amber-400 hover:bg-amber-300 text-black
+                  font-bold text-lg px-9 py-4 rounded-xl transition-colors shadow-lg shadow-amber-400/20">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
+                <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
+            </svg>
+            <span data-t="btnWhatsapp"></span>
+        </a>
+    </div>
+</section>
+
+
+<!-- ═════════════════════════════════════════════════════════ FOOTER ═══ -->
+<footer class="border-t border-zinc-800 py-14 px-5">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+
+            <div class="flex flex-col items-center md:items-start gap-3">
+                <img src="logo.png" alt="Karaoke Latino" class="h-11 w-auto object-contain">
+                <p class="text-zinc-500 text-sm" data-t="footerUbicacion"></p>
+                <p class="text-zinc-600 text-xs" data-t="footerHorario"></p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="https://instagram.com/mikaraokelatino" target="_blank" rel="noopener"
+                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
+                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   aria-label="Instagram">
+                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.3-.5.2-.9.4-1.2.8-.4.3-.6.7-.8 1.2-.1.4-.3 1-.3 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.3 2.1.2.5.4.9.8 1.2.3.4.7.6 1.2.8.4.1 1 .3 2.1.3 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.3.5-.2.9-.4 1.2-.8.4-.3.6-.7.8-1.2.1-.4.3-1 .3-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.3-2.1-.2-.5-.4-.9-.8-1.2-.3-.4-.7-.6-1.2-.8-.4-.1-1-.3-2.1-.3-1.2-.1-1.6-.1-4.7-.1z"/>
+                        <path d="M12 15.3a3.3 3.3 0 110-6.6 3.3 3.3 0 010 6.6zm0-8.4a5.1 5.1 0 100 10.2 5.1 5.1 0 000-10.2zm6.5-.2a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"/>
+                    </svg>
+                </a>
+
+                <a href="https://tiktok.com/@karaokelatino" target="_blank" rel="noopener"
+                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
+                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   aria-label="TikTok">
+                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M16.6 5.8a4.3 4.3 0 01-1-2.8h-3v12.1a2.5 2.5 0 11-1.8-2.4V9.6a5.6 5.6 0 103.8 5.3V9.3a7.3 7.3 0 004.3 1.4V7.6a4.3 4.3 0 01-2.3-1.8z"/>
+                    </svg>
+                </a>
+
+                <a id="waFooter" href="#" target="_blank" rel="noopener"
+                   class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
+                          hover:bg-zinc-900 flex items-center justify-center transition-colors"
+                   aria-label="WhatsApp">
+                    <svg class="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
+                        <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <p class="text-center text-zinc-700 text-xs mt-10">
+            © <span id="anio"></span> Karaoke Latino · Lechería, Venezuela
+        </p>
+    </div>
+</footer>
+
+
+<script>
+// =========================================================================
+// Textos en los dos idiomas
+//
+// Todo lo que se lee esta aqui. Para corregir una frase se corrige en este
+// objeto, no en el HTML de arriba: el HTML solo marca DONDE va cada cosa
+// con data-t="loQueSea".
+// =========================================================================
+const TEXTOS = {
+    es: {
+        navComo: 'Cómo funciona',
+        navSistema: 'Nuestro sistema',
+        navSala: 'La sala',
+        navPrecios: 'Precios',
+        navResenas: 'Reseñas',
+
+        btnReservar: 'Reservar',
+        btnReservarLargo: 'Reservar por WhatsApp',
+        btnComoFunciona: 'Ver cómo funciona',
+        btnWhatsapp: 'Escríbenos por WhatsApp',
+        btnVerTienda: 'Ver la tienda',
+        btnDejarResena: 'Deja tu reseña',
+
+        heroEtiqueta: 'Lechería · Sala privada',
+        heroTitulo1: 'La sala es',
+        heroTitulo2: 'solo de ustedes',
+        heroTexto: 'Más de 4.000 canciones, pantalla de 65 pulgadas y tres micrófonos inalámbricos. ' +
+                   'Sin escenario, sin gente mirando, sin esperar turno con desconocidos. Solo tu gente y el micrófono.',
+
+        cifraCanciones: 'Canciones',
+        cifraGeneros: 'Géneros',
+        cifraPantalla: 'Pantalla',
+        cifraPersonas: 'Personas',
+
+        comoTitulo: 'Cómo funciona',
+        comoTexto: 'Cuatro pasos y están cantando. No hay que aprender nada ni pelear con un control remoto.',
+
+        sistemaEtiqueta: 'Lo que nos hace distintos',
+        sistemaTitulo: 'Tu celular es el control',
+        sistemaTexto: 'Montamos nuestro propio sistema porque los de siempre no nos gustaban. ' +
+                      'Todos piden desde su teléfono y el turno se reparte solo.',
+        sistemaPie: 'El catálogo crece todas las semanas. Si falta una canción, la pides desde la misma pantalla.',
+
+        salaEtiqueta: 'El equipo',
+        salaTitulo: 'Suena como debe sonar',
+        salaTexto: 'La sala está tratada acústicamente, así que el sonido no rebota ni se escapa. ' +
+                   'Pueden cantar a todo pulmón sin molestar a nadie y sin que nadie los oiga.',
+
+        generosTitulo: 'Para todos los gustos',
+        generosTexto: 'De la salsa que se sabe tu tío al K-pop que solo se sabe tu sobrina. ' +
+                      'Y todas las semanas entran canciones nuevas.',
+
+        preciosTitulo: 'Precios claros',
+        preciosTexto: 'Sin letra pequeña ni consumo mínimo.',
+        precioEtiqueta: 'Desde',
+        precioUnidad: 'por persona, por hora',
+
+        tiendaTitulo: 'Snacks y bebidas',
+        tiendaTexto: 'Vendemos refrigerios en la sala, pero pueden traer lo que quieran.',
+
+        resenasTitulo: 'Lo que dicen los que ya vinieron',
+        resenasTexto: 'Reseñas reales de gente que estuvo en la sala.',
+        resenasVacio: 'Todavía no hay reseñas publicadas. ¡Sé el primero!',
+
+        cierreTitulo: '¿Nos vemos esta noche?',
+        cierreTexto: 'Escríbenos y te decimos qué horarios quedan libres. ' +
+                     'Se reserva con la mitad y el resto se paga el mismo día.',
+
+        footerUbicacion: 'Lechería, Venezuela',
+        footerHorario: 'Todos los días desde las 8:00 pm · previa reservación',
+
+        fotoPendiente: 'Foto próximamente',
+
+        pasos: [
+            { t: 'Reservas',  d: 'Nos escribes por WhatsApp, eliges el día y la hora, y apartas con el 50%.' },
+            { t: 'Escaneas',  d: 'Al llegar, cada quien escanea el QR de la mesa con su propio teléfono.' },
+            { t: 'Pides',     d: 'Buscas tu canción entre más de 4.000 y la pides. Puedes pedir varias.' },
+            { t: 'Cantan',    d: 'El sistema reparte los turnos para que todos canten. Tú solo agarra el micrófono.' }
+        ],
+
+        ventajas: [
+            { t: 'Nadie acapara el micrófono',
+              d: 'El turno se reparte solo: si tú ya cantaste y otro está esperando, va el otro. Se acabó la pelea por la lista.' },
+            { t: 'Buscas como en Spotify',
+              d: 'Escribes el artista o el pedazo de letra que recuerdas y aparece. Aunque lo escribas mal, lo encuentra.' },
+            { t: 'El tono se ajusta a tu voz',
+              d: 'Si la canción está muy alta o muy baja, se sube o se baja en el momento sin que se oiga raro.' }
+        ],
+
+        equipos: [
+            '3 micrófonos inalámbricos',
+            '1.500 watts de sonido',
+            'Pantalla de 65 pulgadas',
+            'Luces de colores',
+            'Sala tratada acústicamente',
+            'De 4 a 12 personas'
+        ],
+
+        precioDetalles: [
+            'Mínimo 4 personas',
+            'Se reserva con el 50%',
+            'Todos los días desde las 8:00 pm',
+            'Pueden traer su comida y bebida'
+        ],
+
+        generos: ['Salsa', 'Merengue', 'Reggaetón', 'Rock', 'Pop', 'Baladas', 'K-pop',
+                  'Música llanera', 'Vallenato', 'Bachata', 'Rock en español', 'Ranchera',
+                  'Bolero', 'Cumbia', 'Pop en inglés', 'Italiano']
+    },
+
+    en: {
+        navComo: 'How it works',
+        navSistema: 'Our system',
+        navSala: 'The room',
+        navPrecios: 'Pricing',
+        navResenas: 'Reviews',
+
+        btnReservar: 'Book',
+        btnReservarLargo: 'Book on WhatsApp',
+        btnComoFunciona: 'See how it works',
+        btnWhatsapp: 'Message us on WhatsApp',
+        btnVerTienda: 'See the menu',
+        btnDejarResena: 'Leave your review',
+
+        heroEtiqueta: 'Lechería · Private room',
+        heroTitulo1: 'The room is',
+        heroTitulo2: 'all yours',
+        heroTexto: 'Over 4,000 songs, a 65-inch screen and three wireless microphones. ' +
+                   'No stage, no strangers watching, no waiting in line. Just your people and the mic.',
+
+        cifraCanciones: 'Songs',
+        cifraGeneros: 'Genres',
+        cifraPantalla: 'Screen',
+        cifraPersonas: 'People',
+
+        comoTitulo: 'How it works',
+        comoTexto: 'Four steps and you are singing. Nothing to learn, no remote control to fight over.',
+
+        sistemaEtiqueta: 'What makes us different',
+        sistemaTitulo: 'Your phone is the remote',
+        sistemaTexto: 'We built our own system because we did not like the usual ones. ' +
+                      'Everyone requests from their own phone and turns are shared automatically.',
+        sistemaPie: 'New songs go in every week. If one is missing, you can request it from the same screen.',
+
+        salaEtiqueta: 'The gear',
+        salaTitulo: 'It sounds the way it should',
+        salaTexto: 'The room is acoustically treated, so the sound does not bounce around or leak out. ' +
+                   'Sing your lungs out without bothering anyone, and without anyone hearing you.',
+
+        generosTitulo: 'Something for everyone',
+        generosTexto: 'From the salsa your uncle knows by heart to the K-pop only your niece can sing. ' +
+                      'And new songs come in every week.',
+
+        preciosTitulo: 'Clear pricing',
+        preciosTexto: 'No fine print, no minimum spend.',
+        precioEtiqueta: 'From',
+        precioUnidad: 'per person, per hour',
+
+        tiendaTitulo: 'Snacks and drinks',
+        tiendaTexto: 'We sell snacks in the room, but you are welcome to bring your own.',
+
+        resenasTitulo: 'What our guests say',
+        resenasTexto: 'Real reviews from people who have been in the room.',
+        resenasVacio: 'No reviews published yet. Be the first!',
+
+        cierreTitulo: 'See you tonight?',
+        cierreTexto: 'Message us and we will tell you which slots are open. ' +
+                     'Book with half up front, pay the rest on the day.',
+
+        footerUbicacion: 'Lechería, Venezuela',
+        footerHorario: 'Every day from 8:00 pm · by reservation',
+
+        fotoPendiente: 'Photo coming soon',
+
+        pasos: [
+            { t: 'Book',    d: 'Message us on WhatsApp, pick your day and time, and hold it with 50%.' },
+            { t: 'Scan',    d: 'When you arrive, everyone scans the QR code on the table with their own phone.' },
+            { t: 'Request', d: 'Find your song among 4,000+ and request it. Request as many as you like.' },
+            { t: 'Sing',    d: 'The system shares out the turns so everyone gets to sing. You just grab the mic.' }
+        ],
+
+        ventajas: [
+            { t: 'Nobody hogs the mic',
+              d: 'Turns are shared automatically: if you just sang and someone is waiting, they go next. No more fighting over the list.' },
+            { t: 'Search like on Spotify',
+              d: 'Type the artist or the bit of the lyric you remember and it shows up. It finds it even if you spell it wrong.' },
+            { t: 'The key fits your voice',
+              d: 'If a song sits too high or too low, raise or lower it on the spot without it sounding strange.' }
+        ],
+
+        equipos: [
+            '3 wireless microphones',
+            '1,500 watts of sound',
+            '65-inch screen',
+            'Colour lighting',
+            'Acoustically treated room',
+            '4 to 12 people'
+        ],
+
+        precioDetalles: [
+            'Minimum 4 people',
+            'Hold your slot with 50%',
+            'Every day from 8:00 pm',
+            'Bring your own food and drink'
+        ],
+
+        generos: ['Salsa', 'Merengue', 'Reggaeton', 'Rock', 'Pop', 'Ballads', 'K-pop',
+                  'Llanera', 'Vallenato', 'Bachata', 'Spanish rock', 'Ranchera',
+                  'Bolero', 'Cumbia', 'English pop', 'Italian']
+    }
+};
+
+// Las banderas. La que se enseña es la del idioma al que vas a cambiar.
+const BANDERAS = {
+    // Venezuela: tres franjas y el arco de ocho estrellas.
+    es: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#CF142B"/>' +
+            '<rect width="30" height="13.34" fill="#00247D"/>' +
+            '<rect width="30" height="6.67" fill="#FFCC00"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="9.6" cy="11.9" r=".78"/><circle cx="11.4" cy="10.9" r=".78"/>' +
+                '<circle cx="13.4" cy="10.3" r=".78"/><circle cx="15" cy="10.1" r=".78"/>' +
+                '<circle cx="16.6" cy="10.3" r=".78"/><circle cx="18.6" cy="10.9" r=".78"/>' +
+                '<circle cx="20.4" cy="11.9" r=".78"/><circle cx="15" cy="13.2" r=".78"/>' +
+            '</g>' +
+        '</svg>',
+    // Estados Unidos: trece franjas y el cuadro de estrellas.
+    en: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#fff"/>' +
+            '<g fill="#B22234">' +
+                '<rect width="30" height="1.54" y="0"/><rect width="30" height="1.54" y="3.08"/>' +
+                '<rect width="30" height="1.54" y="6.15"/><rect width="30" height="1.54" y="9.23"/>' +
+                '<rect width="30" height="1.54" y="12.3"/><rect width="30" height="1.54" y="15.38"/>' +
+                '<rect width="30" height="1.54" y="18.46"/>' +
+            '</g>' +
+            '<rect width="13" height="10.77" fill="#3C3B6E"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="2.2" cy="2" r=".62"/><circle cx="5.5" cy="2" r=".62"/>' +
+                '<circle cx="8.8" cy="2" r=".62"/><circle cx="11.5" cy="2" r=".62"/>' +
+                '<circle cx="3.8" cy="4.2" r=".62"/><circle cx="7.1" cy="4.2" r=".62"/>' +
+                '<circle cx="10.2" cy="4.2" r=".62"/>' +
+                '<circle cx="2.2" cy="6.4" r=".62"/><circle cx="5.5" cy="6.4" r=".62"/>' +
+                '<circle cx="8.8" cy="6.4" r=".62"/><circle cx="11.5" cy="6.4" r=".62"/>' +
+                '<circle cx="3.8" cy="8.6" r=".62"/><circle cx="7.1" cy="8.6" r=".62"/>' +
+                '<circle cx="10.2" cy="8.6" r=".62"/>' +
+            '</g>' +
+        '</svg>'
+};
+
+const WHATSAPP = '584121591072';
+const MENSAJES_WA = {
+    es: 'Hola! Quiero reservar la sala de karaoke.',
+    en: 'Hi! I would like to book the karaoke room.'
+};
+
+let idioma = 'es';
+
+
+// ------------------------------------------------------------------ pintar
+function escapar(t) {
+    const d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+}
+
+function estrellas(n) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+        html += '<svg class="w-4 h-4 ' + (i <= n ? 'text-amber-400' : 'text-zinc-700') +
+                '" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+                '<path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/></svg>';
+    }
+    return '<div class="flex gap-0.5">' + html + '</div>';
+}
+
+function aplicarIdioma() {
+    const t = TEXTOS[idioma];
+    document.documentElement.lang = idioma;
+
+    // Todo lo que lleva data-t.
+    document.querySelectorAll('[data-t]').forEach((el) => {
+        const valor = t[el.dataset.t];
+        if (typeof valor === 'string') el.textContent = valor;
+    });
+
+    // El boton enseña la bandera del OTRO idioma.
+    const otro = idioma === 'es' ? 'en' : 'es';
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[otro];
+    document.getElementById('banderaTexto').textContent = otro.toUpperCase();
+
+    // Los enlaces de WhatsApp, con el mensaje ya escrito.
+    const enlace = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);
+    ['waBarra', 'waHero', 'waPrecios', 'waCierre', 'waFooter'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.href = enlace;
+    });
+
+    // Los cuatro pasos.
+    document.getElementById('pasos').innerHTML = t.pasos.map((p, i) => `
+        <div class="aparece bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">
+            <div class="w-9 h-9 rounded-lg bg-amber-400/10 border border-amber-400/30
+                        flex items-center justify-center mb-4">
+                <span class="text-amber-400 font-black text-sm">${i + 1}</span>
+            </div>
+            <h3 class="font-bold text-zinc-100 mb-2">${escapar(p.t)}</h3>
+            <p class="text-zinc-400 text-sm leading-relaxed">${escapar(p.d)}</p>
+        </div>`).join('');
+
+    // Las tres ventajas del sistema.
+    document.getElementById('ventajas').innerHTML = t.ventajas.map((v) => `
+        <div class="aparece bg-zinc-950/60 border border-zinc-800 rounded-2xl p-7">
+            <h3 class="font-bold text-amber-400 mb-3 leading-snug">${escapar(v.t)}</h3>
+            <p class="text-zinc-400 text-sm leading-relaxed">${escapar(v.d)}</p>
+        </div>`).join('');
+
+    // La lista de equipos.
+    document.getElementById('equipos').innerHTML = t.equipos.map((e) => `
+        <li class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0z"/>
+            </svg>
+            <span class="text-zinc-300">${escapar(e)}</span>
+        </li>`).join('');
+
+    // Lo que incluye el precio.
+    document.getElementById('precioDetalles').innerHTML = t.precioDetalles.map((d) => `
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-zinc-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0z"/>
+            </svg>
+            <span class="text-zinc-400 text-sm">${escapar(d)}</span>
+        </div>`).join('');
+
+    // Los generos.
+    document.getElementById('generos').innerHTML = t.generos.map((g) => `
+        <span class="bg-zinc-800/60 border border-zinc-700/60 text-zinc-300 text-sm
+                     font-medium px-4 py-2 rounded-full">${escapar(g)}</span>`).join('');
+
+    pintarResenas();
+    observarAparicion();
+
+    try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
+}
+
+
+// ----------------------------------------------------------------- reseñas
+// Se guardan al cargar para no volver a pedirlas cada vez que se cambia de
+// idioma: la reseña la escribio un cliente y no se traduce.
+let resenasCargadas = null;
+
+function pintarResenas() {
+    const caja = document.getElementById('listaResenas');
+    if (!caja) return;
+
+    if (resenasCargadas === null) {
+        caja.innerHTML = '<p class="col-span-full text-center text-zinc-600 text-sm py-8">···</p>';
+        return;
+    }
+
+    if (resenasCargadas.length === 0) {
+        caja.innerHTML = '<p class="col-span-full text-center text-zinc-600 py-8">' +
+            escapar(TEXTOS[idioma].resenasVacio) + '</p>';
+        return;
+    }
+
+    caja.innerHTML = resenasCargadas.map((r) => `
+        <article class="aparece bg-zinc-950/60 border border-zinc-800 rounded-2xl overflow-hidden
+                        flex flex-col hover:border-zinc-700 transition-colors">
+            ${r.foto_url ? `<img src="${escapar(r.foto_url)}" alt=""
+                 loading="lazy" class="w-full h-44 object-cover border-b border-zinc-800">` : ''}
+            <div class="p-6 flex flex-col flex-1">
+                ${estrellas(r.estrellas)}
+                <p class="text-zinc-300 text-sm leading-relaxed my-4 flex-1">${escapar(r.texto)}</p>
+                <p class="text-zinc-500 text-xs font-bold tracking-wide">${escapar(r.nombre)}</p>
+            </div>
+        </article>`).join('');
+
+    observarAparicion();
+}
+
+async function cargarResenas() {
+    try {
+        const cliente = supabase.createClient(
+            'https://mefrjbmjfdphdqndpzcw.supabase.co',
+            'sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8'
+        );
+        const { data, error } = await cliente
+            .from('resenas')
+            .select('nombre,texto,estrellas,foto_url')
+            .eq('estado', 'publicada')
+            .order('creada_en', { ascending: false })
+            .limit(9);
+
+        if (error) throw error;
+        resenasCargadas = data || [];
+    } catch (e) {
+        // Si la tabla todavia no existe o falla la red, la seccion se queda
+        // vacia con su mensaje. La web no se cae por esto.
+        console.warn('[Reseñas]', e.message);
+        resenasCargadas = [];
+    }
+    pintarResenas();
+}
+
+
+// -------------------------------------------------------------- apariciones
+let observador = null;
+
+function observarAparicion() {
+    if (!('IntersectionObserver' in window)) {
+        document.querySelectorAll('.aparece').forEach((el) => el.classList.add('visible'));
+        return;
+    }
+    if (!observador) {
+        observador = new IntersectionObserver((entradas) => {
+            entradas.forEach((e) => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    observador.unobserve(e.target);
+                }
+            });
+        }, { rootMargin: '0px 0px -60px 0px' });
+    }
+    document.querySelectorAll('.aparece:not(.visible)').forEach((el) => observador.observe(el));
+}
+
+
+// ------------------------------------------------------------------ arranque
+document.getElementById('btnIdioma').addEventListener('click', () => {
+    idioma = idioma === 'es' ? 'en' : 'es';
+    aplicarIdioma();
+});
+
+document.getElementById('anio').textContent = new Date().getFullYear();
+
+// Si ya eligio idioma antes, se respeta. Si no, se mira el del navegador:
+// el turista que llega de fuera ve la web en ingles sin tener que buscar
+// el boton.
+try {
+    const guardado = localStorage.getItem('kl_idioma');
+    if (guardado === 'es' || guardado === 'en') {
+        idioma = guardado;
+    } else if (!String(navigator.language || '').toLowerCase().startsWith('es')) {
+        idioma = 'en';
+    }
+} catch (e) {}
+
+aplicarIdioma();
+cargarResenas();
+</script>
+</body>
+</html>
