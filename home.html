@@ -333,7 +333,7 @@
                     </svg>
                 </a>
 
-                <a href="https://tiktok.com/@karaokelatino" target="_blank" rel="noopener"
+                <a id="tiktok" href="#" target="_blank" rel="noopener"
                    class="w-11 h-11 rounded-xl border border-zinc-800 hover:border-amber-500/60
                           hover:bg-zinc-900 flex items-center justify-center transition-colors"
                    aria-label="TikTok">
@@ -610,6 +610,14 @@ const BANDERAS = {
         '</svg>'
 };
 
+// Las redes. Para ESCONDER una, se deja en null; para encenderla, se pone el
+// usuario. El TikTok esta creado pero todavia sin nada publicado: un enlace a
+// un perfil vacio resta en vez de sumar, asi que se enseña cuando haya algo.
+const REDES = {
+    instagram: 'mikaraokelatino',
+    tiktok: null            // <-- poner 'karaoke.latino7' cuando ya haya videos
+};
+
 const WHATSAPP = '584121591072';
 const MENSAJES_WA = {
     es: 'Hola! Quiero reservar la sala de karaoke.',
@@ -795,6 +803,14 @@ document.getElementById('btnIdioma').addEventListener('click', () => {
 });
 
 document.getElementById('anio').textContent = new Date().getFullYear();
+
+// Redes: cada una se enseña solo si tiene usuario puesto arriba.
+const enlaceTiktok = document.getElementById('tiktok');
+if (REDES.tiktok) {
+    enlaceTiktok.href = 'https://tiktok.com/@' + REDES.tiktok;
+} else {
+    enlaceTiktok.remove();
+}
 
 // Si ya eligio idioma antes, se respeta. Si no, se mira el del navegador:
 // el turista que llega de fuera ve la web en ingles sin tener que buscar
