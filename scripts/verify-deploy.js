@@ -93,6 +93,13 @@ function copyDir(src, dest) {
 
 copyDir(path.join(root, 'lib'), path.join(publicDir, 'lib'));
 
+// Las fotos de la web. Si la carpeta no existe, no pasa nada: el karaoke no
+// depende de ella y el despliegue tiene que seguir pasando igual.
+const fotosDir = path.join(root, 'fotos');
+if (fs.existsSync(fotosDir)) {
+  copyDir(fotosDir, path.join(publicDir, 'fotos'));
+}
+
 // Faltaba: sin esto los efectos daban 404 en el deploy y solo sonaban en local.
 const efectosDir = path.join(root, 'efectos');
 if (fs.existsSync(efectosDir)) {

@@ -37,11 +37,19 @@
             linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%);
     }
 
-    /* El degradado de arriba del hero, para que el texto se lea sobre
-       cualquier foto que se ponga despues. */
+    /* La foto de portada va difuminada: pone ambiente sin competir con el
+       titulo, que es lo que tiene que leerse. El scale de mas tapa el borde
+       claro que el difuminado deja en los cuatro lados. */
+    .foto-portada {
+        filter: blur(7px) saturate(1.06);
+        transform: scale(1.07);
+    }
+
+    /* El velo por encima. Va fuerte a proposito: la foto tiene fondo casi
+       blanco y el titulo es blanco; con menos, no se leia. */
     .velo-hero {
         background: linear-gradient(to bottom,
-            rgba(9,9,11,.55) 0%, rgba(9,9,11,.80) 55%, rgb(9,9,11) 100%);
+            rgba(9,9,11,.62) 0%, rgba(9,9,11,.84) 50%, rgb(9,9,11) 100%);
     }
 
     /* Aparecer al hacer scroll. Si el navegador no soporta el observador, las
@@ -97,8 +105,12 @@
 <!-- ═══════════════════════════════════════════════════════════ HERO ═══ -->
 <section id="inicio" class="relative min-h-[88vh] flex items-center pt-16 overflow-hidden">
 
-    <!-- FOTO DE PORTADA: aquí va la mejor foto de la sala llena, cantando. -->
-    <div class="foto-hueco absolute inset-0"></div>
+    <!-- FOTO DE PORTADA. Provisional hasta que haya fotos de la sala de
+         verdad: para cambiarla, se deja otra en fotos/ y se cambia el src.
+         El alt va vacio porque es decoracion; lo que cuenta lo dice el
+         titulo que va encima. -->
+    <img src="fotos/cantando.jpg" alt="" aria-hidden="true" fetchpriority="high"
+         class="foto-portada absolute inset-0 w-full h-full object-cover">
     <div class="velo-hero absolute inset-0"></div>
 
     <div class="relative max-w-6xl mx-auto px-5 py-20 w-full">
