@@ -22,20 +22,21 @@
     section[id] { scroll-margin-top: 4rem; }
 
     /* ------------------------------------------------------------------
-       Hueco de foto
+       LAS FOTOS
        ------------------------------------------------------------------
-       Javier todavia no tiene las fotos buenas. Cada hueco es un bloque con
-       degradado y un icono, para que la pagina no se vea rota mientras tanto.
+       Estan todas en fotos/ y se cambian dejando otra con el mismo nombre:
 
-       PARA PONER UNA FOTO DE VERDAD:
-       cambia  <div class="foto-hueco"> ... </div>
-       por     <img src="fotos/loquesea.jpg" alt="" class="w-full h-full object-cover">
+         cantando.jpg        la portada de arriba
+         sala-principal.jpg  la de la seccion "La sala"
+         paso-1-reservas.jpg
+         paso-2-escanea.jpg   los cuatro pasos de "Como funciona"
+         paso-3-pide.jpg
+         paso-4-canta.jpg
+         app-*.jpg           las capturas del telefono
+
+       Las de los pasos son de Pexels: uso comercial permitido y sin
+       obligacion de acreditar al autor.
        ------------------------------------------------------------------ */
-    .foto-hueco {
-        background:
-            radial-gradient(circle at 30% 20%, rgba(251,191,36,.10), transparent 60%),
-            linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%);
-    }
 
     /* La foto de portada se ve nitida. Lo unico que se toca es un punto de
        contraste y saturacion, para que no compita en claridad con el texto
@@ -518,7 +519,6 @@ const TEXTOS = {
         footerUbicacion: 'Lechería, Venezuela',
         footerHorario: 'Todos los días desde las 8:00 pm · previa reservación',
 
-        fotoPendiente: 'Foto próximamente',
 
         pasos: [
             { t: 'Reservas',  d: 'Nos escribes por WhatsApp, eliges el día y la hora, y apartas con el 50%.' },
@@ -627,7 +627,6 @@ const TEXTOS = {
         footerUbicacion: 'Lechería, Venezuela',
         footerHorario: 'Every day from 8:00 pm · by reservation',
 
-        fotoPendiente: 'Photo coming soon',
 
         pasos: [
             { t: 'Book',    d: 'Message us on WhatsApp, pick your day and time, and hold it with 50%.' },
