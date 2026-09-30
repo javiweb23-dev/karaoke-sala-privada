@@ -71,9 +71,8 @@
         </nav>
 
         <div class="flex items-center gap-2.5 flex-shrink-0">
-            <!-- Cambio de idioma. La bandera que se ve es la del idioma al que
-                 vas a cambiar, no la del que estas leyendo: asi se entiende
-                 sin tener que explicarlo. -->
+            <!-- Cambio de idioma. La bandera que se ve es la del idioma en
+                 el que esta la pagina ahora mismo. -->
             <button id="btnIdioma" type="button"
                 class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700
                        hover:border-amber-500/60 hover:bg-zinc-900 transition-colors"
@@ -148,7 +147,7 @@
             <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPantalla"></p>
         </div>
         <div class="py-8 px-4 text-center">
-            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">12</p>
+            <p class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight">15</p>
             <p class="text-[11px] sm:text-xs text-zinc-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
         </div>
     </div>
@@ -456,12 +455,11 @@ const TEXTOS = {
             'Pantalla de 65 pulgadas',
             'Luces de colores',
             'Sala tratada acústicamente',
-            'De 4 a 12 personas'
+            'Hasta 15 personas'
         ],
 
         precioDetalles: [
             'Persona adicional: $2',
-            'Mínimo 4 personas',
             'Se reserva con el 50%',
             'Todos los días desde las 8:00 pm',
             'Pueden traer su comida y bebida'
@@ -558,12 +556,11 @@ const TEXTOS = {
             '65-inch screen',
             'Colour lighting',
             'Acoustically treated room',
-            '4 to 12 people'
+            'Up to 15 people'
         ],
 
         precioDetalles: [
             'Additional person: $2',
-            'Minimum 4 people',
             'Hold your slot with 50%',
             'Every day from 8:00 pm',
             'Bring your own food and drink'
@@ -656,10 +653,11 @@ function aplicarIdioma() {
         if (typeof valor === 'string') el.textContent = valor;
     });
 
-    // El boton enseña la bandera del OTRO idioma.
-    const otro = idioma === 'es' ? 'en' : 'es';
-    document.getElementById('banderaIcono').innerHTML = BANDERAS[otro];
-    document.getElementById('banderaTexto').textContent = otro.toUpperCase();
+    // El boton enseña el idioma que se esta leyendo AHORA, no al que se
+    // cambiaria. Se probo al reves y confundia: se leia como si la pagina
+    // estuviera en el idioma de la bandera de al lado.
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[idioma];
+    document.getElementById('banderaTexto').textContent = idioma.toUpperCase();
 
     // Los enlaces de WhatsApp, con el mensaje ya escrito.
     const enlace = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);

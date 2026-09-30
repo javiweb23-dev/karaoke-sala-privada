@@ -244,9 +244,9 @@ function aplicarIdioma() {
     document.getElementById('campoNombre').placeholder = t.placeholderNombre;
     document.getElementById('campoTexto').placeholder = t.placeholderTexto;
 
-    const otro = idioma === 'es' ? 'en' : 'es';
-    document.getElementById('banderaIcono').innerHTML = BANDERAS[otro];
-    document.getElementById('banderaTexto').textContent = otro.toUpperCase();
+    // La bandera es la del idioma que se lee ahora, igual que en el home.
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[idioma];
+    document.getElementById('banderaTexto').textContent = idioma.toUpperCase();
 
     try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
 }
