@@ -762,14 +762,36 @@ function aplicarIdioma() {
     });
 
     // Los cuatro pasos.
+    // Las fotos son de Pexels, libres para uso comercial y sin obligacion de
+    // creditos. Se eligieron oscuras a proposito: las de fondo blanco, que son
+    // la mayoria en los bancos de imagenes, cantaban sobre esta web.
+    const FOTOS_PASOS = [
+        'fotos/paso-1-reservas.jpg',
+        'fotos/paso-2-escanea.jpg',
+        'fotos/paso-3-pide.jpg',
+        'fotos/paso-4-canta.jpg'
+    ];
+
     document.getElementById('pasos').innerHTML = t.pasos.map((p, i) => `
-        <div class="aparece bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">
-            <div class="w-9 h-9 rounded-lg bg-amber-400/10 border border-amber-400/30
-                        flex items-center justify-center mb-4">
-                <span class="text-amber-400 font-black text-sm">${i + 1}</span>
+        <div class="aparece bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden
+                    hover:border-zinc-700 transition-colors">
+            <div class="relative h-36 bg-zinc-950 overflow-hidden">
+                <img src="${FOTOS_PASOS[i]}" alt="" loading="lazy"
+                     class="w-full h-full object-cover">
+                <!-- El numero va sobre la foto, sobre un degradado que lo
+                     despega del fondo sea cual sea la foto. -->
+                <div class="absolute inset-x-0 bottom-0 h-16
+                            bg-gradient-to-t from-zinc-900 to-transparent"></div>
+                <div class="absolute bottom-3 left-4 w-9 h-9 rounded-lg
+                            bg-zinc-950/80 backdrop-blur border border-amber-400/40
+                            flex items-center justify-center">
+                    <span class="text-amber-400 font-black text-sm">${i + 1}</span>
+                </div>
             </div>
-            <h3 class="font-bold text-zinc-100 mb-2">${escapar(p.t)}</h3>
-            <p class="text-zinc-400 text-sm leading-relaxed">${escapar(p.d)}</p>
+            <div class="p-6 pt-5">
+                <h3 class="font-bold text-zinc-100 mb-2">${escapar(p.t)}</h3>
+                <p class="text-zinc-400 text-sm leading-relaxed">${escapar(p.d)}</p>
+            </div>
         </div>`).join('');
 
     // Las tres ventajas del sistema.
