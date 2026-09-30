@@ -37,19 +37,39 @@
             linear-gradient(135deg, #1c1917 0%, #292524 50%, #1c1917 100%);
     }
 
-    /* La foto de portada va difuminada: pone ambiente sin competir con el
-       titulo, que es lo que tiene que leerse. El scale de mas tapa el borde
-       claro que el difuminado deja en los cuatro lados. */
+    /* La foto de portada se ve nitida. Lo unico que se toca es un punto de
+       contraste y saturacion, para que no compita en claridad con el texto
+       blanco que lleva encima. */
     .foto-portada {
-        filter: blur(7px) saturate(1.06);
-        transform: scale(1.07);
+        filter: saturate(1.08) contrast(1.04);
     }
 
-    /* El velo por encima. Va fuerte a proposito: la foto tiene fondo casi
-       blanco y el titulo es blanco; con menos, no se leia. */
+    /* El velo. En pantalla ancha va en horizontal: muy oscuro a la izquierda,
+       donde esta el titulo, y casi transparente a la derecha, donde estan
+       ellos cantando. Asi el texto se lee y la foto se ve.
+       La segunda capa, vertical, mete la foto por debajo de la barra de
+       arriba y la funde con el negro de la seccion siguiente. */
     .velo-hero {
-        background: linear-gradient(to bottom,
-            rgba(9,9,11,.62) 0%, rgba(9,9,11,.84) 50%, rgb(9,9,11) 100%);
+        background:
+            linear-gradient(to right,
+                rgba(9,9,11,.95) 0%,  rgba(9,9,11,.88) 26%,
+                rgba(9,9,11,.55) 52%, rgba(9,9,11,.30) 78%,
+                rgba(9,9,11,.28) 100%),
+            linear-gradient(to bottom,
+                rgba(9,9,11,.55) 0%,  rgba(9,9,11,.05) 20%,
+                rgba(9,9,11,.35) 72%, rgb(9,9,11) 100%);
+    }
+
+    /* En el telefono el texto ocupa todo el ancho, asi que un velo lateral no
+       sirve de nada: tiene que ser parejo. Se deja mas claro en la franja de
+       arriba, que es donde quedan las caras. */
+    @media (max-width: 767px) {
+        .velo-hero {
+            background: linear-gradient(to bottom,
+                rgba(9,9,11,.60) 0%,  rgba(9,9,11,.42) 22%,
+                rgba(9,9,11,.80) 48%, rgba(9,9,11,.92) 72%,
+                rgb(9,9,11) 100%);
+        }
     }
 
     /* Aparecer al hacer scroll. Si el navegador no soporta el observador, las
@@ -110,7 +130,8 @@
          El alt va vacio porque es decoracion; lo que cuenta lo dice el
          titulo que va encima. -->
     <img src="fotos/cantando.jpg" alt="" aria-hidden="true" fetchpriority="high"
-         class="foto-portada absolute inset-0 w-full h-full object-cover">
+         class="foto-portada absolute inset-0 w-full h-full object-cover
+                object-[38%_0%] sm:object-[50%_0%]">
     <div class="velo-hero absolute inset-0"></div>
 
     <div class="relative max-w-6xl mx-auto px-5 py-20 w-full">
