@@ -279,6 +279,13 @@ module.exports = async (req, res) => {
                 error: 'Falta ejecutar sql/012-reservas.sql en Supabase.'
             });
         }
-        return res.status(500).json({ ok: false, error: 'No se pudo completar la reserva' });
+        // El motivo de verdad va tambien en la respuesta. Un "no se pudo" a
+        // secas obliga a adivinar, y aqui lo que falla suele ser una columna
+        // o una restriccion que no cuadra: conviene poder leerlo.
+        return res.status(500).json({
+            ok: false,
+            error: 'No se pudo completar la reserva',
+            motivo: texto.slice(0, 300)
+        });
     }
 };
