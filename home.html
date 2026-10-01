@@ -394,13 +394,12 @@
             <div class="aparece bg-gradient-to-b from-noche-900 to-noche-900/40 border border-noche-800
                         rounded-2xl p-7 sm:p-8 flex flex-col justify-center order-1 lg:order-2">
 
-                <!-- ⚠️ PRECIO: si cambia, se cambia AQUI, en precioUnidad y
-                     precioDetalles de las dos traducciones, y en RES.PRECIOS
-                     mas abajo (que es lo que cobra de verdad). -->
+                <!-- ⚠️ PRECIO: si cambia, se cambia AQUI, en precioDetalles de
+                     las dos traducciones, y en RES.PRECIOS mas abajo, que es
+                     lo que se cobra de verdad. -->
                 <p class="text-crema-500 text-xs font-bold uppercase tracking-[0.15em] mb-2"
                    data-t="precioEtiqueta"></p>
                 <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$40</p>
-                <p class="text-crema-300 font-medium mb-6" data-t="precioUnidad"></p>
 
                 <div class="border-t border-noche-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
 
@@ -754,7 +753,6 @@ const TEXTOS = {
         preciosTitulo: 'Precio',
         precioEtiqueta: 'Desde',
         preciosTexto: 'De la sala completa para tu grupo.',
-        precioUnidad: '2 horas $40  ·  3 horas $60  ·  4 horas $70',
 
         tiendaTitulo: 'Snacks y bebidas',
         tiendaTexto: 'Vendemos refrigerios en la sala, pero pueden traer lo que quieran.',
@@ -799,6 +797,9 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
+            '2 horas — $40',
+            '3 horas — $60',
+            '4 horas — $70',
             'Hasta 14 personas, sin cobro por persona',
             'Se reserva con el 50%',
             'Todos los días desde las 8:00 pm',
@@ -895,7 +896,6 @@ const TEXTOS = {
         preciosTitulo: 'Price',
         precioEtiqueta: 'From',
         preciosTexto: 'The whole room, just for your group.',
-        precioUnidad: '2 hours $40  ·  3 hours $60  ·  4 hours $70',
 
         tiendaTitulo: 'Snacks and drinks',
         tiendaTexto: 'We sell snacks in the room, but you are welcome to bring your own.',
@@ -940,6 +940,9 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
+            '2 hours — $40',
+            '3 hours — $60',
+            '4 hours — $70',
             'Up to 14 people, no per-person charge',
             'Hold your slot with 50%',
             'Every day from 8:00 pm',
