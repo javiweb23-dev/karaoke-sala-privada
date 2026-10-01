@@ -558,24 +558,6 @@
 </section>
 
 
-<!-- ═════════════════════════════════════════════════════════ CIERRE ═══ -->
-<section class="py-24 px-5 border-t border-noche-800/80">
-    <div class="max-w-3xl mx-auto text-center">
-        <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5" data-t="cierreTitulo"></h2>
-        <p class="text-crema-400 text-lg leading-relaxed mb-9" data-t="cierreTexto"></p>
-        <a id="waCierre" href="#" target="_blank" rel="noopener"
-           class="inline-flex items-center gap-2.5 bg-marca-500 hover:bg-marca-400 text-black
-                  font-bold text-lg px-9 py-4 rounded-xl transition-colors shadow-lg shadow-marca-500/25">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
-                <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
-            </svg>
-            <span data-t="btnWhatsapp"></span>
-        </a>
-    </div>
-</section>
-
-
 <!-- ═════════════════════════════════════════════════════════ FOOTER ═══ -->
 <!-- ═══════════════════════════════════════════════ BOTONES FLOTANTES ═══ -->
 <!-- Se apilan en la esquina. El de WhatsApp siempre esta; el de subir
@@ -719,7 +701,6 @@ const TEXTOS = {
         btnReservar: 'Reservar',
         btnReservarLargo: 'Reservar ahora',
         btnSistema: 'Ver nuestro sistema',
-        btnWhatsapp: 'Escríbenos por WhatsApp',
         btnVerTienda: 'Ver la tienda',
         btnDejarResena: 'Deja tu reseña',
 
@@ -763,9 +744,6 @@ const TEXTOS = {
         resenasTexto: 'Reseñas reales de gente que estuvo en la sala.',
         resenasVacio: 'Todavía no hay reseñas publicadas. ¡Sé el primero!',
 
-        cierreTitulo: '¿Nos vemos esta noche?',
-        cierreTexto: 'Escríbenos y te decimos qué horarios quedan libres. ' +
-                     'Se reserva con la mitad y el resto se paga el mismo día.',
 
         footerUbicacion: 'Lechería, Venezuela',
         footerHorario: 'Todos los días desde las 8:00 pm · previa reservación',
@@ -864,7 +842,6 @@ const TEXTOS = {
         btnReservar: 'Book',
         btnReservarLargo: 'Book now',
         btnSistema: 'See our system',
-        btnWhatsapp: 'Message us on WhatsApp',
         btnVerTienda: 'See the menu',
         btnDejarResena: 'Leave your review',
 
@@ -908,9 +885,6 @@ const TEXTOS = {
         resenasTexto: 'Real reviews from people who have been in the room.',
         resenasVacio: 'No reviews published yet. Be the first!',
 
-        cierreTitulo: 'See you tonight?',
-        cierreTexto: 'Message us and we will tell you which slots are open. ' +
-                     'Book with half up front, pay the rest on the day.',
 
         footerUbicacion: 'Lechería, Venezuela',
         footerHorario: 'Every day from 8:00 pm · by reservation',
@@ -1089,7 +1063,7 @@ function aplicarIdioma() {
     const enlace = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);
     // Los de 'reservar' llevan ahora al formulario; los de contacto siguen
     // yendo a WhatsApp, que para preguntar una duda sigue siendo lo comodo.
-    ['waCierre', 'waFooter', 'waBurbuja'].forEach((id) => {
+    ['waFooter', 'waBurbuja'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.href = enlace;
     });
