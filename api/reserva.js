@@ -18,7 +18,12 @@ const { enviarMensaje } = require('./_lib-telegram');
 const ABRE_MIN      = 20 * 60;          // 20:00
 const CIERRE_SEMANA = 24 * 60;          // domingo a jueves, medianoche
 const CIERRE_FINDE  = 26 * 60;          // viernes y sabado, 2:00 de la madrugada
-const LIMPIEZA_MIN  = 60;               // para limpiar y acomodar entre grupos
+const ACOMODO_MIN   = 20;               // de regalo, para instalarse: el tiempo
+                                        // contratado empieza a correr despues
+const RECOGIDA_MIN  = 20;               // de regalo al final, para recoger
+const LIMPIEZA_MIN  = 60;               // limpiar y preparar la sala
+// Lo que tiene que caber entre el final de un grupo y la llegada del siguiente.
+const MARGEN_MIN    = RECOGIDA_MIN + LIMPIEZA_MIN;
 const PASO_MIN      = 30;               // las horas se ofrecen cada media hora
 
 const HORAS_MIN   = 3;
@@ -41,10 +46,15 @@ function precioDe(horas) {
     return BASE_USD + Math.max(0, horas - HORAS_MIN) * HORA_EXTRA;
 }
 
+// En am/pm: la hora militar obliga a traducir mentalmente, y quien reserva
+// una noche piensa en "las 8", no en "las 20:00".
 function comoHora(min) {
-    const h = Math.floor((min % 1440) / 60);
-    const m = min % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    const m24 = min % 1440;
+    let h = Math.floor(m24 / 60);
+    const m = m24 % 60;
+    const sufijo = h < 12 ? 'am' : 'pm';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + sufijo;
 }
 
 async function tasaBcv() {
@@ -74,21 +84,27 @@ async function ocupadoEn(fecha) {
     return filas || [];
 }
 
-// Un hueco sirve si entre el final de una reserva y el principio de la otra
-// cabe la limpieza, mirado por los dos lados.
+// A que hora acaba de cantar un grupo que LLEGA a tal hora.
+function finDe(inicio, horas) {
+    return inicio + ACOMODO_MIN + horas * 60;
+}
+
+// Un hueco sirve si entre el final de una reserva y la llegada de la otra cabe
+// la recogida mas la limpieza, mirado por los dos lados.
 function chocaCon(ocupado, inicio, fin) {
     return ocupado.some((o) =>
-        inicio < o.fin_min + LIMPIEZA_MIN && o.inicio_min < fin + LIMPIEZA_MIN
+        inicio < o.fin_min + MARGEN_MIN && o.inicio_min < fin + MARGEN_MIN
     );
 }
 
 function horasLibres(fecha, horas, ocupado) {
     const cierre = cierreDe(fecha);
-    const dura = horas * 60;
     const libres = [];
 
-    for (let ini = ABRE_MIN; ini + dura <= cierre; ini += PASO_MIN) {
-        if (!chocaCon(ocupado, ini, ini + dura)) {
+    // El canto tiene que acabar antes del cierre. La recogida son 20 minutos
+    // mas, que se perdonan: lo que no vale es seguir cantando pasada la hora.
+    for (let ini = ABRE_MIN; finDe(ini, horas) <= cierre; ini += PASO_MIN) {
+        if (!chocaCon(ocupado, ini, finDe(ini, horas))) {
             libres.push({ min: ini, texto: comoHora(ini) });
         }
     }
@@ -161,7 +177,7 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ ok: false, error: 'Falta el comprobante del abono.' });
             }
 
-            const fin = inicio + horas * 60;
+            const fin = finDe(inicio, horas);
             if (fin > cierreDe(fecha)) {
                 return res.status(400).json({
                     ok: false,
@@ -203,9 +219,9 @@ module.exports = async (req, res) => {
             const aviso = await enviarMensaje(
                 '🎤 RESERVA NUEVA  #' + id + '\n\n' +
                 '📅 ' + fecha + '\n' +
-                '🕗 ' + comoHora(inicio) + ' a ' + comoHora(fin) +
-                '  (' + horas + ' h)\n' +
-
+                '🕗 Llegan ' + comoHora(inicio) + '\n' +
+                '🎵 Cantan ' + comoHora(inicio + ACOMODO_MIN) + ' a ' + comoHora(fin) +
+                '  (' + horas + ' h)\n\n' +
                 '👤 ' + nombre + '\n' +
                 '📱 ' + telefono + '\n\n' +
                 '💵 Total $' + total + '  ·  abonó $' + abono + '\n' +

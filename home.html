@@ -690,10 +690,10 @@ const TEXTOS = {
         resSinExtra: 'Ninguna · 3 horas',
         resHoraSing: 'hora',
         resHoraPl: 'horas',
-        resResumenEntran: 'Entran a las',
+        resResumenEntran: 'Llegan a las',
         resResumenCantan: 'Cantan de',
         resResumenSalen: 'Salen antes de',
-        resResumenCortesia: 'Les damos 20 minutos antes para acomodarse y 20 después para recoger, sin cobrar.',
+        resResumenCortesia: 'El tiempo empieza a correr 20 minutos después de llegar, para que se instalen con calma. Al final les damos otros 20 para recoger. Nada de eso se cobra.',
         resResumenTotal: 'Total',
         resResumenAbono: 'Abonas ahora (50%)',
         resResumenResto: 'El resto se paga el mismo día.',
@@ -834,10 +834,10 @@ const TEXTOS = {
         resSinExtra: 'None · 3 hours',
         resHoraSing: 'hour',
         resHoraPl: 'hours',
-        resResumenEntran: 'You come in at',
+        resResumenEntran: 'You arrive at',
         resResumenCantan: 'Singing from',
         resResumenSalen: 'Out before',
-        resResumenCortesia: 'We give you 20 minutes before to settle in and 20 after to pack up, free of charge.',
+        resResumenCortesia: 'The clock starts 20 minutes after you arrive, so you can settle in. At the end you get another 20 to pack up. None of it is charged.',
         resResumenTotal: 'Total',
         resResumenAbono: 'You pay now (50%)',
         resResumenResto: 'The rest is paid on the day.',
@@ -1348,7 +1348,8 @@ var RES = {
     HORAS_MAX: 8,
     BASE_USD: 60,          // las primeras 3 horas
     HORA_EXTRA: 15,
-    CORTESIA: 20           // minutos de regalo, antes y despues
+    ACOMODO: 20,           // para instalarse: el tiempo empieza a correr despues
+    RECOGIDA: 20           // para recoger al final
 };
 
 var reserva = {
@@ -1358,9 +1359,15 @@ var reserva = {
 
 function nodo(id) { return document.getElementById(id); }
 
+// En am/pm, igual que en el servidor: quien reserva una noche piensa en
+// "las 8", no en "las 20:00".
 function resHora(min) {
-    const h = Math.floor((min % 1440) / 60), m = min % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    const m24 = min % 1440;
+    let h = Math.floor(m24 / 60);
+    const m = m24 % 60;
+    const sufijo = h < 12 ? 'am' : 'pm';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + sufijo;
 }
 
 function resPrecio(horas) {
@@ -1470,7 +1477,10 @@ function resPintarResumen() {
         nodo(id).classList.toggle('hidden', !listo));
     if (!listo) return;
 
-    const fin = reserva.inicio + reserva.horas * 60;
+    // Llegan a la hora elegida, se instalan 20 minutos y ENTONCES empieza a
+    // correr el tiempo contratado.
+    const canta = reserva.inicio + RES.ACOMODO;
+    const fin = canta + reserva.horas * 60;
     const total = resPrecio(reserva.horas);
     const abono = total / 2;
     const bsTotal = resBolivares(total);
@@ -1479,11 +1489,11 @@ function resPintarResumen() {
     caja.innerHTML = `
         <div class="space-y-1.5 text-sm mb-4">
             <p class="text-crema-300">${t.resResumenEntran}
-               <strong class="text-crema-100">${resHora(reserva.inicio - RES.CORTESIA)}</strong></p>
+               <strong class="text-crema-100">${resHora(reserva.inicio)}</strong></p>
             <p class="text-crema-300">${t.resResumenCantan}
-               <strong class="text-crema-100">${resHora(reserva.inicio)} a ${resHora(fin)}</strong></p>
+               <strong class="text-crema-100">${resHora(canta)} a ${resHora(fin)}</strong></p>
             <p class="text-crema-300">${t.resResumenSalen}
-               <strong class="text-crema-100">${resHora(fin + RES.CORTESIA)}</strong></p>
+               <strong class="text-crema-100">${resHora(fin + RES.RECOGIDA)}</strong></p>
         </div>
         <p class="text-crema-500 text-xs leading-relaxed mb-5">${t.resResumenCortesia}</p>
 

@@ -103,8 +103,12 @@ function mostrarAviso(t) {
 
 // Las horas llegan en minutos desde medianoche; mas de 1440 es madrugada.
 function hora(min) {
-    const h = Math.floor((min % 1440) / 60), m = min % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') +
+    const m24 = min % 1440;
+    let h = Math.floor(m24 / 60);
+    const m = m24 % 60;
+    const sufijo = h < 12 ? 'am' : 'pm';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + sufijo +
            (min >= 1440 ? ' <span class="text-crema-600">(+1)</span>' : '');
 }
 
