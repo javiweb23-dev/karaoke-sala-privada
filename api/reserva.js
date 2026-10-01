@@ -10,7 +10,8 @@
 // justo antes de insertar, con la clave secreta, y no se fia de lo que el
 // navegador diga que estaba libre.
 
-const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin } = require('./_lib-supabase');
+const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin,
+        sanitizeEnv } = require('./_lib-supabase');
 const { aplicarCors } = require('./_lib-http');
 const { enviarMensaje } = require('./_lib-telegram');
 
@@ -80,6 +81,30 @@ async function tasaBcv() {
         console.warn('[reserva] no se pudo leer la tasa:', e.message);
     }
     return tasaEnCache.valor;      // la ultima conocida, o null si nunca hubo
+}
+
+// El nombre del archivo lo pone el navegador, asi que se mira con lupa: solo
+// letras, numeros, punto y guion. Sin esto se podria pedir "../otra-cosa" y
+// asomarse a otros sitios del deposito.
+const NOMBRE_LIMPIO = /^[A-Za-z0-9._-]{5,120}$/;
+
+async function comprobanteExiste(ruta) {
+    if (!NOMBRE_LIMPIO.test(ruta)) return false;
+
+    const url = sanitizeEnv(process.env.SUPABASE_URL);
+    const key = sanitizeEnv(process.env.SUPABASE_SERVICE_KEY);
+    if (!url || !key) return false;
+
+    try {
+        const r = await fetch(url + '/storage/v1/object/info/comprobantes/' + ruta, {
+            headers: { apikey: key, Authorization: 'Bearer ' + key },
+            signal: AbortSignal.timeout(6000)
+        });
+        return r.ok;
+    } catch (e) {
+        console.warn('[reserva] no se pudo comprobar el comprobante:', e.message);
+        return false;
+    }
 }
 
 async function ocupadoEn(fecha) {
@@ -183,7 +208,13 @@ module.exports = async (req, res) => {
             }
             // Sin comprobante no hay reserva. Es lo que evita que alguien
             // aparte una hora y no aparezca nunca.
-            if (!comprobante) {
+            //
+            // Y no basta con que venga un texto: hay que comprobar que el
+            // archivo esta de verdad en el deposito. Si solo se mirara que no
+            // viene vacio, bastaria con mandar cualquier palabra para bloquear
+            // un horario sin haber pagado nada, que es justo lo que esta regla
+            // existe para impedir.
+            if (!comprobante || !await comprobanteExiste(comprobante)) {
                 return res.status(400).json({ ok: false, error: 'Falta el comprobante del abono.' });
             }
 
