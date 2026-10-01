@@ -1303,16 +1303,19 @@ if (REDES.tiktok) {
     enlaceTiktok.remove();
 }
 
-// Si ya eligio idioma antes, se respeta. Si no, se mira el del navegador:
-// el turista que llega de fuera ve la web en ingles sin tener que buscar
-// el boton.
+// Si ya eligio idioma antes, se respeta. Si no, SIEMPRE castellano.
+//
+// Antes se miraba el idioma del navegador y se abria en ingles a quien no lo
+// tuviera en castellano. Suena razonable pero para este negocio sale al reves:
+// un venezolano con el telefono en ingles —que hay muchos— llegaba a una web
+// en ingles de un karaoke de Lecheria. Eso enfria; un turista viendo castellano
+// solo tiene que tocar la bandera, que esta arriba a la vista.
+//
+// O sea: equivocarse hacia el castellano cuesta un toque. Equivocarse hacia el
+// ingles cuesta un cliente.
 try {
     const guardado = localStorage.getItem('kl_idioma');
-    if (guardado === 'es' || guardado === 'en') {
-        idioma = guardado;
-    } else if (!String(navigator.language || '').toLowerCase().startsWith('es')) {
-        idioma = 'en';
-    }
+    if (guardado === 'es' || guardado === 'en') idioma = guardado;
 } catch (e) {}
 
 aplicarIdioma();
