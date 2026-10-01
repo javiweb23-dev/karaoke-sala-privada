@@ -444,6 +444,11 @@
                     <input id="resFecha" type="date"
                         class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
                                focus:outline-none focus:border-marca-500 transition-colors">
+                    <!-- El formato que enseña el campo lo decide el navegador del
+                         cliente, no nosotros: en unos sale 10/08/2026 y en otros
+                         08/10/2026, y no hay forma de forzarlo. Asi que debajo se
+                         escribe con todas las letras, que no se puede malinterpretar. -->
+                    <p id="resFechaTexto" class="text-marca-400 text-sm font-bold mt-2 first-letter:uppercase"></p>
                 </div>
                 <div>
                     <label for="resHoras" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
@@ -1128,7 +1133,11 @@ function aplicarIdioma() {
     // El formulario de reserva tambien tiene texto dentro.
     // Las funciones se izan, pero sus datos no: si aplicarIdioma corre antes
     // de que el bloque de reserva se ejecute, reserva aun es undefined.
-    if (typeof reserva !== 'undefined' && reserva) { resLlenarSelects(); resPintarResumen(); }
+    if (typeof reserva !== 'undefined' && reserva) {
+        resLlenarSelects();
+        resPintarResumen();
+        nodo('resFechaTexto').textContent = resFechaEnPalabras(reserva.fecha);
+    }
     observarAparicion();
 
     try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
@@ -1340,6 +1349,19 @@ function resHora(min) {
     const sufijo = h < 12 ? 'am' : 'pm';
     h = h % 12 || 12;
     return h + ':' + String(m).padStart(2, '0') + ' ' + sufijo;
+}
+
+// La fecha, con todas las letras. El mediodia en UTC evita que se corra de
+// dia segun la zona horaria del telefono.
+function resFechaEnPalabras(iso) {
+    if (!iso) return '';
+    try {
+        return new Date(iso + 'T12:00:00Z').toLocaleDateString(
+            idioma === 'es' ? 'es-VE' : 'en-US',
+            { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    } catch (e) {
+        return iso;
+    }
 }
 
 function resPrecio(horas) {
@@ -1604,7 +1626,9 @@ async function resEnviar() {
 
 nodo('resEnviar').addEventListener('click', resEnviar);
 nodo('resFecha').addEventListener('change', (e) => {
-    reserva.fecha = e.target.value; resBuscarHoras();
+    reserva.fecha = e.target.value;
+    nodo('resFechaTexto').textContent = resFechaEnPalabras(reserva.fecha);
+    resBuscarHoras();
 });
 nodo('resHoras').addEventListener('change', (e) => {
     reserva.horas = Number(e.target.value); resBuscarHoras();
