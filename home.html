@@ -193,6 +193,7 @@
             <a href="#sistema" class="hover:text-marca-500 transition-colors" data-t="navSistema"></a>
             <a href="#sala" class="hover:text-marca-500 transition-colors" data-t="navSala"></a>
             <a href="#precios" class="hover:text-marca-500 transition-colors" data-t="navPrecios"></a>
+            <a href="#reserva" class="hover:text-marca-500 transition-colors" data-t="navReserva"></a>
             <a href="#resenas" class="hover:text-marca-500 transition-colors" data-t="navResenas"></a>
         </nav>
 
@@ -207,7 +208,7 @@
                 <span id="banderaTexto" class="text-[11px] font-bold text-crema-400 tracking-wider"></span>
             </button>
 
-            <a id="waBarra" href="#" target="_blank" rel="noopener"
+            <a id="waBarra" href="#reserva"
                class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-[13px]
                       px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
                data-t="btnReservar"></a>
@@ -246,7 +247,7 @@
             <p class="text-crema-300 text-lg sm:text-xl leading-relaxed mb-9 max-w-xl" data-t="heroTexto"></p>
 
             <div class="flex flex-col sm:flex-row gap-3">
-                <a id="waHero" href="#" target="_blank" rel="noopener"
+                <a id="waHero" href="#reserva"
                    class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-base
                           px-7 py-4 rounded-xl transition-colors text-center
                           shadow-lg shadow-marca-500/25">
@@ -282,7 +283,7 @@
         </div>
         <div class="py-8 px-4 text-center">
             <svg class="w-7 h-7 mx-auto mb-3 text-marca-500/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.8 20.4v-1.7a3.9 3.9 0 0 0-3.9-3.9H6.5a3.9 3.9 0 0 0-3.9 3.9v1.7"/><circle cx="9.2" cy="7.6" r="3.4"/><path d="M21.4 20.4v-1.7a3.9 3.9 0 0 0-2.9-3.77"/><path d="M15.1 4.4a3.9 3.9 0 0 1 0 6.4"/></svg>
-            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">15</p>
+            <p class="text-3xl sm:text-4xl font-black degradado-marca tracking-tight">14</p>
             <p class="text-[11px] sm:text-xs text-crema-500 font-bold uppercase tracking-[0.12em] mt-1.5" data-t="cifraPersonas"></p>
         </div>
     </div>
@@ -396,12 +397,12 @@
                 <!-- ⚠️ PRECIO: si cambia, se cambia AQUI y en precioUnidad
                      y precioDetalles de las dos traducciones. -->
                 <p class="text-crema-500 text-xs font-bold uppercase tracking-[0.15em] mb-2" data-t="precioEtiqueta"></p>
-                <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$20</p>
+                <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$60</p>
                 <p class="text-crema-300 font-medium mb-6" data-t="precioUnidad"></p>
 
                 <div class="border-t border-noche-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
 
-                <a id="waPrecios" href="#" target="_blank" rel="noopener"
+                <a id="waPrecios" href="#reserva"
                    class="block text-center bg-marca-500 hover:bg-marca-400 text-black font-bold
                           px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-marca-500/25"
                    data-t="btnReservarLargo"></a>
@@ -419,6 +420,124 @@
                class="flex-shrink-0 border border-noche-700 hover:border-marca-500/60 hover:bg-noche-800
                       text-crema-100 font-bold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
                data-t="btnVerTienda"></a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ RESERVA ═══ -->
+<section id="reserva" class="resplandor luz-doble py-24 px-5 border-t border-noche-800/80">
+    <div class="max-w-2xl mx-auto">
+
+        <div class="aparece text-center mb-10">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="resTitulo"></h2>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="resTexto"></p>
+        </div>
+
+        <div class="aparece bg-noche-950/60 border border-noche-800 rounded-2xl p-6 sm:p-8">
+
+            <!-- ---------------------------------------------- los tres datos -->
+            <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label for="resFecha" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoFecha"></label>
+                    <input id="resFecha" type="date"
+                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
+                               focus:outline-none focus:border-marca-500 transition-colors">
+                </div>
+                <div>
+                    <label for="resPersonas" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoPersonas"></label>
+                    <select id="resPersonas"
+                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
+                               focus:outline-none focus:border-marca-500 transition-colors"></select>
+                </div>
+                <div>
+                    <label for="resHoras" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoHoras"></label>
+                    <select id="resHoras"
+                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
+                               focus:outline-none focus:border-marca-500 transition-colors"></select>
+                </div>
+            </div>
+
+            <!-- ------------------------------------------ las horas que quedan -->
+            <div class="mb-6">
+                <p class="text-crema-500 text-xs font-bold uppercase tracking-wider mb-3" data-t="resCampoHora"></p>
+                <div id="resHorasLibres" class="flex flex-wrap gap-2"></div>
+                <p id="resAvisoHoras" class="text-crema-600 text-sm mt-2"></p>
+            </div>
+
+            <!-- --------------------------------------------------- el resumen -->
+            <div id="resResumen" class="hidden mb-6 bg-noche-900/60 border border-noche-800 rounded-xl p-5"></div>
+
+            <!-- --------------------------------------------- quien eres -->
+            <div id="resQuien" class="hidden grid sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="resNombre" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoNombre"></label>
+                    <input id="resNombre" type="text" maxlength="60" autocomplete="name"
+                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-crema-100
+                               placeholder-crema-700 focus:outline-none focus:border-marca-500 transition-colors">
+                </div>
+                <div>
+                    <label for="resTelefono" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoTelefono"></label>
+                    <input id="resTelefono" type="tel" maxlength="25" autocomplete="tel"
+                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-crema-100
+                               placeholder-crema-700 focus:outline-none focus:border-marca-500 transition-colors">
+                </div>
+            </div>
+
+            <!-- ------------------------------------------------------ el pago -->
+            <div id="resPago" class="hidden">
+                <div class="bg-marca-500/10 border border-marca-500/30 rounded-xl p-5 mb-5">
+                    <p class="text-marca-400 text-xs font-bold uppercase tracking-wider mb-3" data-t="resPagoTitulo"></p>
+                    <div class="space-y-1.5 text-sm">
+                        <p class="text-crema-300"><span class="text-crema-500" data-t="resBanco"></span>
+                           <strong class="text-crema-100">Banco de Venezuela</strong></p>
+                        <p class="text-crema-300"><span class="text-crema-500" data-t="resCedula"></span>
+                           <strong class="text-crema-100">15.364.072</strong></p>
+                        <p class="text-crema-300"><span class="text-crema-500" data-t="resTelefonoPago"></span>
+                           <strong class="text-crema-100">0412-1591072</strong></p>
+                    </div>
+                    <p class="text-crema-400 text-sm mt-4 pt-4 border-t border-marca-500/20" data-t="resPagoNota"></p>
+                </div>
+
+                <label class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                       data-t="resCampoComprobante"></label>
+                <label for="resComprobante" id="resCajaComprobante"
+                    class="block border-2 border-dashed border-noche-700 hover:border-marca-500/60
+                           rounded-xl p-5 text-center cursor-pointer transition-colors mb-2">
+                    <svg class="w-7 h-7 mx-auto text-crema-600 mb-2" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+                    </svg>
+                    <span class="text-crema-500 text-sm" data-t="resSubir"></span>
+                </label>
+                <input id="resComprobante" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hidden">
+                <p id="resComprobanteOk" class="hidden text-marca-400 text-sm mb-2"></p>
+
+                <p id="resError" class="hidden my-3 text-red-400 text-sm text-center"></p>
+
+                <button id="resEnviar" type="button" disabled
+                    class="w-full mt-4 bg-marca-500 hover:bg-marca-400 disabled:bg-noche-800
+                           disabled:text-crema-700 text-black font-bold text-base py-4
+                           rounded-xl transition-colors" data-t="resBtnEnviar"></button>
+            </div>
+        </div>
+
+        <!-- ------------------------------------------------------ ya esta -->
+        <div id="resGracias" class="hidden text-center py-10">
+            <div class="w-20 h-20 rounded-full bg-marca-500/10 border border-marca-500/30
+                        flex items-center justify-center mx-auto mb-7">
+                <svg class="w-10 h-10 text-marca-500" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-black tracking-tight mb-3" data-t="resGraciasTitulo"></h3>
+            <p class="text-crema-400 leading-relaxed max-w-md mx-auto" data-t="resGraciasTexto"></p>
         </div>
     </div>
 </section>
@@ -553,13 +672,59 @@
 // =========================================================================
 const TEXTOS = {
     es: {
+        navReserva: 'Reservar',
+
+        resTitulo: 'Cotiza y reserva',
+        resTexto: 'Elige el día y la hora, mira lo que cuesta y aparta la sala. Son tres minutos.',
+        resCampoFecha: 'Día',
+        resCampoPersonas: 'Personas',
+        resCampoHoras: 'Horas',
+        resCampoHora: '¿A qué hora empiezan?',
+        resCampoNombre: 'Tu nombre',
+        resCampoTelefono: 'Tu WhatsApp',
+        resPagoTitulo: 'Pago móvil · abona el 50%',
+        resBanco: 'Banco:',
+        resCedula: 'C.I.:',
+        resTelefonoPago: 'Teléfono:',
+        resCampoComprobante: 'Comprobante del abono',
+        resSubir: 'Toca para subir la captura del pago',
+        resBtnEnviar: 'Enviar reserva',
+        resGraciasTitulo: '¡Reserva registrada!',
+        resGraciasTexto: 'Vamos a confirmar el pago y te escribimos por WhatsApp. Nos vemos.',
+
+        resElegirDia: 'Elige un día para ver las horas libres.',
+        resSinHoras: 'Ese día ya no quedan horas libres con esa duración. Prueba con otro día o con menos horas.',
+        resCargando: 'Buscando horas libres...',
+        resRecomendado: 'recomendado',
+        resHoraPl: 'horas',
+        resPersonasPl: 'personas',
+        resResumenEntran: 'Entran a las',
+        resResumenCantan: 'Cantan de',
+        resResumenSalen: 'Salen antes de',
+        resResumenCortesia: 'Les damos 20 minutos antes para acomodarse y 20 después para recoger, sin cobrar.',
+        resResumenTotal: 'Total',
+        resResumenAbono: 'Abonas ahora (50%)',
+        resResumenResto: 'El resto se paga el mismo día.',
+        resTasaNota: 'Tasa del BCV de hoy',
+        resPagoNota: 'Haz el pago móvil por el monto del abono y sube la captura aquí abajo. Sin el comprobante no se puede apartar la hora.',
+        resComprobanteListo: 'Comprobante listo:',
+
+        resErrNombre: 'Escribe tu nombre.',
+        resErrTelefono: 'Escribe un teléfono válido.',
+        resErrComprobante: 'Falta subir el comprobante del pago.',
+        resErrArchivo: 'El archivo tiene que ser una imagen o un PDF.',
+        resErrPesado: 'Ese archivo pesa demasiado. Prueba con otro.',
+        resErrEnvio: 'No se pudo enviar. Revisa tu internet e inténtalo de nuevo.',
+        resEnviando: 'Enviando...',
+        resSubiendo: 'Subiendo comprobante...',
+
         navSistema: 'Nuestro sistema',
         navSala: 'La sala',
         navPrecios: 'Precio',
         navResenas: 'Reseñas',
 
         btnReservar: 'Reservar',
-        btnReservarLargo: 'Reservar por WhatsApp',
+        btnReservarLargo: 'Reservar ahora',
         btnSistema: 'Ver nuestro sistema',
         btnWhatsapp: 'Escríbenos por WhatsApp',
         btnVerTienda: 'Ver la tienda',
@@ -597,7 +762,7 @@ const TEXTOS = {
         preciosTitulo: 'Precio',
         preciosTexto: 'De la sala completa para tu grupo.',
         precioEtiqueta: 'Desde',
-        precioUnidad: 'por hora · hasta 10 personas',
+        precioUnidad: 'las 3 horas · vengan los que vengan',
 
         tiendaTitulo: 'Snacks y bebidas',
         tiendaTexto: 'Vendemos refrigerios en la sala, pero pueden traer lo que quieran.',
@@ -638,11 +803,12 @@ const TEXTOS = {
             'Pantalla de 65 pulgadas',
             'Luces de colores',
             'Sala acústica',
-            'Hasta 15 personas'
+            'Hasta 14 personas'
         ],
 
         precioDetalles: [
-            'Persona adicional: $2',
+            'Hora adicional: $20',
+            'Hasta 14 personas, sin cobro por persona',
             'Se reserva con el 50%',
             'Todos los días desde las 8:00 pm',
             'Pueden traer su comida y bebida'
@@ -651,13 +817,59 @@ const TEXTOS = {
     },
 
     en: {
+        navReserva: 'Book',
+
+        resTitulo: 'Get a quote and book',
+        resTexto: 'Pick the day and time, see what it costs and hold the room. Takes three minutes.',
+        resCampoFecha: 'Day',
+        resCampoPersonas: 'People',
+        resCampoHoras: 'Hours',
+        resCampoHora: 'What time do you start?',
+        resCampoNombre: 'Your name',
+        resCampoTelefono: 'Your WhatsApp',
+        resPagoTitulo: 'Mobile payment · pay 50% now',
+        resBanco: 'Bank:',
+        resCedula: 'ID:',
+        resTelefonoPago: 'Phone:',
+        resCampoComprobante: 'Payment receipt',
+        resSubir: 'Tap to upload your payment screenshot',
+        resBtnEnviar: 'Send booking',
+        resGraciasTitulo: 'Booking received!',
+        resGraciasTexto: 'We will confirm the payment and message you on WhatsApp. See you soon.',
+
+        resElegirDia: 'Pick a day to see the free slots.',
+        resSinHoras: 'No free slots that day for that length. Try another day or fewer hours.',
+        resCargando: 'Looking for free slots...',
+        resRecomendado: 'recommended',
+        resHoraPl: 'hours',
+        resPersonasPl: 'people',
+        resResumenEntran: 'You come in at',
+        resResumenCantan: 'Singing from',
+        resResumenSalen: 'Out before',
+        resResumenCortesia: 'We give you 20 minutes before to settle in and 20 after to pack up, free of charge.',
+        resResumenTotal: 'Total',
+        resResumenAbono: 'You pay now (50%)',
+        resResumenResto: 'The rest is paid on the day.',
+        resTasaNota: 'Today\u0027s BCV rate',
+        resPagoNota: 'Send the mobile payment for the deposit amount and upload the screenshot below. Without the receipt the slot cannot be held.',
+        resComprobanteListo: 'Receipt ready:',
+
+        resErrNombre: 'Please write your name.',
+        resErrTelefono: 'Please write a valid phone number.',
+        resErrComprobante: 'The payment receipt is missing.',
+        resErrArchivo: 'The file needs to be an image or a PDF.',
+        resErrPesado: 'That file is too heavy. Try another one.',
+        resErrEnvio: 'Could not send it. Check your connection and try again.',
+        resEnviando: 'Sending...',
+        resSubiendo: 'Uploading receipt...',
+
         navSistema: 'Our system',
         navSala: 'The room',
         navPrecios: 'Price',
         navResenas: 'Reviews',
 
         btnReservar: 'Book',
-        btnReservarLargo: 'Book on WhatsApp',
+        btnReservarLargo: 'Book now',
         btnSistema: 'See our system',
         btnWhatsapp: 'Message us on WhatsApp',
         btnVerTienda: 'See the menu',
@@ -695,7 +907,7 @@ const TEXTOS = {
         preciosTitulo: 'Price',
         preciosTexto: 'The whole room, just for your group.',
         precioEtiqueta: 'From',
-        precioUnidad: 'per hour · up to 10 people',
+        precioUnidad: 'for 3 hours · however many of you come',
 
         tiendaTitulo: 'Snacks and drinks',
         tiendaTexto: 'We sell snacks in the room, but you are welcome to bring your own.',
@@ -736,11 +948,12 @@ const TEXTOS = {
             '65-inch screen',
             'Colour lighting',
             'Soundproof room',
-            'Up to 15 people'
+            'Up to 14 people'
         ],
 
         precioDetalles: [
-            'Additional person: $2',
+            'Extra hour: $20',
+            'Up to 14 people, no per-person charge',
             'Hold your slot with 50%',
             'Every day from 8:00 pm',
             'Bring your own food and drink'
@@ -880,7 +1093,9 @@ function aplicarIdioma() {
 
     // Los enlaces de WhatsApp, con el mensaje ya escrito.
     const enlace = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);
-    ['waBarra', 'waHero', 'waPrecios', 'waCierre', 'waFooter', 'waBurbuja'].forEach((id) => {
+    // Los de 'reservar' llevan ahora al formulario; los de contacto siguen
+    // yendo a WhatsApp, que para preguntar una duda sigue siendo lo comodo.
+    ['waCierre', 'waFooter', 'waBurbuja'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.href = enlace;
     });
@@ -945,6 +1160,10 @@ function aplicarIdioma() {
 
 
     pintarResenas();
+    // El formulario de reserva tambien tiene texto dentro.
+    // Las funciones se izan, pero sus datos no: si aplicarIdioma corre antes
+    // de que el bloque de reserva se ejecute, reserva aun es undefined.
+    if (typeof reserva !== 'undefined' && reserva) { resLlenarSelects(); resPintarResumen(); }
     observarAparicion();
 
     try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
@@ -1124,6 +1343,281 @@ try {
 
 aplicarIdioma();
 cargarResenas();
+
+// =========================================================================
+// Cotizacion y reserva
+//
+// Las reglas estan repetidas aqui y en api/reserva.js, y es a proposito: aqui
+// para que el cliente no pierda el tiempo, y alli porque es quien decide. Si
+// alguna vez cambian, hay que tocar LOS DOS sitios.
+// =========================================================================
+var RES = {
+    ABRE: 20 * 60,
+    HORAS_MIN: 3,
+    HORAS_MAX: 8,
+    AFORO: 14,
+    BASE_USD: 60,          // las primeras 3 horas
+    HORA_EXTRA: 20,
+    CORTESIA: 20           // minutos de regalo, antes y despues
+};
+
+var reserva = {
+    fecha: '', personas: 6, horas: 3,
+    inicio: null, comprobante: null, tasa: null
+};
+
+function nodo(id) { return document.getElementById(id); }
+
+function resHora(min) {
+    const h = Math.floor((min % 1440) / 60), m = min % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function resPrecio(horas) {
+    return RES.BASE_USD + Math.max(0, horas - RES.HORAS_MIN) * RES.HORA_EXTRA;
+}
+
+function resBolivares(usd) {
+    if (!reserva.tasa) return null;
+    return (usd * reserva.tasa).toLocaleString('es-VE', { maximumFractionDigits: 0 });
+}
+
+// ------------------------------------------------- los desplegables, una vez
+function resLlenarSelects() {
+    const t = TEXTOS[idioma];
+
+    nodo('resPersonas').innerHTML = Array.from({ length: RES.AFORO }, (_, i) =>
+        `<option value="${i + 1}"${i + 1 === reserva.personas ? ' selected' : ''}>${i + 1}</option>`
+    ).join('');
+
+    nodo('resHoras').innerHTML = Array.from(
+        { length: RES.HORAS_MAX - RES.HORAS_MIN + 1 }, (_, i) => {
+            const h = RES.HORAS_MIN + i;
+            const nota = h === RES.HORAS_MIN ? ` (${t.resRecomendado})` : '';
+            return `<option value="${h}"${h === reserva.horas ? ' selected' : ''}>${h}${nota}</option>`;
+        }).join('');
+
+    // Desde hoy: no tiene sentido ofrecer ayer.
+    const hoy = new Date();
+    const dosDigitos = (n) => String(n).padStart(2, '0');
+    nodo('resFecha').min = hoy.getFullYear() + '-' +
+        dosDigitos(hoy.getMonth() + 1) + '-' + dosDigitos(hoy.getDate());
+}
+
+// ------------------------------------------------ pedir y pintar las horas
+async function resBuscarHoras() {
+    const t = TEXTOS[idioma];
+    const caja = nodo('resHorasLibres');
+    const aviso = nodo('resAvisoHoras');
+
+    reserva.inicio = null;
+    resPintarResumen();
+
+    if (!reserva.fecha) {
+        caja.innerHTML = '';
+        aviso.textContent = t.resElegirDia;
+        return;
+    }
+
+    caja.innerHTML = '';
+    aviso.textContent = t.resCargando;
+
+    try {
+        const r = await fetch('/api/reserva', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                accion: 'disponibilidad',
+                fecha: reserva.fecha,
+                horas: reserva.horas
+            })
+        });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'sin horas');
+
+        if (d.tasa) reserva.tasa = d.tasa;
+
+        if (!d.horas.length) {
+            aviso.textContent = t.resSinHoras;
+            return;
+        }
+
+        aviso.textContent = '';
+        caja.innerHTML = d.horas.map((h) => `
+            <button type="button" data-min="${h.min}"
+                class="res-hora border border-noche-700 hover:border-marca-500/60
+                       text-crema-300 text-sm font-bold px-4 py-2.5 rounded-xl
+                       transition-colors">${h.texto}</button>`).join('');
+
+        caja.querySelectorAll('.res-hora').forEach((b) => {
+            b.addEventListener('click', () => {
+                reserva.inicio = Number(b.dataset.min);
+                caja.querySelectorAll('.res-hora').forEach((o) => {
+                    const suyo = o === b;
+                    o.classList.toggle('bg-marca-500', suyo);
+                    o.classList.toggle('text-black', suyo);
+                    o.classList.toggle('border-marca-500', suyo);
+                    o.classList.toggle('text-crema-300', !suyo);
+                });
+                resPintarResumen();
+            });
+        });
+    } catch (e) {
+        console.warn('[reserva]', e.message);
+        aviso.textContent = t.resSinHoras;
+    }
+}
+
+// ------------------------------------------------------------- el resumen
+function resPintarResumen() {
+    const t = TEXTOS[idioma];
+    const caja = nodo('resResumen');
+
+    const listo = Boolean(reserva.fecha && reserva.inicio !== null);
+    ['resResumen', 'resQuien', 'resPago'].forEach((id) =>
+        nodo(id).classList.toggle('hidden', !listo));
+    if (!listo) return;
+
+    const fin = reserva.inicio + reserva.horas * 60;
+    const total = resPrecio(reserva.horas);
+    const abono = total / 2;
+    const bsTotal = resBolivares(total);
+    const bsAbono = resBolivares(abono);
+
+    caja.innerHTML = `
+        <div class="space-y-1.5 text-sm mb-4">
+            <p class="text-crema-300">${t.resResumenEntran}
+               <strong class="text-crema-100">${resHora(reserva.inicio - RES.CORTESIA)}</strong></p>
+            <p class="text-crema-300">${t.resResumenCantan}
+               <strong class="text-crema-100">${resHora(reserva.inicio)} a ${resHora(fin)}</strong></p>
+            <p class="text-crema-300">${t.resResumenSalen}
+               <strong class="text-crema-100">${resHora(fin + RES.CORTESIA)}</strong></p>
+        </div>
+        <p class="text-crema-500 text-xs leading-relaxed mb-5">${t.resResumenCortesia}</p>
+
+        <div class="border-t border-noche-800 pt-4 space-y-2">
+            <div class="flex items-baseline justify-between">
+                <span class="text-crema-400 text-sm">${t.resResumenTotal}</span>
+                <span class="text-crema-100 font-bold">$${total}${bsTotal ? `
+                    <span class="text-crema-500 font-normal text-sm"> · Bs ${bsTotal}</span>` : ''}</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <span class="text-marca-400 text-sm font-bold">${t.resResumenAbono}</span>
+                <span class="degradado-marca font-black text-xl">$${abono}${bsAbono ? `
+                    <span class="text-crema-400 font-normal text-sm"> · Bs ${bsAbono}</span>` : ''}</span>
+            </div>
+            <p class="text-crema-600 text-xs pt-1">${t.resResumenResto}${
+                reserva.tasa ? ` · ${t.resTasaNota}: ${reserva.tasa.toLocaleString('es-VE',
+                    { maximumFractionDigits: 2 })}` : ''}</p>
+        </div>`;
+}
+
+// ---------------------------------------------------------- el comprobante
+nodo('resComprobante').addEventListener('change', (ev) => {
+    const t = TEXTOS[idioma];
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+
+    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(f.type)) {
+        return resMostrarError(t.resErrArchivo);
+    }
+    if (f.size > 5 * 1024 * 1024) return resMostrarError(t.resErrPesado);
+
+    reserva.comprobante = f;
+    resOcultarError();
+
+    const ok = nodo('resComprobanteOk');
+    ok.textContent = t.resComprobanteListo + ' ' + f.name;
+    ok.classList.remove('hidden');
+    nodo('resEnviar').disabled = false;
+});
+
+function resMostrarError(texto) {
+    const e = nodo('resError');
+    e.textContent = texto;
+    e.classList.remove('hidden');
+}
+function resOcultarError() { nodo('resError').classList.add('hidden'); }
+
+// --------------------------------------------------------------- enviarla
+async function resEnviar() {
+    const t = TEXTOS[idioma];
+    const nombre = nodo('resNombre').value.trim();
+    const telefono = nodo('resTelefono').value.trim();
+
+    if (nombre.length < 2) return resMostrarError(t.resErrNombre);
+    if (telefono.replace(/\D/g, '').length < 10) return resMostrarError(t.resErrTelefono);
+    if (!reserva.comprobante) return resMostrarError(t.resErrComprobante);
+
+    resOcultarError();
+    const btn = nodo('resEnviar');
+    btn.disabled = true;
+    btn.textContent = t.resSubiendo;
+
+    try {
+        // El comprobante va primero: si falla, no queda una reserva sin pago.
+        const cliente = supabase.createClient(
+            'https://mefrjbmjfdphdqndpzcw.supabase.co',
+            'sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8'
+        );
+        const ext = (reserva.comprobante.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 4);
+        const ruta = Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.' + ext;
+
+        const { error: errSubida } = await cliente.storage
+            .from('comprobantes')
+            .upload(ruta, reserva.comprobante, { contentType: reserva.comprobante.type });
+        if (errSubida) throw errSubida;
+
+        btn.textContent = t.resEnviando;
+
+        const r = await fetch('/api/reserva', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                accion: 'crear',
+                fecha: reserva.fecha,
+                inicio_min: reserva.inicio,
+                horas: reserva.horas,
+                personas: reserva.personas,
+                nombre, telefono,
+                comprobante: ruta
+            })
+        });
+        const d = await r.json();
+
+        if (!d.ok) {
+            // Si alguien se adelanto, se vuelven a pedir las horas para que
+            // vea el hueco real en vez de insistir contra uno ocupado.
+            if (d.ocupado) resBuscarHoras();
+            throw new Error(d.error || t.resErrEnvio);
+        }
+
+        nodo('resGracias').previousElementSibling.classList.add('hidden');
+        nodo('resGracias').classList.remove('hidden');
+        nodo('resGracias').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    } catch (e) {
+        console.warn('[reserva]', e.message);
+        resMostrarError(e.message || t.resErrEnvio);
+        btn.disabled = false;
+        btn.textContent = t.resBtnEnviar;
+    }
+}
+
+nodo('resEnviar').addEventListener('click', resEnviar);
+nodo('resFecha').addEventListener('change', (e) => {
+    reserva.fecha = e.target.value; resBuscarHoras();
+});
+nodo('resHoras').addEventListener('change', (e) => {
+    reserva.horas = Number(e.target.value); resBuscarHoras();
+});
+nodo('resPersonas').addEventListener('change', (e) => {
+    reserva.personas = Number(e.target.value);
+});
+
+resLlenarSelects();
+resBuscarHoras();
+
 </script>
 </body>
 </html>
