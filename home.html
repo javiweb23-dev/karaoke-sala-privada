@@ -394,9 +394,12 @@
             <div class="aparece bg-gradient-to-b from-noche-900 to-noche-900/40 border border-noche-800
                         rounded-2xl p-7 sm:p-8 flex flex-col justify-center order-1 lg:order-2">
 
-                <!-- ⚠️ PRECIO: si cambia, se cambia AQUI y en precioUnidad
-                     y precioDetalles de las dos traducciones. -->
-                <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$60</p>
+                <!-- ⚠️ PRECIO: si cambia, se cambia AQUI, en precioUnidad y
+                     precioDetalles de las dos traducciones, y en RES.PRECIOS
+                     mas abajo (que es lo que cobra de verdad). -->
+                <p class="text-crema-500 text-xs font-bold uppercase tracking-[0.15em] mb-2"
+                   data-t="precioEtiqueta"></p>
+                <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none mb-2">$40</p>
                 <p class="text-crema-300 font-medium mb-6" data-t="precioUnidad"></p>
 
                 <div class="border-t border-noche-800 pt-6 space-y-2.5 mb-7" id="precioDetalles"></div>
@@ -667,9 +670,9 @@ const TEXTOS = {
         navReserva: 'Reservar',
 
         resTitulo: 'Haz tu reserva',
-        resTexto: 'Son 3 horas de sala para tu grupo. Elige el día, la hora y listo.',
+        resTexto: 'La sala completa para tu grupo. Elige el día, cuánto tiempo y listo.',
         resCampoFecha: 'Día',
-        resCampoHoras: 'Horas adicionales',
+        resCampoHoras: 'Duración',
         resCampoHora: '¿A qué hora empiezan?',
         resCampoNombre: 'Nombre y apellido',
         resCampoTelefono: 'Número de WhatsApp',
@@ -686,8 +689,6 @@ const TEXTOS = {
         resElegirDia: 'Elige un día para ver las horas libres.',
         resSinHoras: 'No disponible. Intenta con otra fecha y hora.',
         resCargando: 'Buscando horas libres...',
-        resSinExtra: 'Ninguna',
-        resHoraSing: 'hora',
         resHoraPl: 'horas',
         resResumenEntran: 'Llegan a las',
         resResumenCantan: 'Cantan de',
@@ -751,8 +752,9 @@ const TEXTOS = {
                       'semana entran canciones nuevas.',
 
         preciosTitulo: 'Precio',
+        precioEtiqueta: 'Desde',
         preciosTexto: 'De la sala completa para tu grupo.',
-        precioUnidad: 'las 3 horas · vengan los que vengan',
+        precioUnidad: 'las 2 horas · vengan los que vengan',
 
         tiendaTitulo: 'Snacks y bebidas',
         tiendaTexto: 'Vendemos refrigerios en la sala, pero pueden traer lo que quieran.',
@@ -797,7 +799,8 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
-            'Hora adicional: $15',
+            '3 horas — $60',
+            '4 horas — $70',
             'Hasta 14 personas, sin cobro por persona',
             'Se reserva con el 50%',
             'Todos los días desde las 8:00 pm',
@@ -810,9 +813,9 @@ const TEXTOS = {
         navReserva: 'Book',
 
         resTitulo: 'Book your night',
-        resTexto: 'Three hours of the room, just for your group. Pick the day and time.',
+        resTexto: 'The whole room, just for your group. Pick the day, how long, and you are set.',
         resCampoFecha: 'Day',
-        resCampoHoras: 'Extra hours',
+        resCampoHoras: 'Length',
         resCampoHora: 'What time do you start?',
         resCampoNombre: 'Full name',
         resCampoTelefono: 'WhatsApp number',
@@ -829,8 +832,6 @@ const TEXTOS = {
         resElegirDia: 'Pick a day to see the free slots.',
         resSinHoras: 'Not available. Try another date and time.',
         resCargando: 'Looking for free slots...',
-        resSinExtra: 'None',
-        resHoraSing: 'hour',
         resHoraPl: 'hours',
         resResumenEntran: 'You arrive at',
         resResumenCantan: 'Singing from',
@@ -894,8 +895,9 @@ const TEXTOS = {
                       'coming in every week.',
 
         preciosTitulo: 'Price',
+        precioEtiqueta: 'From',
         preciosTexto: 'The whole room, just for your group.',
-        precioUnidad: 'for 3 hours · however many of you come',
+        precioUnidad: 'for 2 hours · however many of you come',
 
         tiendaTitulo: 'Snacks and drinks',
         tiendaTexto: 'We sell snacks in the room, but you are welcome to bring your own.',
@@ -940,7 +942,8 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
-            'Extra hour: $15',
+            '3 hours — $60',
+            '4 hours — $70',
             'Up to 14 people, no per-person charge',
             'Hold your slot with 50%',
             'Every day from 8:00 pm',
@@ -1341,16 +1344,14 @@ cargarResenas();
 // =========================================================================
 var RES = {
     ABRE: 20 * 60,
-    HORAS_MIN: 3,
-    HORAS_MAX: 8,
-    BASE_USD: 60,          // las primeras 3 horas
-    HORA_EXTRA: 15,
+    // La tarifa, igual que en api/reserva.js. Si cambia, se cambia en los dos.
+    PRECIOS: { 2: 40, 3: 60, 4: 70 },
     ACOMODO: 20,           // para instalarse: el tiempo empieza a correr despues
     RECOGIDA: 20           // para recoger al final
 };
 
 var reserva = {
-    fecha: '', horas: 3,
+    fecha: '', horas: 3,   // 3 es la que se recomienda
     inicio: null, comprobante: null, tasa: null
 };
 
@@ -1368,7 +1369,7 @@ function resHora(min) {
 }
 
 function resPrecio(horas) {
-    return RES.BASE_USD + Math.max(0, horas - RES.HORAS_MIN) * RES.HORA_EXTRA;
+    return RES.PRECIOS[horas];
 }
 
 function resBolivares(usd) {
@@ -1380,18 +1381,11 @@ function resBolivares(usd) {
 function resLlenarSelects() {
     const t = TEXTOS[idioma];
 
-    // Se eligen horas ADICIONALES, no totales: la reserva ya son 3 horas, y
-    // preguntar "cuantas horas" invitaba a elegir 3 como si fuera una opcion
-    // entre otras. Asi la base se da por hecha y solo se decide si se alarga.
-    nodo('resHoras').innerHTML = Array.from(
-        { length: RES.HORAS_MAX - RES.HORAS_MIN + 1 }, (_, i) => {
-            const extra = i;
-            const total = RES.HORAS_MIN + extra;
-            const texto = extra === 0
-                ? t.resSinExtra
-                : `+${extra} ${extra === 1 ? t.resHoraSing : t.resHoraPl} · $${extra * RES.HORA_EXTRA}`;
-            return `<option value="${total}"${total === reserva.horas ? ' selected' : ''}>${texto}</option>`;
-        }).join('');
+    // Cada duracion con su precio al lado: asi se elige mirando lo que cuesta,
+    // sin tener que sumar nada.
+    nodo('resHoras').innerHTML = Object.keys(RES.PRECIOS).map(Number).sort((a, b) => a - b)
+        .map((horas) => `<option value="${horas}"${horas === reserva.horas ? ' selected' : ''}>` +
+             `${horas} ${t.resHoraPl} · $${RES.PRECIOS[horas]}</option>`).join('');
 
     // Desde hoy: no tiene sentido ofrecer ayer.
     const hoy = new Date();

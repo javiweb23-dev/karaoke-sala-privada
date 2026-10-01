@@ -26,10 +26,16 @@ const LIMPIEZA_MIN  = 60;               // limpiar y preparar la sala
 const MARGEN_MIN    = RECOGIDA_MIN + LIMPIEZA_MIN;
 const PASO_MIN      = 30;               // las horas se ofrecen cada media hora
 
-const HORAS_MIN   = 3;
-const HORAS_MAX   = 8;
-const BASE_USD    = 60;                 // las primeras 3 horas
-const HORA_EXTRA  = 15;
+// La tarifa, por duracion cerrada. No hay formula: cada duracion tiene su
+// precio y ya. Antes era una base mas horas sueltas, y obligaba al cliente a
+// hacer una cuenta justo cuando esta decidiendo si reserva o no.
+//
+// Si cambian los precios se cambian AQUI y en el mismo sitio de home.html.
+const PRECIOS = { 2: 40, 3: 60, 4: 70 };
+
+const DURACIONES = Object.keys(PRECIOS).map(Number).sort((a, b) => a - b);
+const HORAS_MIN   = DURACIONES[0];
+const HORAS_MAX   = DURACIONES[DURACIONES.length - 1];
 
 // Cuando la tasa del BCV no responde se usa la ultima que se vio. No se cae la
 // reserva por eso: el precio real es el del dolar y el bolivar es informativo.
@@ -43,7 +49,7 @@ function cierreDe(fecha) {
 }
 
 function precioDe(horas) {
-    return BASE_USD + Math.max(0, horas - HORAS_MIN) * HORA_EXTRA;
+    return PRECIOS[horas] || null;      // null = duracion que no vendemos
 }
 
 // En am/pm: la hora militar obliga a traducir mentalmente, y quien reserva
@@ -133,7 +139,8 @@ module.exports = async (req, res) => {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
                 return res.status(400).json({ ok: false, error: 'Fecha no válida' });
             }
-            const horas = Math.min(HORAS_MAX, Math.max(HORAS_MIN, Number(cuerpo?.horas) || HORAS_MIN));
+            const pedidas = Number(cuerpo?.horas);
+            const horas = PRECIOS[pedidas] ? pedidas : HORAS_MIN;
 
             return res.status(200).json({
                 ok: true,
@@ -162,8 +169,11 @@ module.exports = async (req, res) => {
             if (!Number.isInteger(inicio) || inicio < ABRE_MIN) {
                 return res.status(400).json({ ok: false, error: 'Falta la hora de inicio.' });
             }
-            if (!Number.isInteger(horas) || horas < HORAS_MIN || horas > HORAS_MAX) {
-                return res.status(400).json({ ok: false, error: 'Las horas no son válidas.' });
+            if (!precioDe(horas)) {
+                return res.status(400).json({
+                    ok: false,
+                    error: 'Esa duración no está disponible (' + DURACIONES.join(', ') + ' horas).'
+                });
             }
             if (nombre.length < 2) {
                 return res.status(400).json({ ok: false, error: 'Falta tu nombre.' });
