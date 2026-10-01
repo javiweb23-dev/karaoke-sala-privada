@@ -22,7 +22,7 @@ const CIERRE_FINDE  = 26 * 60;          // viernes y sabado, 2:00 de la madrugad
 const ACOMODO_MIN   = 20;               // de regalo, para instalarse: el tiempo
                                         // contratado empieza a correr despues
 const RECOGIDA_MIN  = 20;               // de regalo al final, para recoger
-const LIMPIEZA_MIN  = 60;               // limpiar y preparar la sala
+const LIMPIEZA_MIN  = 40;               // limpiar y preparar la sala
 // Lo que tiene que caber entre el final de un grupo y la llegada del siguiente.
 const MARGEN_MIN    = RECOGIDA_MIN + LIMPIEZA_MIN;
 const PASO_MIN      = 30;               // las horas se ofrecen cada media hora
