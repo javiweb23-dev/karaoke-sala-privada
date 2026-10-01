@@ -437,20 +437,13 @@
         <div class="aparece bg-noche-950/60 border border-noche-800 rounded-2xl p-6 sm:p-8">
 
             <!-- ---------------------------------------------- los tres datos -->
-            <div class="grid sm:grid-cols-3 gap-4 mb-6">
+            <div class="grid sm:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label for="resFecha" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
                            data-t="resCampoFecha"></label>
                     <input id="resFecha" type="date"
                         class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
                                focus:outline-none focus:border-marca-500 transition-colors">
-                </div>
-                <div>
-                    <label for="resPersonas" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
-                           data-t="resCampoPersonas"></label>
-                    <select id="resPersonas"
-                        class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
-                               focus:outline-none focus:border-marca-500 transition-colors"></select>
                 </div>
                 <div>
                     <label for="resHoras" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
@@ -674,14 +667,13 @@ const TEXTOS = {
     es: {
         navReserva: 'Reservar',
 
-        resTitulo: 'Cotiza y reserva',
-        resTexto: 'Elige el día y la hora, mira lo que cuesta y aparta la sala. Son tres minutos.',
+        resTitulo: 'Haz tu reserva',
+        resTexto: 'Son 3 horas de sala para tu grupo. Elige el día, la hora y listo.',
         resCampoFecha: 'Día',
-        resCampoPersonas: 'Personas',
-        resCampoHoras: 'Horas',
+        resCampoHoras: 'Horas adicionales',
         resCampoHora: '¿A qué hora empiezan?',
-        resCampoNombre: 'Tu nombre',
-        resCampoTelefono: 'Tu WhatsApp',
+        resCampoNombre: 'Nombre y apellido',
+        resCampoTelefono: 'Número de WhatsApp',
         resPagoTitulo: 'Pago móvil · abona el 50%',
         resBanco: 'Banco:',
         resCedula: 'C.I.:',
@@ -695,9 +687,9 @@ const TEXTOS = {
         resElegirDia: 'Elige un día para ver las horas libres.',
         resSinHoras: 'Ese día ya no quedan horas libres con esa duración. Prueba con otro día o con menos horas.',
         resCargando: 'Buscando horas libres...',
-        resRecomendado: 'recomendado',
+        resSinExtra: 'Ninguna · 3 horas',
+        resHoraSing: 'hora',
         resHoraPl: 'horas',
-        resPersonasPl: 'personas',
         resResumenEntran: 'Entran a las',
         resResumenCantan: 'Cantan de',
         resResumenSalen: 'Salen antes de',
@@ -709,7 +701,7 @@ const TEXTOS = {
         resPagoNota: 'Haz el pago móvil por el monto del abono y sube la captura aquí abajo. Sin el comprobante no se puede apartar la hora.',
         resComprobanteListo: 'Comprobante listo:',
 
-        resErrNombre: 'Escribe tu nombre.',
+        resErrNombre: 'Escribe tu nombre y apellido.',
         resErrTelefono: 'Escribe un teléfono válido.',
         resErrComprobante: 'Falta subir el comprobante del pago.',
         resErrArchivo: 'El archivo tiene que ser una imagen o un PDF.',
@@ -807,7 +799,7 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
-            'Hora adicional: $20',
+            'Hora adicional: $15',
             'Hasta 14 personas, sin cobro por persona',
             'Se reserva con el 50%',
             'Todos los días desde las 8:00 pm',
@@ -819,14 +811,13 @@ const TEXTOS = {
     en: {
         navReserva: 'Book',
 
-        resTitulo: 'Get a quote and book',
-        resTexto: 'Pick the day and time, see what it costs and hold the room. Takes three minutes.',
+        resTitulo: 'Book your night',
+        resTexto: 'Three hours of the room, just for your group. Pick the day and time.',
         resCampoFecha: 'Day',
-        resCampoPersonas: 'People',
-        resCampoHoras: 'Hours',
+        resCampoHoras: 'Extra hours',
         resCampoHora: 'What time do you start?',
-        resCampoNombre: 'Your name',
-        resCampoTelefono: 'Your WhatsApp',
+        resCampoNombre: 'Full name',
+        resCampoTelefono: 'WhatsApp number',
         resPagoTitulo: 'Mobile payment · pay 50% now',
         resBanco: 'Bank:',
         resCedula: 'ID:',
@@ -840,9 +831,9 @@ const TEXTOS = {
         resElegirDia: 'Pick a day to see the free slots.',
         resSinHoras: 'No free slots that day for that length. Try another day or fewer hours.',
         resCargando: 'Looking for free slots...',
-        resRecomendado: 'recommended',
+        resSinExtra: 'None · 3 hours',
+        resHoraSing: 'hour',
         resHoraPl: 'hours',
-        resPersonasPl: 'people',
         resResumenEntran: 'You come in at',
         resResumenCantan: 'Singing from',
         resResumenSalen: 'Out before',
@@ -854,7 +845,7 @@ const TEXTOS = {
         resPagoNota: 'Send the mobile payment for the deposit amount and upload the screenshot below. Without the receipt the slot cannot be held.',
         resComprobanteListo: 'Receipt ready:',
 
-        resErrNombre: 'Please write your name.',
+        resErrNombre: 'Please write your full name.',
         resErrTelefono: 'Please write a valid phone number.',
         resErrComprobante: 'The payment receipt is missing.',
         resErrArchivo: 'The file needs to be an image or a PDF.',
@@ -952,7 +943,7 @@ const TEXTOS = {
         ],
 
         precioDetalles: [
-            'Extra hour: $20',
+            'Extra hour: $15',
             'Up to 14 people, no per-person charge',
             'Hold your slot with 50%',
             'Every day from 8:00 pm',
@@ -1355,14 +1346,13 @@ var RES = {
     ABRE: 20 * 60,
     HORAS_MIN: 3,
     HORAS_MAX: 8,
-    AFORO: 14,
     BASE_USD: 60,          // las primeras 3 horas
-    HORA_EXTRA: 20,
+    HORA_EXTRA: 15,
     CORTESIA: 20           // minutos de regalo, antes y despues
 };
 
 var reserva = {
-    fecha: '', personas: 6, horas: 3,
+    fecha: '', horas: 3,
     inicio: null, comprobante: null, tasa: null
 };
 
@@ -1386,15 +1376,17 @@ function resBolivares(usd) {
 function resLlenarSelects() {
     const t = TEXTOS[idioma];
 
-    nodo('resPersonas').innerHTML = Array.from({ length: RES.AFORO }, (_, i) =>
-        `<option value="${i + 1}"${i + 1 === reserva.personas ? ' selected' : ''}>${i + 1}</option>`
-    ).join('');
-
+    // Se eligen horas ADICIONALES, no totales: la reserva ya son 3 horas, y
+    // preguntar "cuantas horas" invitaba a elegir 3 como si fuera una opcion
+    // entre otras. Asi la base se da por hecha y solo se decide si se alarga.
     nodo('resHoras').innerHTML = Array.from(
         { length: RES.HORAS_MAX - RES.HORAS_MIN + 1 }, (_, i) => {
-            const h = RES.HORAS_MIN + i;
-            const nota = h === RES.HORAS_MIN ? ` (${t.resRecomendado})` : '';
-            return `<option value="${h}"${h === reserva.horas ? ' selected' : ''}>${h}${nota}</option>`;
+            const extra = i;
+            const total = RES.HORAS_MIN + extra;
+            const texto = extra === 0
+                ? t.resSinExtra
+                : `+${extra} ${extra === 1 ? t.resHoraSing : t.resHoraPl} · $${extra * RES.HORA_EXTRA}`;
+            return `<option value="${total}"${total === reserva.horas ? ' selected' : ''}>${texto}</option>`;
         }).join('');
 
     // Desde hoy: no tiene sentido ofrecer ayer.
@@ -1578,7 +1570,6 @@ async function resEnviar() {
                 fecha: reserva.fecha,
                 inicio_min: reserva.inicio,
                 horas: reserva.horas,
-                personas: reserva.personas,
                 nombre, telefono,
                 comprobante: ruta
             })
@@ -1610,9 +1601,6 @@ nodo('resFecha').addEventListener('change', (e) => {
 });
 nodo('resHoras').addEventListener('change', (e) => {
     reserva.horas = Number(e.target.value); resBuscarHoras();
-});
-nodo('resPersonas').addEventListener('change', (e) => {
-    reserva.personas = Number(e.target.value);
 });
 
 resLlenarSelects();

@@ -30,7 +30,7 @@ create table if not exists reservas (
     fin_min         integer     not null,      -- puede pasar de 1440
     horas           integer     not null,
 
-    personas        integer     not null,
+    personas        integer,                   -- ya no se pregunta: caben 14 y punto
     nombre          text        not null,
     telefono        text        not null,
 
@@ -44,7 +44,6 @@ create table if not exists reservas (
     creada_en       timestamptz not null default now(),
 
     constraint reservas_horas_validas    check (horas between 3 and 8),
-    constraint reservas_personas_validas check (personas between 1 and 14),
     constraint reservas_rango_valido     check (fin_min > inicio_min)
 );
 

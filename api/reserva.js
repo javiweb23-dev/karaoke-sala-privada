@@ -23,9 +23,8 @@ const PASO_MIN      = 30;               // las horas se ofrecen cada media hora
 
 const HORAS_MIN   = 3;
 const HORAS_MAX   = 8;
-const AFORO       = 14;
 const BASE_USD    = 60;                 // las primeras 3 horas
-const HORA_EXTRA  = 20;
+const HORA_EXTRA  = 15;
 
 // Cuando la tasa del BCV no responde se usa la ultima que se vio. No se cae la
 // reserva por eso: el precio real es el del dolar y el bolivar es informativo.
@@ -137,7 +136,6 @@ module.exports = async (req, res) => {
             const fecha = String(cuerpo?.fecha || '');
             const inicio = Number(cuerpo?.inicio_min);
             const horas = Number(cuerpo?.horas);
-            const personas = Number(cuerpo?.personas);
             const nombre = String(cuerpo?.nombre || '').trim();
             const telefono = String(cuerpo?.telefono || '').trim();
             const comprobante = String(cuerpo?.comprobante || '').trim();
@@ -150,9 +148,6 @@ module.exports = async (req, res) => {
             }
             if (!Number.isInteger(horas) || horas < HORAS_MIN || horas > HORAS_MAX) {
                 return res.status(400).json({ ok: false, error: 'Las horas no son válidas.' });
-            }
-            if (!Number.isInteger(personas) || personas < 1 || personas > AFORO) {
-                return res.status(400).json({ ok: false, error: 'El aforo es de 14 personas.' });
             }
             if (nombre.length < 2) {
                 return res.status(400).json({ ok: false, error: 'Falta tu nombre.' });
@@ -191,7 +186,7 @@ module.exports = async (req, res) => {
                 method: 'POST',
                 headers: { Prefer: 'return=representation' },
                 body: JSON.stringify({
-                    fecha, inicio_min: inicio, fin_min: fin, horas, personas,
+                    fecha, inicio_min: inicio, fin_min: fin, horas,
                     nombre: nombre.slice(0, 60),
                     telefono: telefono.slice(0, 25),
                     total_usd: total,
@@ -210,7 +205,7 @@ module.exports = async (req, res) => {
                 '📅 ' + fecha + '\n' +
                 '🕗 ' + comoHora(inicio) + ' a ' + comoHora(fin) +
                 '  (' + horas + ' h)\n' +
-                '👥 ' + personas + ' personas\n\n' +
+
                 '👤 ' + nombre + '\n' +
                 '📱 ' + telefono + '\n\n' +
                 '💵 Total $' + total + '  ·  abonó $' + abono + '\n' +
