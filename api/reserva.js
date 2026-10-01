@@ -167,9 +167,21 @@ module.exports = async (req, res) => {
             const pedidas = Number(cuerpo?.horas);
             const horas = PRECIOS[pedidas] ? pedidas : HORAS_MIN;
 
+            const ocupado = await ocupadoEn(fecha);
+            const libres = horasLibres(fecha, horas, ocupado);
+
+            // Si para esa duracion no queda sitio, se mira si cabe una mas
+            // corta. Decirle "solo quedan 2 horas" es mucho mas util que un
+            // "no hay" a secas: muchas veces el cliente acepta y reserva igual,
+            // y si no se lo decimos se va creyendo que la noche esta llena.
+            const alternativas = libres.length ? [] : DURACIONES.filter(
+                (h) => h < horas && horasLibres(fecha, h, ocupado).length > 0
+            );
+
             return res.status(200).json({
                 ok: true,
-                horas: horasLibres(fecha, horas, await ocupadoEn(fecha)),
+                horas: libres,
+                alternativas,
                 cierre: comoHora(cierreDe(fecha)),
                 tasa: await tasaBcv()
             });

@@ -687,6 +687,8 @@ const TEXTOS = {
 
         resElegirDia: 'Elige un día para ver las horas libres.',
         resSinHoras: 'No disponible. Intenta con otra fecha y hora.',
+        resSinSitio: 'Ese día ya no caben {n} horas.',
+        resVerDe: 'Ver las de {n} horas',
         resCargando: 'Buscando horas libres...',
         resHoraPl: 'horas',
         resResumenEntran: 'Llegan a las',
@@ -830,6 +832,8 @@ const TEXTOS = {
 
         resElegirDia: 'Pick a day to see the free slots.',
         resSinHoras: 'Not available. Try another date and time.',
+        resSinSitio: 'No room for {n} hours that day.',
+        resVerDe: 'See the {n}-hour slots',
         resCargando: 'Looking for free slots...',
         resHoraPl: 'hours',
         resResumenEntran: 'You arrive at',
@@ -1438,6 +1442,27 @@ async function resBuscarHoras() {
         if (d.tasa) reserva.tasa = d.tasa;
 
         if (!d.horas.length) {
+            // Si no cabe lo que pidio pero si una duracion mas corta, se le
+            // ofrece en vez de dejarlo con un "no hay". Muchas veces acepta.
+            if (Array.isArray(d.alternativas) && d.alternativas.length) {
+                resAviso(t.resSinSitio.replace('{n}', reserva.horas), true);
+                caja.innerHTML = d.alternativas.map((n) => `
+                    <button type="button" data-horas="${n}"
+                        class="res-otra border border-marca-500/60 text-marca-400
+                               hover:bg-marca-500 hover:text-black hover:border-marca-500
+                               text-sm font-bold px-4 py-2.5 rounded-xl transition-colors">
+                        ${t.resVerDe.replace('{n}', n)}
+                    </button>`).join('');
+
+                caja.querySelectorAll('.res-otra').forEach((b) => {
+                    b.addEventListener('click', () => {
+                        reserva.horas = Number(b.dataset.horas);
+                        nodo('resHoras').value = String(reserva.horas);
+                        resBuscarHoras();
+                    });
+                });
+                return;
+            }
             resAviso(t.resSinHoras, true);
             return;
         }
