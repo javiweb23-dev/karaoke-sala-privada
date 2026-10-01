@@ -17,7 +17,7 @@ const required = [
 // el despliegue del karaoke tiene que seguir pasando igual.
 const optional = [
   'logo.png',
-  // La web publica (karaokelatino.com). Va en optional como la tienda: si
+  // La web publica (mikaraokelatino.com). Va en optional como la tienda: si
   // algun dia se quita, el despliegue del karaoke tiene que pasar igual.
   'home.html',
   'resenas.html',

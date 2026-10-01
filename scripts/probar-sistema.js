@@ -263,8 +263,8 @@ seccion('Cancelar cancion propia');
     comprobar('cancelar pide confirmacion antes',
         /await confirmarEnPantalla\(/.test(cancelar), cancelar.slice(0, 200));
 
-    // El confirm() del navegador encabeza el cartel con el dominio de Vercel
-    // ("karaoke-sala-privada.vercel.app dice:") y no hay forma de cambiarlo.
+    // El confirm() del navegador encabeza el cartel con el dominio
+    // ("mikaraokelatino.com dice:") y no hay forma de cambiarlo.
     // Por eso se usa un cartel propio que dice Karaoke Latino.
     comprobar('el cartel es nuestro, no el del navegador',
         /id="confirmModal"/.test(t) && />Karaoke Latino</.test(t));

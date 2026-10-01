@@ -313,7 +313,7 @@ quitarlo todo.
 En [reproductor.html](reproductor.html) hay una constante:
 
 ```javascript
-const URL_VERCEL = 'https://karaoke-sala-privada.vercel.app';
+const URL_VERCEL = 'https://mikaraokelatino.com';
 ```
 
 Hace falta porque el reproductor se abre con Live Server (`localhost`, para
