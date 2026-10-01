@@ -46,7 +46,12 @@
 
     /* La barra de arriba es fija y mide 64 px. Sin esto, al saltar a una
        seccion su titulo queda escondido justo debajo. */
-    section[id] { scroll-margin-top: 5rem; }
+    /* La barra fija mide 80 px, pero cada seccion lleva ademas 96 px de aire
+       propio por arriba. Descontar solo la barra dejaba el titulo casi 100 px
+       por debajo de ella y se veia un hueco raro al llegar desde el menu.
+       Con 1rem la seccion entra un poco por encima y el titulo queda justo
+       debajo de la barra, con aire pero sin hueco. */
+    section[id] { scroll-margin-top: 1rem; }
 
     /* ------------------------------------------------------------------
        LAS FOTOS
