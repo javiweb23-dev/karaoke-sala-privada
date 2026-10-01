@@ -457,7 +457,7 @@
             <div class="mb-6">
                 <p class="text-crema-500 text-xs font-bold uppercase tracking-wider mb-3" data-t="resCampoHora"></p>
                 <div id="resHorasLibres" class="flex flex-wrap gap-2"></div>
-                <p id="resAvisoHoras" class="text-crema-600 text-sm mt-2"></p>
+                <p id="resAvisoHoras" class="mt-2"></p>
             </div>
 
             <!-- --------------------------------------------------- el resumen -->
@@ -684,7 +684,7 @@ const TEXTOS = {
         resGraciasTexto: 'Vamos a confirmar el pago y te escribimos por WhatsApp. Nos vemos pronto.',
 
         resElegirDia: 'Elige un día para ver las horas libres.',
-        resSinHoras: 'Ese día ya no quedan horas libres con esa duración. Prueba con otro día o con menos horas.',
+        resSinHoras: 'No disponible. Intenta con otra fecha y hora.',
         resCargando: 'Buscando horas libres...',
         resSinExtra: 'Ninguna',
         resHoraSing: 'hora',
@@ -827,7 +827,7 @@ const TEXTOS = {
         resGraciasTexto: 'We will confirm the payment and message you on WhatsApp. See you soon.',
 
         resElegirDia: 'Pick a day to see the free slots.',
-        resSinHoras: 'No free slots that day for that length. Try another day or fewer hours.',
+        resSinHoras: 'Not available. Try another date and time.',
         resCargando: 'Looking for free slots...',
         resSinExtra: 'None',
         resHoraSing: 'hour',
@@ -1406,17 +1406,28 @@ async function resBuscarHoras() {
     const caja = nodo('resHorasLibres');
     const aviso = nodo('resAvisoHoras');
 
+    // El mismo parrafo sirve para dos cosas muy distintas: una pista mientras
+    // se elige ("elige un dia") y una mala noticia ("no hay"). La mala noticia
+    // tiene que verse: en gris pequeno pasaba desapercibida y la gente se
+    // quedaba mirando un hueco vacio sin entender.
+    const resAviso = (texto, malaNoticia) => {
+        aviso.textContent = texto;
+        aviso.className = 'mt-2 ' + (malaNoticia
+            ? 'text-marca-400 text-lg font-bold leading-snug'
+            : 'text-crema-600 text-sm');
+    };
+
     reserva.inicio = null;
     resPintarResumen();
 
     if (!reserva.fecha) {
         caja.innerHTML = '';
-        aviso.textContent = t.resElegirDia;
+        resAviso(t.resElegirDia, false);
         return;
     }
 
     caja.innerHTML = '';
-    aviso.textContent = t.resCargando;
+    resAviso(t.resCargando, false);
 
     try {
         const r = await fetch('/api/reserva', {
@@ -1434,11 +1445,11 @@ async function resBuscarHoras() {
         if (d.tasa) reserva.tasa = d.tasa;
 
         if (!d.horas.length) {
-            aviso.textContent = t.resSinHoras;
+            resAviso(t.resSinHoras, true);
             return;
         }
 
-        aviso.textContent = '';
+        resAviso('', false);
         caja.innerHTML = d.horas.map((h) => `
             <button type="button" data-min="${h.min}"
                 class="res-hora border border-noche-700 hover:border-marca-500/60
@@ -1460,7 +1471,7 @@ async function resBuscarHoras() {
         });
     } catch (e) {
         console.warn('[reserva]', e.message);
-        aviso.textContent = t.resSinHoras;
+        resAviso(t.resSinHoras, true);
     }
 }
 
