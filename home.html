@@ -46,7 +46,7 @@
 
     /* La barra de arriba es fija y mide 64 px. Sin esto, al saltar a una
        seccion su titulo queda escondido justo debajo. */
-    section[id] { scroll-margin-top: 4rem; }
+    section[id] { scroll-margin-top: 5rem; }
 
     /* ------------------------------------------------------------------
        LAS FOTOS
@@ -182,11 +182,10 @@
 
 <!-- ══════════════════════════════════════════════════════════ BARRA ═══ -->
 <header class="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-noche-950/80 border-b border-noche-800/80">
-    <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
+    <div class="max-w-6xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
 
         <a href="#inicio" class="flex items-center gap-2.5 flex-shrink-0">
-            <img src="logo.png" alt="Karaoke Latino" class="h-9 w-auto object-contain">
-            <span class="font-black tracking-tight text-[15px] hidden sm:block">KARAOKE LATINO</span>
+            <img src="logo.png" alt="Karaoke Latino" class="h-12 sm:h-14 w-auto object-contain">
         </a>
 
         <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-crema-400">
@@ -218,7 +217,7 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════ HERO ═══ -->
-<section id="inicio" class="relative min-h-[88vh] flex items-center pt-16 overflow-hidden">
+<section id="inicio" class="relative min-h-[88vh] flex items-center pt-20 overflow-hidden">
 
     <!-- FOTO DE PORTADA. Provisional hasta que haya fotos de la sala de
          verdad: para cambiarla, se deja otra en fotos/ y se cambia el src.
