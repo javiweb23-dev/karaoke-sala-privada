@@ -30,7 +30,11 @@ create table if not exists reservas (
     fin_min         integer     not null,      -- puede pasar de 1440
     horas           integer     not null,
 
-    personas        integer,                   -- ya no se pregunta: caben 14 y punto
+    -- Ya no se pregunta: caben 14 y el precio no depende de cuantos sean.
+    -- Se deja la columna por si algun dia hace falta saberlo.
+    -- Quien ya ejecuto la primera version de este archivo tiene que correr
+    -- ademas 013-reserva-sin-personas.sql.
+    personas        integer,
     nombre          text        not null,
     telefono        text        not null,
 
