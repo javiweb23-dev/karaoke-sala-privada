@@ -8,7 +8,7 @@
 // deja ver a cualquiera unicamente las que ya estan publicadas, asi que una
 // reseña con una groseria no es visible para nadie hasta que se apruebe.
 
-const { supabaseFetchEstricto, pinValido, hayPinConfigurado } = require('./_lib-supabase');
+const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin } = require('./_lib-supabase');
 const { aplicarCors } = require('./_lib-http');
 
 const ESTADOS = {
@@ -25,11 +25,11 @@ module.exports = async (req, res) => {
         return res.status(405).json({ ok: false, error: 'Método no permitido' });
     }
 
-    if (!hayPinConfigurado()) {
+    if (!hayClaveAdmin()) {
         return res.status(500).json({
             ok: false,
             sinConfigurar: true,
-            error: 'Falta ADMIN_PIN en Vercel.'
+            error: 'Falta TIENDA_PIN en Vercel.'
         });
     }
 
@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
         try { cuerpo = JSON.parse(cuerpo); } catch (e) { cuerpo = {}; }
     }
 
-    if (!pinValido(cuerpo?.pin)) {
+    if (!claveAdminValida(cuerpo?.pin)) {
         return res.status(401).json({ ok: false, error: 'PIN incorrecto' });
     }
 

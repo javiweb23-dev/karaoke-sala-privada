@@ -99,7 +99,24 @@ function hayPinConfigurado() {
     return Boolean(sanitizeEnv(process.env.ADMIN_PIN));
 }
 
+// La clave del PORTAL es la misma de la tienda (TIENDA_PIN), no el PIN del
+// operador. La diferencia importa: el PIN se le puede prestar a quien maneje
+// la noche, y con el no se toca nada de dinero. Detras de esta otra quedan las
+// reservas con sus comprobantes, los precios y las resenas, que es lo que no
+// deberia tocar alguien a quien solo le prestas el telefono para el show.
+function hayClaveAdmin() {
+    return Boolean(sanitizeEnv(process.env.TIENDA_PIN));
+}
+
+function claveAdminValida(recibida) {
+    const esperada = sanitizeEnv(process.env.TIENDA_PIN);
+    if (!esperada) return false;
+    return comparaSecreto(String(recibida || '').trim(), esperada);
+}
+
 module.exports = {
+    hayClaveAdmin,
+    claveAdminValida,
     sanitizeEnv,
     configurado,
     supabaseFetch,

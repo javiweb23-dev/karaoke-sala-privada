@@ -3,10 +3,24 @@
   "buildCommand": "npm run build",
   "outputDirectory": "public",
   "redirects": [
-    { "source": "/index.html", "destination": "/karaoke", "permanent": false }
+    {
+      "source": "/index.html",
+      "destination": "/karaoke",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/karaoke", "destination": "/karaoke.html" },
-    { "source": "/resenas", "destination": "/resenas.html" }
+    {
+      "source": "/karaoke",
+      "destination": "/karaoke.html"
+    },
+    {
+      "source": "/resenas",
+      "destination": "/resenas.html"
+    },
+    {
+      "source": "/panel",
+      "destination": "/panel.html"
+    }
   ]
 }

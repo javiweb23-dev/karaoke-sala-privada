@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel · Karaoke Latino</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: { extend: { colors: {
+            marca: { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+            noche: { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613', 800: '#241D18', 700: '#362C25' },
+            crema: { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93', 500: '#85796D',
+                     600: '#635A50', 700: '#443D36' }
+        } } }
+    };
+</script>
+</head>
+
+<body class="bg-noche-950 text-crema-100 font-sans antialiased min-h-screen">
+
+<!-- La puerta. Usa la clave de la TIENDA, no el PIN del operador: el PIN se le
+     puede prestar a quien maneje la noche, y detras de esta quedan las reservas
+     con sus comprobantes, los precios y las resenas. -->
+<div id="puerta" class="fixed inset-0 bg-noche-950 z-50 flex flex-col justify-center items-center p-6">
+    <div class="w-full max-w-xs text-center">
+        <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
+        <h1 class="text-lg font-bold text-crema-100 mb-1">Panel</h1>
+        <p class="text-crema-500 text-xs mb-6">La clave de la tienda</p>
+        <input type="password" id="campoClave" autocomplete="off" inputmode="numeric"
+            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-center
+                   text-2xl tracking-[0.3em] text-crema-100 focus:outline-none focus:border-marca-500">
+        <p id="errorClave" class="hidden text-red-400 text-xs mt-3"></p>
+        <button id="btnEntrar" type="button"
+            class="w-full mt-4 bg-marca-500 hover:bg-marca-400 text-black font-bold py-3 rounded-xl transition-colors">
+            Entrar
+        </button>
+    </div>
+</div>
+
+
+<div class="max-w-xl mx-auto px-5 py-10">
+
+    <header class="flex items-center gap-3 mb-10">
+        <img src="logo.png" alt="" class="h-12 w-auto object-contain">
+        <div>
+            <h1 class="font-black tracking-tight text-lg">Panel</h1>
+            <p class="text-crema-600 text-xs">Todo lo que administras, en un sitio</p>
+        </div>
+    </header>
+
+    <div class="space-y-3">
+
+        <a href="reservas-admin.html"
+           class="flex items-center gap-4 bg-noche-900/60 border border-noche-800 hover:border-marca-500/50
+                  rounded-2xl p-5 transition-colors group">
+            <span class="text-3xl flex-shrink-0">📅</span>
+            <span class="flex-1 min-w-0">
+                <span class="block font-bold text-crema-100 group-hover:text-marca-500 transition-colors">Reservas</span>
+                <span class="block text-crema-500 text-sm">Confirmar pagos y ver comprobantes</span>
+            </span>
+            <span id="puntoReservas" class="hidden flex-shrink-0 bg-marca-500 text-black text-xs
+                       font-black px-2.5 py-1 rounded-full"></span>
+        </a>
+
+        <a href="resenas-admin.html"
+           class="flex items-center gap-4 bg-noche-900/60 border border-noche-800 hover:border-marca-500/50
+                  rounded-2xl p-5 transition-colors group">
+            <span class="text-3xl flex-shrink-0">⭐</span>
+            <span class="flex-1 min-w-0">
+                <span class="block font-bold text-crema-100 group-hover:text-marca-500 transition-colors">Reseñas</span>
+                <span class="block text-crema-500 text-sm">Aprobar lo que sale en la web</span>
+            </span>
+            <span id="puntoResenas" class="hidden flex-shrink-0 bg-marca-500 text-black text-xs
+                       font-black px-2.5 py-1 rounded-full"></span>
+        </a>
+
+        <a href="tienda-admin.html"
+           class="flex items-center gap-4 bg-noche-900/60 border border-noche-800 hover:border-marca-500/50
+                  rounded-2xl p-5 transition-colors group">
+            <span class="text-3xl flex-shrink-0">🍿</span>
+            <span class="flex-1 min-w-0">
+                <span class="block font-bold text-crema-100 group-hover:text-marca-500 transition-colors">Menú de comida</span>
+                <span class="block text-crema-500 text-sm">Productos, precios y tasa</span>
+            </span>
+        </a>
+
+        <div class="bg-noche-900/60 border border-noche-800 rounded-2xl p-5">
+            <div class="flex items-center gap-4 mb-4">
+                <span class="text-3xl flex-shrink-0">🖨</span>
+                <span>
+                    <span class="block font-bold text-crema-100">Carteles</span>
+                    <span class="block text-crema-500 text-sm">Para imprimir y pegar</span>
+                </span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="carteles_qr_sala_privada.html" target="_blank" rel="noopener"
+                   class="border border-noche-700 hover:border-marca-500/60 hover:text-marca-500
+                          text-crema-300 text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                    QR de las mesas
+                </a>
+                <a href="qr-tienda.html" target="_blank" rel="noopener"
+                   class="border border-noche-700 hover:border-marca-500/60 hover:text-marca-500
+                          text-crema-300 text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                    QR de la tienda
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-crema-700 text-xs leading-relaxed mt-10 pt-6 border-t border-noche-800">
+        El panel del operador (abrir sesión, pausar, saltar, tono y efectos) está aparte,
+        en <a href="admin.html" class="text-crema-500 hover:text-marca-500 transition-colors">admin.html</a>,
+        y usa el PIN de siempre. Esto es a propósito: ese PIN se le puede prestar a quien
+        maneje la noche sin darle acceso a lo de aquí.
+    </p>
+</div>
+
+
+<script>
+// La misma llave que ya usa tienda-admin.html, para que entrar aqui valga
+// tambien alli y no te pida nada dos veces.
+const CLAVE = 'karaoke_clave_tienda';
+
+const clave = () => { try { return localStorage.getItem(CLAVE) || ''; } catch (e) { return ''; } };
+
+async function contadores() {
+    try {
+        const r = await fetch('/api/panel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: clave() })
+        });
+        return r.json();
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+}
+
+function pintarPunto(id, cuantos) {
+    const el = document.getElementById(id);
+    if (!cuantos) { el.classList.add('hidden'); return; }
+    el.textContent = cuantos;
+    el.classList.remove('hidden');
+}
+
+async function cargar() {
+    const d = await contadores();
+    if (!d.ok) return;
+    pintarPunto('puntoReservas', d.reservas);
+    pintarPunto('puntoResenas', d.resenas);
+}
+
+async function entrar() {
+    const campo = document.getElementById('campoClave');
+    const err = document.getElementById('errorClave');
+    const valor = campo.value.trim();
+    if (!valor) return;
+
+    try { localStorage.setItem(CLAVE, valor); } catch (e) {}
+
+    const d = await contadores();
+    if (!d.ok && /incorrecta|incorrecto/i.test(d.error || '')) {
+        try { localStorage.removeItem(CLAVE); } catch (e) {}
+        err.textContent = 'Clave incorrecta.';
+        err.classList.remove('hidden');
+        campo.value = '';
+        return;
+    }
+
+    document.getElementById('puerta').classList.add('hidden');
+    if (d.ok) { pintarPunto('puntoReservas', d.reservas); pintarPunto('puntoResenas', d.resenas); }
+}
+
+document.getElementById('btnEntrar').addEventListener('click', entrar);
+document.getElementById('campoClave').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') entrar();
+});
+
+if (clave()) {
+    document.getElementById('puerta').classList.add('hidden');
+    cargar();
+} else {
+    setTimeout(() => document.getElementById('campoClave').focus(), 100);
+}
+</script>
+</body>
+</html>

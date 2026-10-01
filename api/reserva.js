@@ -10,7 +10,7 @@
 // justo antes de insertar, con la clave secreta, y no se fia de lo que el
 // navegador diga que estaba libre.
 
-const { supabaseFetchEstricto, pinValido, hayPinConfigurado } = require('./_lib-supabase');
+const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin } = require('./_lib-supabase');
 const { aplicarCors } = require('./_lib-http');
 const { enviarMensaje } = require('./_lib-telegram');
 
@@ -233,10 +233,10 @@ module.exports = async (req, res) => {
         }
 
         // ================================================ lo del panel, con PIN
-        if (!hayPinConfigurado()) {
-            return res.status(500).json({ ok: false, sinConfigurar: true, error: 'Falta ADMIN_PIN en Vercel.' });
+        if (!hayClaveAdmin()) {
+            return res.status(500).json({ ok: false, sinConfigurar: true, error: 'Falta TIENDA_PIN en Vercel.' });
         }
-        if (!pinValido(cuerpo?.pin)) {
+        if (!claveAdminValida(cuerpo?.pin)) {
             return res.status(401).json({ ok: false, error: 'PIN incorrecto' });
         }
 

@@ -23,6 +23,7 @@ const optional = [
   'resenas.html',
   'resenas-admin.html',
   'reservas-admin.html',
+  'panel.html',
   'carteles_qr_sala_privada.html',
   'efectos_disponibles.js',
   'musica_cierre_disponible.js',
