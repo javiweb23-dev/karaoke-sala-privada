@@ -213,6 +213,7 @@
             <a href="#sistema" class="hover:text-marca-500 transition-colors" data-t="navSistema"></a>
             <a href="#sala" class="hover:text-marca-500 transition-colors" data-t="navSala"></a>
             <a href="#precios" class="hover:text-marca-500 transition-colors" data-t="navPrecios"></a>
+            <a href="#preguntas" class="hover:text-marca-500 transition-colors" data-t="navPreguntas"></a>
             <a href="#reserva" class="hover:text-marca-500 transition-colors" data-t="navReserva"></a>
             <a href="#resenas" class="hover:text-marca-500 transition-colors" data-t="navResenas"></a>
         </nav>
@@ -437,6 +438,22 @@
                       text-crema-100 font-bold text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
                data-t="btnVerTienda"></a>
         </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════ PREGUNTAS ═══ -->
+<!-- Va ANTES de la reserva a proposito: son las dudas que frenan a alguien
+     justo antes de pagar. Resolverlas despues del formulario no sirve de nada. -->
+<section id="preguntas" class="resplandor luz-naranja py-24 px-5 bg-noche-900/30 border-t border-noche-800/80">
+    <div class="max-w-3xl mx-auto">
+
+        <div class="aparece text-center mb-12">
+            <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="faqTitulo"></h2>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="faqTexto"></p>
+        </div>
+
+        <div id="faq" class="space-y-8"></div>
     </div>
 </section>
 
@@ -717,6 +734,65 @@ const TEXTOS = {
         resEnviando: 'Enviando...',
         resSubiendo: 'Subiendo comprobante...',
 
+        navPreguntas: 'Preguntas',
+        faqTitulo: 'Preguntas frecuentes',
+        faqTexto: 'Lo que suele preguntar la gente antes de reservar.',
+
+        faq: [
+            { grupo: 'Antes de venir', lista: [
+                { p: '¿Tengo que reservar o puedo llegar?',
+                  r: 'Hay que reservar, mínimo con un día de anticipación. No atendemos sin reserva.' },
+                { p: '¿Es privada de verdad o la comparto con otros?',
+                  r: 'Es toda tuya. Alquilas la sala para ti y tu grupo, sin extraños.' },
+                { p: '¿Cuántas personas caben?',
+                  r: 'Hasta 14 personas.' },
+                { p: '¿Dónde están ubicados?',
+                  r: 'En la Urbanización Mar de Lechería. Como referencia, por detrás del C.C. Aventura Plaza. Es una sala privada, no un local a la calle.' },
+                { p: '¿Hay dónde estacionar?',
+                  r: 'Se estaciona en la calle, y es una zona segura.' },
+                { p: '¿Pueden entrar niños?',
+                  r: 'No. La entrada es a partir de los 18 años.' },
+                { p: '¿Se puede celebrar un cumpleaños?',
+                  r: 'Sí, y los cumpleaños temáticos de karaoke quedan muy bien. Pueden traer torta, globos y decoración, y avisando antes los dejamos llegar un poco más temprano para decorar. Eso sí: es una sala de karaoke, no un salón de fiestas. La van a pasar bien si les gusta cantar.' }
+            ]},
+            { grupo: 'Precio, tiempo y cancelaciones', lista: [
+                { p: '¿Cuánto cuesta?',
+                  r: '$40 por 2 horas, $60 por 3 horas y $70 por 4 horas. Es precio fijo por la sala: no se cobra por persona ni hay cargos adicionales.' },
+                { p: '¿Puedo llevar mi comida y bebida?',
+                  r: 'Sí, y no se cobra nada por lo que traigan: torta, refrescos, pasapalos, lo que quieran. También vendemos snacks en la sala.' },
+                { p: '¿Venden bebidas alcohólicas?',
+                  r: 'No. Vendemos snacks, agua, refrescos y cosas por el estilo.' },
+                { p: '¿Cuándo empieza a contar el tiempo?',
+                  r: '20 minutos después de la hora que reservaste, para que tengan tiempo de acomodarse y aprovechen completo el tiempo contratado.' },
+                { p: '¿Y si llegamos tarde?',
+                  r: 'El tiempo empieza a correr igual, 20 minutos después de la hora reservada. Lo que no se use se pierde.' },
+                { p: '¿Puedo cancelar o cambiar la fecha?',
+                  r: 'Sí, pero avísanos con tiempo para poder ofrecerle esa hora a alguien más.' },
+                { p: '¿Me devuelven el abono?',
+                  r: 'El abono no se devuelve, pero te queda a favor para otra fecha. Si cancelas el mismo día o con muy poco tiempo, se descuenta la mitad como penalización: a esas alturas ya no podemos alquilarle la sala a nadie más.' }
+            ]},
+            { grupo: 'Cómo funciona el karaoke', lista: [
+                { p: '¿Cómo pido las canciones?',
+                  r: 'Escaneas un QR y pides desde tu propio teléfono. Todos piden, y el sistema va armando la cola. La lista tiene más de 4.000 canciones y cada semana entran temas nuevos, muchos sugeridos por los mismos clientes.' },
+                { p: '¿Hay que instalar alguna aplicación?',
+                  r: 'No. Escaneas y listo: funciona en el navegador del teléfono.' },
+                { p: '¿Y si no está la canción que quiero?',
+                  r: 'Al buscarla y no encontrarla queda registrada, y la agregamos para tu próxima visita. Con más de 4.000 temas de todos los géneros, es raro quedarse sin opciones.' },
+                { p: '¿Y si alguien acapara el micrófono?',
+                  r: 'No puede. El sistema reparte los turnos: si alguien ya cantó seis canciones y otro pide la primera, le da prioridad al que menos ha cantado. Así cantan todos.' },
+                { p: '¿Puedo cambiarle el tono a la canción?',
+                  r: 'Sí, puedes subirlo o bajarlo cuando quieras.' },
+                { p: '¿Se pierde tiempo buscando canciones?',
+                  r: 'No. Como todo va en la cola, suena una canción tras otra sin huecos. Y si quieren parar para cantar cumpleaños o tomar fotos, pueden pausar y seguir donde iban.' },
+                { p: '¿Qué idiomas puedo cantar?',
+                  r: 'Español e inglés de todos los géneros, y algunas canciones en italiano.' },
+                { p: '¿Se puede pausar el karaoke y poner música normal?',
+                  r: 'Sí. Pueden poner YouTube un rato y después seguir con el karaoke donde lo dejaron.' },
+                { p: '¿Se puede bailar?',
+                  r: 'Sí. No es una sala de baile, pero muchos de los karaokes son bailables.' }
+            ]}
+        ],
+
         navSistema: 'Nuestro sistema',
         navSala: 'La sala',
         navPrecios: 'Precio',
@@ -856,6 +932,65 @@ const TEXTOS = {
         resErrEnvio: 'Could not send it. Check your connection and try again.',
         resEnviando: 'Sending...',
         resSubiendo: 'Uploading receipt...',
+
+        navPreguntas: 'FAQ',
+        faqTitulo: 'Frequently asked questions',
+        faqTexto: 'What people usually ask before booking.',
+
+        faq: [
+            { grupo: 'Before you come', lista: [
+                { p: 'Do I need to book or can I just show up?',
+                  r: 'You need to book, at least one day in advance. We do not take walk-ins.' },
+                { p: 'Is it really private, or do I share with others?',
+                  r: 'It is all yours. You rent the room for you and your group, no strangers.' },
+                { p: 'How many people fit?',
+                  r: 'Up to 14 people.' },
+                { p: 'Where are you?',
+                  r: 'In Urbanización Mar, Lechería. For reference, just behind C.C. Aventura Plaza. It is a private room, not a street-front venue.' },
+                { p: 'Is there parking?',
+                  r: 'Street parking, and it is a safe area.' },
+                { p: 'Can children come in?',
+                  r: 'No. You must be 18 or over.' },
+                { p: 'Can we celebrate a birthday?',
+                  r: 'Yes, and karaoke-themed birthdays work great. Bring cake, balloons and decorations, and if you let us know beforehand you can come a little earlier to set up. One thing though: this is a karaoke room, not a party hall. You will have a great time if you enjoy singing.' }
+            ]},
+            { grupo: 'Price, time and cancellations', lista: [
+                { p: 'How much does it cost?',
+                  r: '$40 for 2 hours, $60 for 3 hours and $70 for 4 hours. It is a flat price for the room: no per-person charge and no extras.' },
+                { p: 'Can I bring my own food and drink?',
+                  r: 'Yes, and we charge nothing for what you bring: cake, soft drinks, snacks, whatever you like. We also sell snacks in the room.' },
+                { p: 'Do you sell alcohol?',
+                  r: 'No. We sell snacks, water, soft drinks and the like.' },
+                { p: 'When does the clock start?',
+                  r: '20 minutes after your booked time, so you can settle in and get the full time you paid for.' },
+                { p: 'What if we arrive late?',
+                  r: 'The clock starts anyway, 20 minutes after the booked time. Any time you do not use is lost.' },
+                { p: 'Can I cancel or change the date?',
+                  r: 'Yes, but let us know early so we can offer that slot to someone else.' },
+                { p: 'Do I get the deposit back?',
+                  r: 'The deposit is not refunded, but it stays as credit for another date. If you cancel the same day or very close to the time, half of it is kept: by then we can no longer rent the room to anyone else.' }
+            ]},
+            { grupo: 'How the karaoke works', lista: [
+                { p: 'How do I request songs?',
+                  r: 'You scan a QR code and request from your own phone. Everyone requests, and the system builds the queue. The catalogue has over 4,000 songs and new ones go in every week, many suggested by customers.' },
+                { p: 'Do I need to install an app?',
+                  r: 'No. Just scan: it runs in your phone browser.' },
+                { p: 'What if the song I want is not there?',
+                  r: 'When you search for it and it does not come up, it gets logged and we add it for your next visit. With over 4,000 songs across every genre, running out of options is rare.' },
+                { p: 'What if someone hogs the mic?',
+                  r: 'They cannot. The system shares out the turns: if one person has sung six songs and someone else asks for their first, it gives priority to whoever has sung least. Everyone gets to sing.' },
+                { p: 'Can I change the key of a song?',
+                  r: 'Yes, you can raise or lower it whenever you like.' },
+                { p: 'Do we waste time looking for songs?',
+                  r: 'No. Everything is in the queue, so one song follows another with no gaps. And if you want to stop to sing happy birthday or take photos, you can pause and pick up where you left off.' },
+                { p: 'What languages can I sing in?',
+                  r: 'Spanish and English across every genre, plus some songs in Italian.' },
+                { p: 'Can we pause the karaoke and play normal music?',
+                  r: 'Yes. You can put on YouTube for a while and then carry on with the karaoke where you left it.' },
+                { p: 'Can we dance?',
+                  r: 'Yes. It is not a dance floor, but plenty of the karaoke tracks are danceable.' }
+            ]}
+        ],
 
         navSistema: 'Our system',
         navSala: 'The room',
@@ -1147,6 +1282,32 @@ function aplicarIdioma() {
     };
     pintarCintillo('cintillo1', PORTADAS.slice(0, mitad));
     pintarCintillo('cintillo2', PORTADAS.slice(mitad));
+
+    // Las preguntas. Se usa <details>, que es el desplegable del propio
+    // navegador: funciona sin JavaScript, se abre con el teclado y el buscador
+    // del navegador (Ctrl+F) encuentra el texto aunque este cerrado.
+    document.getElementById('faq').innerHTML = t.faq.map((g) => `
+        <div class="aparece">
+            <h3 class="text-marca-500 text-[11px] font-bold uppercase tracking-[0.18em] mb-4">
+                ${escapar(g.grupo)}</h3>
+            <div class="space-y-2">
+                ${g.lista.map((f) => `
+                    <details class="group bg-noche-950/60 border border-noche-800 rounded-xl
+                                    overflow-hidden hover:border-noche-700 transition-colors">
+                        <summary class="flex items-start gap-3 cursor-pointer list-none
+                                        px-5 py-4 font-bold text-crema-100 text-[15px] leading-snug">
+                            <svg class="w-4 h-4 mt-1 flex-shrink-0 text-marca-500 transition-transform
+                                        group-open:rotate-45" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            <span>${escapar(f.p)}</span>
+                        </summary>
+                        <p class="text-crema-400 text-sm leading-relaxed px-5 pb-5 pl-12">${escapar(f.r)}</p>
+                    </details>`).join('')}
+            </div>
+        </div>`).join('');
+
 
 
     pintarResenas();
