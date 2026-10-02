@@ -7,24 +7,35 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    tailwind.config = {
+        theme: { extend: { colors: {
+            marca: { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+            noche: { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613', 800: '#241D18', 700: '#362C25' },
+            crema: { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93', 500: '#85796D',
+                     600: '#635A50', 700: '#443D36' }
+        } } }
+    };
+</script>
 </head>
 
-<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen">
+<body class="bg-noche-950 text-crema-100 font-sans antialiased min-h-screen">
 
 <!-- Puerta. Mismo PIN que el panel del karaoke: uno solo que recordar. -->
-<div id="puerta" class="fixed inset-0 bg-zinc-950 z-50 flex flex-col justify-center items-center p-6">
+<div id="puerta" class="fixed inset-0 bg-noche-950 z-50 flex flex-col justify-center items-center p-6">
     <div class="w-full max-w-xs text-center">
         <img src="logo.png" alt="" class="h-16 w-auto mx-auto mb-6 object-contain">
-        <h1 class="text-lg font-bold text-zinc-200 mb-1">Reseñas de la web</h1>
-        <p class="text-zinc-500 text-xs mb-6">Introduce el PIN para continuar</p>
+        <h1 class="text-lg font-bold text-crema-100 mb-1">Reseñas de la web</h1>
+        <p class="text-crema-500 text-xs mb-6">Introduce el PIN para continuar</p>
 
         <input type="password" id="campoPin" autocomplete="off" inputmode="numeric"
-            class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-center
-                   text-2xl tracking-[0.3em] text-zinc-100 focus:outline-none focus:border-amber-500">
+            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-center
+                   text-2xl tracking-[0.3em] text-crema-100 focus:outline-none focus:border-marca-500">
         <p id="errorPin" class="hidden text-red-400 text-xs mt-3"></p>
 
         <button id="btnEntrar" type="button"
-            class="w-full mt-4 bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition-colors">
+            class="w-full mt-4 bg-marca-500 hover:bg-marca-400 text-black font-bold py-3 rounded-xl transition-colors">
             Entrar
         </button>
     </div>
@@ -38,11 +49,11 @@
             <img src="logo.png" alt="" class="h-10 w-auto object-contain">
             <div>
                 <h1 class="font-black tracking-tight">Reseñas</h1>
-                <p class="text-zinc-600 text-xs">Lo que sale en la web lo decides tú</p>
+                <p class="text-crema-600 text-xs">Lo que sale en la web lo decides tú</p>
             </div>
         </div>
         <button id="btnRefrescar" type="button"
-            class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 text-zinc-300
+            class="border border-noche-700 hover:border-crema-500 hover:bg-noche-900 text-crema-300
                    text-xs font-bold px-4 py-2 rounded-lg transition-colors">
             Refrescar
         </button>
@@ -53,7 +64,7 @@
 
     <!-- Pendientes -->
     <section class="mb-12">
-        <h2 class="text-amber-400 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+        <h2 class="text-marca-500 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
             Esperando tu visto bueno · <span id="cuentaPendientes">0</span>
         </h2>
         <div id="pendientes" class="space-y-4"></div>
@@ -61,7 +72,7 @@
 
     <!-- Publicadas -->
     <section class="mb-12">
-        <h2 class="text-zinc-500 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+        <h2 class="text-crema-500 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
             Publicadas en la web · <span id="cuentaPublicadas">0</span>
         </h2>
         <div id="publicadas" class="space-y-4"></div>
@@ -69,7 +80,7 @@
 
     <!-- Descartadas -->
     <section>
-        <h2 class="text-zinc-700 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
+        <h2 class="text-noche-700 text-[11px] font-bold uppercase tracking-[0.15em] mb-4">
             Descartadas · <span id="cuentaDescartadas">0</span>
         </h2>
         <div id="descartadas" class="space-y-4"></div>
@@ -109,7 +120,7 @@ function mostrarAviso(texto) {
 function estrellas(n) {
     let h = '';
     for (let i = 1; i <= 5; i++) {
-        h += '<svg class="w-3.5 h-3.5 ' + (i <= n ? 'text-amber-400' : 'text-zinc-700') +
+        h += '<svg class="w-3.5 h-3.5 ' + (i <= n ? 'text-marca-500' : 'text-noche-700') +
              '" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L1.5 7.7l5.9-.9z"/></svg>';
     }
     return '<div class="flex gap-0.5">' + h + '</div>';
@@ -128,35 +139,46 @@ function fecha(iso) {
 function botones(r) {
     const base = 'text-xs font-bold px-4 py-2 rounded-lg transition-colors border';
 
+    // La foto se puede poner, cambiar o quitar en cualquier estado: muchas
+    // llegan por WhatsApp despues de escrita la resena.
+    const foto = `
+        <button onclick="elegirFoto(${r.id})"
+            class="${base} border-noche-700 hover:border-marca-500/60 hover:text-marca-500 text-crema-400">
+            ${r.foto_url ? 'Cambiar foto' : 'Subir foto'}</button>` +
+        (r.foto_url ? `
+        <button onclick="quitarFoto(${r.id})"
+            class="${base} border-noche-700 hover:border-red-500/60 hover:text-red-400 text-crema-400">
+            Quitar foto</button>` : '');
+
     if (r.estado === 'pendiente') {
-        return `<button onclick="cambiar(${r.id},'publicar')"
-                    class="${base} bg-amber-400 hover:bg-amber-300 text-black border-amber-400">Publicar</button>
+        return foto + `<button onclick="cambiar(${r.id},'publicar')"
+                    class="${base} bg-marca-500 hover:bg-marca-400 text-black border-marca-500">Publicar</button>
                 <button onclick="cambiar(${r.id},'descartar')"
-                    class="${base} border-zinc-700 hover:border-red-500/60 hover:text-red-400 text-zinc-400">Descartar</button>`;
+                    class="${base} border-noche-700 hover:border-red-500/60 hover:text-red-400 text-crema-400">Descartar</button>`;
     }
     if (r.estado === 'publicada') {
-        return `<button onclick="cambiar(${r.id},'descartar')"
-                    class="${base} border-zinc-700 hover:border-red-500/60 hover:text-red-400 text-zinc-400">Quitar de la web</button>`;
+        return foto + `<button onclick="cambiar(${r.id},'descartar')"
+                    class="${base} border-noche-700 hover:border-red-500/60 hover:text-red-400 text-crema-400">Quitar de la web</button>`;
     }
-    return `<button onclick="cambiar(${r.id},'publicar')"
-                class="${base} border-zinc-700 hover:border-amber-500/60 hover:text-amber-400 text-zinc-400">Publicar</button>`;
+    return foto + `<button onclick="cambiar(${r.id},'publicar')"
+                class="${base} border-noche-700 hover:border-marca-500/60 hover:text-marca-500 text-crema-400">Publicar</button>`;
 }
 
 function tarjeta(r) {
-    const borde = r.estado === 'pendiente' ? 'border-amber-500/30' : 'border-zinc-800';
+    const borde = r.estado === 'pendiente' ? 'border-marca-500/30' : 'border-noche-800';
     return `
-    <article class="bg-zinc-900/50 border ${borde} rounded-2xl overflow-hidden">
+    <article class="bg-noche-900/50 border ${borde} rounded-2xl overflow-hidden">
         ${r.foto_url ? `<img src="${escapar(r.foto_url)}" alt="" loading="lazy"
-             class="w-full h-52 object-cover border-b border-zinc-800">` : ''}
+             class="w-full h-52 object-cover border-b border-noche-800">` : ''}
         <div class="p-5">
             <div class="flex items-start justify-between gap-4 mb-3">
                 <div>
-                    <p class="font-bold text-zinc-100">${escapar(r.nombre)}</p>
-                    <p class="text-zinc-600 text-xs">${fecha(r.creada_en)}</p>
+                    <p class="font-bold text-crema-100">${escapar(r.nombre)}</p>
+                    <p class="text-crema-600 text-xs">${fecha(r.creada_en)}</p>
                 </div>
                 ${estrellas(r.estrellas)}
             </div>
-            <p class="text-zinc-300 text-sm leading-relaxed mb-5">${escapar(r.texto)}</p>
+            <p class="text-crema-300 text-sm leading-relaxed mb-5">${escapar(r.texto)}</p>
             <div class="flex flex-wrap gap-2">${botones(r)}</div>
         </div>
     </article>`;
@@ -174,7 +196,7 @@ function pintar() {
         document.getElementById(g.cuenta).textContent = lista.length;
         document.getElementById(g.caja).innerHTML = lista.length
             ? lista.map(tarjeta).join('')
-            : `<p class="text-zinc-700 italic text-sm">${g.vacio}</p>`;
+            : `<p class="text-noche-700 italic text-sm">${g.vacio}</p>`;
     }
 }
 
@@ -187,6 +209,99 @@ async function cambiar(id, accion) {
     const fila = resenas.find((x) => x.id === id);
     if (fila) fila.estado = accion === 'publicar' ? 'publicada'
                           : accion === 'descartar' ? 'descartada' : 'pendiente';
+    pintar();
+}
+
+
+// ---------------------------------------------------------------- la foto
+// El deposito de resenas ya permite subir desde el navegador (es el mismo que
+// usa el formulario del cliente), asi que la foto va directa y despues solo se
+// guarda la direccion con la clave de administracion.
+const subidor = document.createElement('input');
+subidor.type = 'file';
+subidor.accept = 'image/jpeg,image/png,image/webp';
+subidor.style.display = 'none';
+document.body.appendChild(subidor);
+
+let resenaEnCurso = null;
+
+function elegirFoto(id) {
+    resenaEnCurso = id;
+    subidor.value = '';
+    subidor.click();
+}
+
+// Se encoge antes de subirla, igual que en el formulario: una foto de movil
+// pesa 4 o 5 MB y aqui se ve a 200 px de alto.
+function encoger(archivo) {
+    return new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onerror = () => reject(new Error('lectura'));
+        lector.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('imagen'));
+            img.onload = () => {
+                const MAX = 1400;
+                let { width: an, height: al } = img;
+                if (an > MAX || al > MAX) {
+                    const f = Math.min(MAX / an, MAX / al);
+                    an = Math.round(an * f); al = Math.round(al * f);
+                }
+                const lienzo = document.createElement('canvas');
+                lienzo.width = an; lienzo.height = al;
+                lienzo.getContext('2d').drawImage(img, 0, 0, an, al);
+                lienzo.toBlob((b) => b ? resolve(b) : reject(new Error('blob')), 'image/jpeg', 0.82);
+            };
+            img.src = lector.result;
+        };
+        lector.readAsDataURL(archivo);
+    });
+}
+
+subidor.addEventListener('change', async () => {
+    const archivo = subidor.files && subidor.files[0];
+    if (!archivo || resenaEnCurso === null) return;
+
+    if (!/^image\/(jpeg|png|webp)$/.test(archivo.type)) {
+        return mostrarAviso('El archivo tiene que ser una foto (JPG, PNG o WEBP).');
+    }
+
+    const id = resenaEnCurso;
+    resenaEnCurso = null;
+    mostrarAviso('Subiendo la foto...');
+
+    try {
+        const cliente = supabase.createClient(
+            'https://mefrjbmjfdphdqndpzcw.supabase.co',
+            'sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8'
+        );
+        const comprimida = await encoger(archivo);
+        const nombre = Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.jpg';
+
+        const { error } = await cliente.storage
+            .from('resenas').upload(nombre, comprimida, { contentType: 'image/jpeg' });
+        if (error) throw error;
+
+        const url = cliente.storage.from('resenas').getPublicUrl(nombre).data.publicUrl;
+
+        const r = await llamar('foto', { id, url });
+        if (!r.ok) throw new Error(r.error || 'no se pudo guardar');
+
+        const fila = resenas.find((x) => x.id === id);
+        if (fila) fila.foto_url = url;
+        document.getElementById('aviso').classList.add('hidden');
+        pintar();
+    } catch (e) {
+        console.warn('[foto]', e.message);
+        mostrarAviso('No se pudo subir la foto: ' + e.message);
+    }
+});
+
+async function quitarFoto(id) {
+    const r = await llamar('foto', { id, url: '' });
+    if (!r.ok) return mostrarAviso(r.error || 'No se pudo quitar.');
+    const fila = resenas.find((x) => x.id === id);
+    if (fila) fila.foto_url = null;
     pintar();
 }
 

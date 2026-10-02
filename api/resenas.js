@@ -8,7 +8,8 @@
 // deja ver a cualquiera unicamente las que ya estan publicadas, asi que una
 // reseña con una groseria no es visible para nadie hasta que se apruebe.
 
-const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin } = require('./_lib-supabase');
+const { supabaseFetchEstricto, claveAdminValida, hayClaveAdmin,
+        sanitizeEnv } = require('./_lib-supabase');
 const { aplicarCors } = require('./_lib-http');
 
 const ESTADOS = {
@@ -67,6 +68,37 @@ module.exports = async (req, res) => {
             await supabaseFetchEstricto(`resenas?id=eq.${id}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ estado: ESTADOS[accion] })
+            });
+
+            return res.status(200).json({ ok: true });
+        }
+
+        // ------------------------------------------------------------ foto
+        // Pasa bastante: el cliente escribe la reseña, se le olvida la foto y
+        // se la manda a Javier por WhatsApp. Antes no habia forma de pegarla.
+        //
+        // Una url vacia quita la foto, que sirve para cuando queda torcida o
+        // se subio la equivocada.
+        if (accion === 'foto') {
+            const id = Number(cuerpo?.id);
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({ ok: false, error: 'Falta el id' });
+            }
+
+            const url = String(cuerpo?.url || '').trim();
+
+            // Solo se acepta una direccion de NUESTRO deposito. Sin esto se
+            // podria guardar cualquier enlace de internet y acabaria pintado
+            // en la portada del negocio.
+            const nuestro = sanitizeEnv(process.env.SUPABASE_URL) +
+                            '/storage/v1/object/public/resenas/';
+            if (url && !url.startsWith(nuestro)) {
+                return res.status(400).json({ ok: false, error: 'Esa foto no es de aquí.' });
+            }
+
+            await supabaseFetchEstricto(`resenas?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ foto_url: url || null })
             });
 
             return res.status(200).json({ ok: true });
