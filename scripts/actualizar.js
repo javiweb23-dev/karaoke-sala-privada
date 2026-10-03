@@ -289,11 +289,15 @@ try {
 const efectosDir = path.join(root, 'efectos');
 const efectosFile = path.join(root, 'efectos_disponibles.js');
 
+// Sin emoji propio el boton sale con un 🔊 generico y todos se parecen; en
+// una sala a oscuras eso obliga a leer. Se busca por el nombre del archivo, asi
+// que para estrenar un sonido con icono basta con anadirlo aqui.
 const EMOJIS = {
     aplausos: '👏', buuu: '👎', corneta: '📯', chacal: '🎺',
     gato: '🐱', trombon: '🎶', grillos: '🦗', redoble: '🥁',
-    risa: '😂', beso: '💋', silbido: '😗', campana: '🔔',
-    laser: '🔫', explosion: '💥', tambor: '🥁', sirena: '🚨'
+    risa: '😂', risas: '😂', beso: '💋', silbido: '😗', campana: '🔔',
+    laser: '🔫', explosion: '💥', tambor: '🥁', sirena: '🚨',
+    fahhh: '😮', manguangua: '🤪', 'ya-no-aguanto-mas': '🙉'
 };
 
 let efectos = [];

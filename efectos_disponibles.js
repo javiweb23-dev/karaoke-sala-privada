@@ -1,5 +1,5 @@
 // Generado por scripts/actualizar.js — no editar a mano
-// Archivos en efectos/: 8
+// Archivos en efectos/: 10
 //
 // Para cambiar los sonidos: suelta el MP3 en efectos/ y vuelve a correr
 // "npm run actualizar". El boton aparece solo, con el nombre del archivo.
@@ -29,27 +29,39 @@ window.EFECTOS = [
     "emoji": "📯"
   },
   {
+    "clave": "fahhh",
+    "archivo": "fahhh.mp3",
+    "etiqueta": "Fahhh",
+    "emoji": "😮"
+  },
+  {
     "clave": "gato",
     "archivo": "gato.mp3",
     "etiqueta": "Gato",
     "emoji": "🐱"
   },
   {
-    "clave": "grillos",
-    "archivo": "grillos.mp3",
-    "etiqueta": "Grillos",
-    "emoji": "🦗"
+    "clave": "manguangua",
+    "archivo": "manguangua.mp3",
+    "etiqueta": "Manguangua",
+    "emoji": "🤪"
   },
   {
-    "clave": "redoble",
-    "archivo": "redoble.mp3",
-    "etiqueta": "Redoble",
-    "emoji": "🥁"
+    "clave": "risas",
+    "archivo": "risas.mp3",
+    "etiqueta": "Risas",
+    "emoji": "😂"
   },
   {
     "clave": "trombon",
     "archivo": "trombon.mp3",
     "etiqueta": "Trombon",
     "emoji": "🎶"
+  },
+  {
+    "clave": "ya-no-aguanto-mas",
+    "archivo": "ya no aguanto mas.mp3",
+    "etiqueta": "Ya no aguanto mas",
+    "emoji": "🙉"
   }
 ];
