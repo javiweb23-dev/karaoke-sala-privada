@@ -533,14 +533,14 @@ seccion('Lo que piden y no tienes');
         api.yaLaTienes('Manda una carta a tu marido'));
 
     // Huecos de verdad: tienen que sobrevivir al filtro.
-    for (const q of ['Aguanile', 'Locomia', 'Fantasmas del caribe', 'oasis']) {
+    for (const q of ['Aguanile', 'Locomia', 'Metallica', 'Depeche mode']) {
         comprobar('"' + q + '" sobrevive: es un hueco real', !api.yaLaTienes(q));
     }
 
     // Palabras sueltas en canciones distintas no valen: tienen que estar
     // todas en la MISMA cancion.
     comprobar('no vale juntar palabras de canciones distintas',
-        !api.yaLaTienes('Fantasmas del caribe'));
+        !api.yaLaTienes('Abba caribe'));
 
     // Tecleos a medias.
     const todas = ['Aguani', 'Aguanile', 'Pasam', 'Pasame la botella', 'Shakira'];
