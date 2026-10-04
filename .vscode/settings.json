@@ -1,0 +1,56 @@
+{
+  // ---------------------------------------------------------------------
+  // Por que existe este archivo
+  // ---------------------------------------------------------------------
+  // Live Server vigila toda la carpeta del proyecto para recargar la pagina
+  // sola cuando algo cambia. El problema es que aqui dentro cuelga
+  // videos_locales/, que es un enlace a D:\videos_locales con mas de 3.600
+  // MP4. Vigilar eso lo ahogaba: el reproductor tardaba muchisimo en abrir y
+  // llego a quedarse colgado, aceptando la conexion pero sin responder nunca.
+  //
+  // Aqui se le dice que no mire las carpetas pesadas. Ninguna de ellas
+  // necesita recarga automatica: los videos no se editan, y los efectos y la
+  // musica se cambian soltando archivos, no escribiendo codigo.
+  //
+  // IMPORTANTE: despues de guardar esto hay que PARAR y VOLVER A ARRANCAR
+  // Live Server. Si no, sigue con la vigilancia vieja.
+  // ---------------------------------------------------------------------
+
+  "liveServer.settings.ignoreFiles": [
+    "videos_locales/**",
+    "musica_cierre/**",
+    "efectos/**",
+    "public/**",
+    "node_modules/**",
+    ".git/**",
+    "**/*.mp4",
+    "**/*.MP4",
+    "**/*.mp3",
+    "**/*.flac",
+    "**/*.xlsx"
+  ],
+
+  // Que no abra el navegador solo al arrancar: la TV ya tiene su pestana.
+  "liveServer.settings.NoBrowser": true,
+
+  // El vigilante del propio VS Code tambien se come esas carpetas y hace que
+  // el editor vaya lento. Mismo motivo, misma lista.
+  "files.watcherExclude": {
+    "**/videos_locales/**": true,
+    "**/musica_cierre/**": true,
+    "**/efectos/**": true,
+    "**/public/**": true,
+    "**/node_modules/**": true,
+    "**/.git/objects/**": true
+  },
+
+  // Y que no las recorra al buscar texto ni al abrir archivos con Ctrl+P.
+  "search.exclude": {
+    "**/videos_locales": true,
+    "**/public": true,
+    "**/node_modules": true
+  },
+  "files.exclude": {
+    "**/videos_locales": false
+  }
+}
