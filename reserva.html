@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserva tu sala · Karaoke Latino</title>
+<meta name="description" content="Reserva la sala privada de karaoke en Lechería. Elige el día, las horas y la hora de inicio. Te confirmamos por WhatsApp.">
+<meta name="robots" content="index, follow">
+
+<!-- Esta pagina se manda por WhatsApp, asi que la vista previa importa tanto
+     como la pagina. La imagen tiene que ir con direccion ABSOLUTA: quien la
+     pinta es el servidor de WhatsApp, no el navegador. -->
+<meta property="og:site_name" content="Karaoke Latino">
+<meta property="og:locale" content="es_VE">
+<meta property="og:url" content="https://mikaraokelatino.com/reserva">
+<meta property="og:title" content="Reserva tu sala · Karaoke Latino">
+<meta property="og:description" content="Elige el día y la hora, paga el 50% y listo. La sala completa para tu grupo en Lechería.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://mikaraokelatino.com/fotos/compartir.jpg">
+<meta property="og:image:width" content="1376">
+<meta property="og:image:height" content="768">
+<meta property="og:image:alt" content="Cuatro amigos cantando karaoke">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://mikaraokelatino.com/fotos/compartir.jpg">
+
+<link rel="canonical" href="https://mikaraokelatino.com/reserva">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    // La misma paleta del home, sacada del logo. Si se cambia alli, se cambia
+    // aqui: son dos paginas sueltas a proposito, sin nada que compilar.
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    marca:  { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+                    noche:  { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613',
+                              800: '#241D18', 700: '#362C25' },
+                    crema:  { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93',
+                              500: '#85796D', 600: '#635A50', 700: '#443D36' },
+                    fiesta: '#F0338C'
+                }
+            }
+        }
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="reserva-textos.js"></script>
+
+<style>
+    .degradado-marca {
+        background: linear-gradient(100deg, #FF5A1F 0%, #FF8000 45%, #FFC000 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    /* El resplandor de fondo, el mismo recurso del home: una mancha de color
+       muy difuminada detras del contenido para que el negro no sea plano. */
+    .resplandor { position: relative; isolation: isolate; }
+    .resplandor::before {
+        content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+        background:
+            radial-gradient(60% 50% at 15% 0%,   rgba(255,128,0,.16), transparent 70%),
+            radial-gradient(50% 45% at 90% 100%, rgba(240,51,140,.10), transparent 70%);
+    }
+
+    /* Aparecer al bajar. Si el navegador no lleva IntersectionObserver, el
+       arranque las deja visibles y no se nota la diferencia. */
+    .aparece { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+    .aparece.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+        .aparece { opacity: 1; transform: none; transition: none; }
+    }
+</style>
+</head>
+
+<body class="bg-noche-950 text-crema-100 antialiased">
+
+<!-- ══════════════════════════════════════════════════════════ BARRA ═══ -->
+<header class="sticky top-0 z-50 backdrop-blur-md bg-noche-950/85 border-b border-noche-800/80">
+    <div class="max-w-2xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
+
+        <a href="/" class="flex items-center gap-2.5 flex-shrink-0" aria-label="Karaoke Latino">
+            <img src="logo.png" alt="Karaoke Latino" class="h-12 sm:h-14 w-auto object-contain">
+        </a>
+
+        <div class="flex items-center gap-2.5 flex-shrink-0">
+            <button id="btnIdioma" type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-noche-700
+                       hover:border-marca-500/60 hover:bg-noche-900 transition-colors"
+                aria-label="Cambiar idioma / Switch language">
+                <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
+                <span id="banderaTexto" class="text-[11px] font-bold text-crema-400 tracking-wider"></span>
+            </button>
+
+            <a href="/" class="text-[13px] font-medium text-crema-400 hover:text-marca-500
+                               transition-colors whitespace-nowrap" data-t="volver"></a>
+        </div>
+    </div>
+</header>
+
+
+<!-- ═════════════════════════════════════════════════════ FORMULARIO ═══ -->
+<main class="resplandor py-14 sm:py-20 px-5">
+    <div class="max-w-2xl mx-auto">
+
+
+            <div class="aparece text-center mb-10">
+                <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-4" data-t="resTitulo"></h2>
+                <p class="text-crema-400 text-lg leading-relaxed" data-t="resTexto"></p>
+            </div>
+
+            <div class="aparece bg-noche-950/60 border border-noche-800 rounded-2xl p-6 sm:p-8">
+
+                <!-- ---------------------------------------------- los tres datos -->
+                <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="resFecha" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                               data-t="resCampoFecha"></label>
+                        <input id="resFecha" type="date"
+                            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
+                                   focus:outline-none focus:border-marca-500 transition-colors">
+                        <!-- El formato que enseña el campo lo decide el navegador del
+                             cliente, no nosotros: en unos sale 10/08/2026 y en otros
+                             08/10/2026, y no hay forma de forzarlo. Asi que debajo se
+                             escribe con todas las letras, que no se puede malinterpretar. -->
+                        <p id="resFechaTexto" class="text-marca-400 text-sm font-bold mt-2 first-letter:uppercase"></p>
+                    </div>
+                    <div>
+                        <label for="resHoras" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                               data-t="resCampoHoras"></label>
+                        <select id="resHoras"
+                            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-3 py-3 text-crema-100
+                                   focus:outline-none focus:border-marca-500 transition-colors"></select>
+                    </div>
+                </div>
+
+                <!-- ------------------------------------------ las horas que quedan -->
+                <div class="mb-6">
+                    <p class="text-crema-500 text-xs font-bold uppercase tracking-wider mb-3" data-t="resCampoHora"></p>
+                    <div id="resHorasLibres" class="flex flex-wrap gap-2"></div>
+                    <p id="resAvisoHoras" class="mt-2"></p>
+                </div>
+
+                <!-- --------------------------------------------------- el resumen -->
+                <div id="resResumen" class="hidden mb-6 bg-noche-900/60 border border-noche-800 rounded-xl p-5"></div>
+
+                <!-- --------------------------------------------- quien eres -->
+                <div id="resQuien" class="hidden grid sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="resNombre" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                               data-t="resCampoNombre"></label>
+                        <input id="resNombre" type="text" maxlength="60" autocomplete="name"
+                            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-crema-100
+                                   placeholder-crema-700 focus:outline-none focus:border-marca-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="resTelefono" class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                               data-t="resCampoTelefono"></label>
+                        <input id="resTelefono" type="tel" maxlength="25" autocomplete="tel"
+                            class="w-full bg-noche-900 border border-noche-700 rounded-xl px-4 py-3 text-crema-100
+                                   placeholder-crema-700 focus:outline-none focus:border-marca-500 transition-colors">
+                    </div>
+                </div>
+
+                <!-- ------------------------------------------------------ el pago -->
+                <div id="resPago" class="hidden">
+                    <div class="bg-marca-500/10 border border-marca-500/30 rounded-xl p-5 mb-5">
+                        <p class="text-marca-400 text-xs font-bold uppercase tracking-wider mb-3" data-t="resPagoTitulo"></p>
+                        <div class="space-y-1.5 text-sm">
+                            <p class="text-crema-300"><span class="text-crema-500" data-t="resBanco"></span>
+                               <strong class="text-crema-100">Banco de Venezuela</strong></p>
+                            <p class="text-crema-300"><span class="text-crema-500" data-t="resCedula"></span>
+                               <strong class="text-crema-100">15.364.072</strong></p>
+                            <p class="text-crema-300"><span class="text-crema-500" data-t="resTelefonoPago"></span>
+                               <strong class="text-crema-100">0412-1591072</strong></p>
+                        </div>
+                        <p class="text-crema-400 text-sm mt-4 pt-4 border-t border-marca-500/20" data-t="resPagoNota"></p>
+                    </div>
+
+                    <label class="block text-crema-500 text-xs font-bold uppercase tracking-wider mb-2"
+                           data-t="resCampoComprobante"></label>
+                    <label for="resComprobante" id="resCajaComprobante"
+                        class="block border-2 border-dashed border-noche-700 hover:border-marca-500/60
+                               rounded-xl p-5 text-center cursor-pointer transition-colors mb-2">
+                        <svg class="w-7 h-7 mx-auto text-crema-600 mb-2" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+                        </svg>
+                        <span class="text-crema-500 text-sm" data-t="resSubir"></span>
+                    </label>
+                    <input id="resComprobante" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hidden">
+                    <p id="resComprobanteOk" class="hidden text-marca-400 text-sm mb-2"></p>
+
+                    <p id="resError" class="hidden my-3 text-red-400 text-sm text-center"></p>
+
+                    <button id="resEnviar" type="button" disabled
+                        class="w-full mt-4 bg-marca-500 hover:bg-marca-400 disabled:bg-noche-800
+                               disabled:text-crema-700 text-black font-bold text-base py-4
+                               rounded-xl transition-colors" data-t="resBtnEnviar"></button>
+                </div>
+            </div>
+
+            <!-- ------------------------------------------------------ ya esta -->
+            <div id="resGracias" class="hidden text-center py-10">
+                <div class="w-20 h-20 rounded-full bg-marca-500/10 border border-marca-500/30
+                            flex items-center justify-center mx-auto mb-7">
+                    <svg class="w-10 h-10 text-marca-500" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl sm:text-3xl font-black tracking-tight mb-3" data-t="resGraciasTitulo"></h3>
+                <p class="text-crema-400 leading-relaxed max-w-md mx-auto" data-t="resGraciasTexto"></p>
+            </div>
+    </div>
+</main>
+
+
+<!-- ══════════════════════════════════════════════ ANTES DE RESERVAR ═══ -->
+<section id="saber" class="py-16 px-5 bg-noche-900/30 border-t border-noche-800/80">
+    <div class="max-w-2xl mx-auto">
+
+        <h2 class="aparece text-xl font-black tracking-tight mb-7" data-t="incluyeTitulo"></h2>
+        <ul id="incluye" class="aparece grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-12 text-sm text-crema-300"></ul>
+
+        <h2 class="aparece text-xl font-black tracking-tight mb-7" data-t="saberTitulo"></h2>
+        <div id="saberLista" class="aparece space-y-5"></div>
+
+        <!-- Quien llega hasta aqui con una duda que la pagina no contesta se
+             va si no tiene a quien preguntarle. El boton va al final a
+             proposito: antes de el ya leyo las respuestas. -->
+        <div class="aparece mt-12 bg-noche-950/60 border border-noche-800 rounded-2xl p-6 text-center">
+            <p class="text-crema-400 text-sm mb-4" data-t="dudasTexto"></p>
+            <a id="waDudas" href="#" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 bg-noche-800 hover:bg-noche-700 border border-noche-700
+                      text-crema-100 font-bold text-sm px-5 py-3 rounded-xl transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
+                    <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
+                </svg>
+                <span data-t="dudasBoton"></span>
+            </a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ PIE ═══ -->
+<footer class="border-t border-noche-800 py-12 px-5">
+    <div class="max-w-2xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 text-center sm:text-left">
+        <div class="flex flex-col items-center sm:items-start gap-2">
+            <img src="logo.png" alt="Karaoke Latino" class="h-10 w-auto object-contain">
+            <p class="text-crema-500 text-sm" data-t="footerUbicacion"></p>
+            <a href="https://wa.me/584121591072" target="_blank" rel="noopener"
+               class="text-crema-300 text-sm font-bold hover:text-marca-500 transition-colors">0412 1591072</a>
+        </div>
+        <div class="flex flex-col items-center sm:items-end gap-2">
+            <a href="/" class="text-crema-400 text-sm hover:text-marca-500 transition-colors" data-t="volver"></a>
+            <p class="text-crema-600 text-xs" data-t="footerHorario"></p>
+        </div>
+    </div>
+    <p class="text-center text-noche-700 text-xs mt-9">
+        © <span id="anio"></span> Karaoke Latino · Lechería, Venezuela
+    </p>
+</footer>
+
+
+<script>
+// =========================================================================
+// La pagina suelta de reserva
+//
+// El formulario de aqui es el MISMO del home: el HTML esta copiado tal cual
+// y la maquinaria vive en reserva-comun.js, que cargan las dos paginas. Las
+// frases del formulario vienen de reserva-textos.js.
+//
+// Lo unico propio de esta pagina es lo de abajo: la barra, lo que incluye,
+// lo que hay que saber y el pie.
+// =========================================================================
+const TEXTOS = {
+    es: {
+        ...TEXTOS_RESERVA.es,
+
+        volver: 'Ver el sitio',
+        footerUbicacion: 'Urbanización Mar · Lechería, Venezuela',
+        footerHorario: 'Todos los días desde las 8:00 pm · previa reservación',
+
+        incluyeTitulo: 'La sala, completa para ustedes',
+        incluye: [
+            'Más de 4.000 canciones',
+            'Pantalla de 65 pulgadas',
+            'Tres micrófonos inalámbricos',
+            'Sonido de 1.500 W',
+            'Luces de colores',
+            'Pides desde tu propio celular'
+        ],
+
+        saberTitulo: 'Antes de reservar',
+        saber: [
+            { p: '¿Con cuánto tiempo reservo?',
+              r: 'Mínimo con un día de anticipación. No atendemos sin reserva.' },
+            { p: '¿Cómo se paga?',
+              r: 'Se abona el 50% por Pago Móvil para apartar el día, y el resto el mismo día en la sala. Sin el abono la reserva no queda hecha.' },
+            { p: '¿Los 20 minutos del principio me los cobran?',
+              r: 'No. Son para que se instalen con calma. El tiempo que pagaste empieza a correr después.' },
+            { p: '¿Y si llego tarde?',
+              r: 'La sala te espera, pero la hora de salida no se mueve: el tiempo corre desde la hora que reservaste.' },
+            { p: '¿Puedo llevar comida o bebida?',
+              r: 'Sí, pasapalos y refrescos. Bebidas alcohólicas no. También tenemos venta de pasapalos en el sitio.' },
+            { p: '¿Hay edad mínima?',
+              r: 'Sí, mayores de 18 años.' },
+            { p: '¿Y si tengo que cancelar?',
+              r: 'No devolvemos el abono, pero te lo dejamos como crédito para otra fecha. Si cancelas el mismo día, se retiene la mitad.' },
+            { p: '¿Festejamos un cumpleaños?',
+              r: 'Claro. Avísanos antes y preparamos la sala.' }
+        ],
+
+        dudasTexto: '¿Te quedó alguna duda? Escríbenos y te contestamos.',
+        dudasBoton: 'Preguntar por WhatsApp'
+    },
+
+    en: {
+        ...TEXTOS_RESERVA.en,
+
+        volver: 'See the site',
+        footerUbicacion: 'Urbanización Mar · Lechería, Venezuela',
+        footerHorario: 'Every day from 8:00 pm · by reservation',
+
+        incluyeTitulo: 'The whole room, just for you',
+        incluye: [
+            'Over 4,000 songs',
+            '65-inch screen',
+            'Three wireless microphones',
+            '1,500 W sound system',
+            'Colour lighting',
+            'Request songs from your own phone'
+        ],
+
+        saberTitulo: 'Before you book',
+        saber: [
+            { p: 'How far ahead should I book?',
+              r: 'At least one day ahead. We do not take walk-ins.' },
+            { p: 'How do I pay?',
+              r: 'You pay 50% up front to hold the date, and the rest on the day at the room. Without the deposit the booking is not confirmed.' },
+            { p: 'Am I charged for the first 20 minutes?',
+              r: 'No. They are yours to settle in. Your paid time starts after that.' },
+            { p: 'What if I am late?',
+              r: 'The room waits for you, but the end time does not move: your time runs from the hour you booked.' },
+            { p: 'Can I bring food or drinks?',
+              r: 'Yes, snacks and soft drinks. No alcohol. We also sell snacks on site.' },
+            { p: 'Is there a minimum age?',
+              r: 'Yes, 18 and over.' },
+            { p: 'What if I need to cancel?',
+              r: 'The deposit is not refunded, but we keep it as credit for another date. If you cancel the same day, half is kept.' },
+            { p: 'Can we celebrate a birthday?',
+              r: 'Of course. Let us know beforehand and we will set the room up.' }
+        ],
+
+        dudasTexto: 'Still have a question? Write to us and we will answer.',
+        dudasBoton: 'Ask on WhatsApp'
+    }
+};
+
+const WHATSAPP = '584121591072';
+const MENSAJES_WA = {
+    es: 'Hola! Tengo una duda sobre la reserva de la sala de karaoke.',
+    en: 'Hi! I have a question about booking the karaoke room.'
+};
+
+// Las banderas, iguales que en el home. La que se ve es la del idioma en el
+// que esta la pagina AHORA, no al que se cambiaria.
+const BANDERAS = {
+    es: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#CF142B"/>' +
+            '<rect width="30" height="13.34" fill="#00247D"/>' +
+            '<rect width="30" height="6.67" fill="#FFCC00"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="9.6" cy="11.9" r=".78"/><circle cx="11.4" cy="10.9" r=".78"/>' +
+                '<circle cx="13.4" cy="10.3" r=".78"/><circle cx="15" cy="10.1" r=".78"/>' +
+                '<circle cx="16.6" cy="10.3" r=".78"/><circle cx="18.6" cy="10.9" r=".78"/>' +
+                '<circle cx="20.4" cy="11.9" r=".78"/><circle cx="15" cy="13.2" r=".78"/>' +
+            '</g>' +
+        '</svg>',
+    en: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#fff"/>' +
+            '<g fill="#B22234">' +
+                '<rect width="30" height="1.54" y="0"/><rect width="30" height="1.54" y="3.08"/>' +
+                '<rect width="30" height="1.54" y="6.15"/><rect width="30" height="1.54" y="9.23"/>' +
+                '<rect width="30" height="1.54" y="12.3"/><rect width="30" height="1.54" y="15.38"/>' +
+                '<rect width="30" height="1.54" y="18.46"/>' +
+            '</g>' +
+            '<rect width="13" height="10.77" fill="#3C3B6E"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="2.2" cy="2" r=".62"/><circle cx="5.5" cy="2" r=".62"/>' +
+                '<circle cx="8.8" cy="2" r=".62"/><circle cx="11.5" cy="2" r=".62"/>' +
+                '<circle cx="3.8" cy="4.2" r=".62"/><circle cx="7.1" cy="4.2" r=".62"/>' +
+                '<circle cx="10.2" cy="4.2" r=".62"/>' +
+                '<circle cx="2.2" cy="6.4" r=".62"/><circle cx="5.5" cy="6.4" r=".62"/>' +
+                '<circle cx="8.8" cy="6.4" r=".62"/><circle cx="11.5" cy="6.4" r=".62"/>' +
+                '<circle cx="3.8" cy="8.6" r=".62"/><circle cx="7.1" cy="8.6" r=".62"/>' +
+                '<circle cx="10.2" cy="8.6" r=".62"/>' +
+            '</g>' +
+        '</svg>'
+};
+
+let idioma = 'es';
+
+function escapar(t) {
+    return String(t).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function aplicarIdioma() {
+    const t = TEXTOS[idioma];
+    document.documentElement.lang = idioma;
+
+    document.querySelectorAll('[data-t]').forEach((el) => {
+        const valor = t[el.dataset.t];
+        if (typeof valor === 'string') el.textContent = valor;
+    });
+
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[idioma];
+    document.getElementById('banderaTexto').textContent = idioma.toUpperCase();
+
+    document.getElementById('waDudas').href =
+        'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);
+
+    document.getElementById('incluye').innerHTML = t.incluye.map((x) => `
+        <li class="flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-marca-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            <span>${escapar(x)}</span>
+        </li>`).join('');
+
+    document.getElementById('saberLista').innerHTML = t.saber.map((x) => `
+        <div>
+            <p class="text-crema-100 font-bold text-sm mb-1.5">${escapar(x.p)}</p>
+            <p class="text-crema-400 text-sm leading-relaxed">${escapar(x.r)}</p>
+        </div>`).join('');
+
+    // El formulario tambien tiene texto dentro. Vive en reserva-comun.js,
+    // que carga DESPUES de este script: en la primera pasada no existe.
+    if (typeof resRefrescarTextos === 'function') resRefrescarTextos();
+
+    observarAparicion();
+    try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
+}
+
+// Lo que va apareciendo al bajar.
+function observarAparicion() {
+    const cajas = document.querySelectorAll('.aparece:not(.visible)');
+    if (!('IntersectionObserver' in window)) {
+        cajas.forEach((c) => c.classList.add('visible'));
+        return;
+    }
+    const ojo = new IntersectionObserver((entradas) => {
+        entradas.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add('visible'); ojo.unobserve(e.target); }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    cajas.forEach((c) => ojo.observe(c));
+}
+
+document.getElementById('btnIdioma').addEventListener('click', () => {
+    idioma = idioma === 'es' ? 'en' : 'es';
+    aplicarIdioma();
+});
+
+document.getElementById('anio').textContent = new Date().getFullYear();
+
+// Si ya eligio idioma en el home, se respeta: es la misma visita. Si no,
+// SIEMPRE castellano, por el mismo motivo que en el home: un venezolano con
+// el telefono en ingles es mas probable que un turista.
+try {
+    const guardado = localStorage.getItem('kl_idioma');
+    if (guardado === 'es' || guardado === 'en') idioma = guardado;
+} catch (e) {}
+
+aplicarIdioma();
+</script>
+<script src="reserva-comun.js"></script>
+</body>
+</html>

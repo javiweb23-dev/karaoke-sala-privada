@@ -20,6 +20,12 @@ const optional = [
   // La web publica (mikaraokelatino.com). Va en optional como la tienda: si
   // algun dia se quita, el despliegue del karaoke tiene que pasar igual.
   'home.html',
+  // El formulario de reserva: la pagina suelta que se le manda al cliente, y
+  // los dos archivos que comparte con el home. Si falta alguno de los dos JS
+  // el home se queda sin formulario, asi que mas abajo se comprueba.
+  'reserva.html',
+  'reserva-comun.js',
+  'reserva-textos.js',
   'resenas.html',
   'resenas-admin.html',
   'reservas-admin.html',
@@ -44,6 +50,17 @@ for (const file of required) {
   if (!fs.existsSync(path.join(root, file))) {
     console.error('Falta archivo de despliegue:', file);
     process.exit(1);
+  }
+}
+
+// El home carga reserva-textos.js y reserva-comun.js. Si uno no viaja, la
+// web sale publicada con la seccion de reserva muerta y sin avisar de nada.
+if (fs.existsSync(path.join(root, 'home.html'))) {
+  for (const f of ['reserva-textos.js', 'reserva-comun.js']) {
+    if (!fs.existsSync(path.join(root, f))) {
+      console.error('Falta ' + f + ', que home.html necesita para el formulario de reserva.');
+      process.exit(1);
+    }
   }
 }
 

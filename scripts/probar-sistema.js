@@ -938,6 +938,73 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
 
     global.fetch = fetchReal;
 
+    // =====================================================================
+    seccion('El formulario de reserva, en sus dos paginas');
+    // =====================================================================
+    // El mismo formulario sale en el home y en la pagina suelta /reserva. La
+    // maquinaria y las frases son un solo archivo cada una, pero el HTML esta
+    // copiado en las dos paginas. Lo que se vigila aqui es que no se
+    // descuadren: que sigan existiendo los id que la maquinaria toca, que
+    // ninguna frase se quede sin texto, y que a nadie se le ocurra volver a
+    // escribir el precio dentro de una pagina.
+    {
+        const comun = leer('reserva-comun.js');
+        const textosJs = leer('reserva-textos.js');
+        const TR = new Function(textosJs + ';return TEXTOS_RESERVA;')();
+
+        const ids = [...new Set([...comun.matchAll(/nodo\('([^']+)'\)/g)].map((m) => m[1]))];
+        comprobar('la maquinaria toca al menos 10 id', ids.length >= 10, ids.length);
+
+        for (const pagina of ['home.html', 'reserva.html']) {
+            const html = leer(pagina);
+
+            const faltan = ids.filter((id) => !html.includes('id="' + id + '"'));
+            comprobar(pagina + ': estan los ' + ids.length + ' id del formulario',
+                faltan.length === 0, faltan);
+
+            comprobar(pagina + ': carga los dos archivos del formulario',
+                html.includes('src="reserva-textos.js"') && html.includes('src="reserva-comun.js"'));
+
+            comprobar(pagina + ': mezcla TEXTOS_RESERVA en los dos idiomas',
+                html.includes('...TEXTOS_RESERVA.es') && html.includes('...TEXTOS_RESERVA.en'));
+
+            // Si alguien escribe una frase del formulario dentro de la pagina,
+            // la del otro sitio deja de cambiar con ella y nadie se entera.
+            const sueltas = [...html.matchAll(/^\s{8}(res[A-Z][A-Za-z0-9]*):/gm)].map((m) => m[1]);
+            comprobar(pagina + ': ninguna frase del formulario escrita aparte',
+                sueltas.length === 0, sueltas);
+
+            // El precio vive en la maquinaria, que es lo que comparten.
+            comprobar(pagina + ': no repite la tabla de precios',
+                !/PRECIOS\s*:\s*\{/.test(html));
+
+            // Y cada data-t del formulario tiene que tener su frase.
+            const bloque = html.slice(html.indexOf('data-t="resTitulo"'));
+            const usadas = [...new Set([...bloque.matchAll(/data-t="(res[A-Z][A-Za-z0-9]*)"/g)]
+                .map((m) => m[1]))];
+            const huerfanas = usadas.filter((k) => !(k in TR.es));
+            comprobar(pagina + ': las ' + usadas.length + ' etiquetas tienen frase',
+                huerfanas.length === 0, huerfanas);
+        }
+
+        const es = Object.keys(TR.es).sort();
+        const en = Object.keys(TR.en).sort();
+        comprobar('las ' + es.length + ' frases estan en los dos idiomas',
+            es.join('|') === en.join('|'),
+            es.filter((k) => !(k in TR.en)).concat(en.filter((k) => !(k in TR.es))));
+        comprobar('ninguna frase vacia',
+            es.every((k) => String(TR.es[k]).trim() && String(TR.en[k]).trim()));
+
+        // La tarifa del navegador y la del servidor tienen que decir lo mismo.
+        const servidor = leer('api/reserva.js').match(/const PRECIOS = (\{[^}]*\})/);
+        const cliente = comun.match(/PRECIOS: (\{[^}]*\})/);
+        comprobar('la tarifa del navegador y la del servidor coinciden',
+            Boolean(servidor && cliente) &&
+            JSON.stringify(new Function('return ' + servidor[1])()) ===
+            JSON.stringify(new Function('return ' + cliente[1])()),
+            [servidor && servidor[1], cliente && cliente[1]]);
+    }
+
     // ---------------------------------------------------------------------
     console.log('');
     if (fallos === 0) {
