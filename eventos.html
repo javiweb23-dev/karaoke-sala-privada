@@ -75,6 +75,17 @@
                 rgba(13,11,9,.60) 0%,  rgba(13,11,9,.08) 22%,
                 rgba(13,11,9,.38) 70%, rgb(13,11,9) 100%);
     }
+    /* El encuadre de la portada.
+       En pantalla ancha la seccion es mucho mas baja que la foto (la foto es
+       4:3 y el hueco sale casi 2.4:1), asi que un recorte centrado se come por
+       arriba las caras de las que cantan, que es lo unico que no puede faltar.
+       Se sube el encuadre a la cuarta parte.
+       En movil NO se toca: ahi el hueco es alto y se ven enteras. */
+    .foto-fiesta { object-position: center; }
+    @media (min-width: 768px) {
+        .foto-fiesta { object-position: center 18%; }
+    }
+
     /* En movil el texto cae ENCIMA de la mitad de abajo de la foto, que es la
        parte clara (el vestido, las botellas, el mantel). El velo horizontal no
        sirve ahi: se cambia por uno vertical que deja ver a las que cantan
@@ -127,7 +138,7 @@
 <!-- ═══════════════════════════════════════════════════════════ HERO ═══ -->
 <section id="inicio" class="relative overflow-hidden">
     <img src="fotos/eventos.jpg" alt=""
-         class="absolute inset-0 w-full h-full object-cover object-center" aria-hidden="true">
+         class="foto-fiesta absolute inset-0 w-full h-full object-cover" aria-hidden="true">
     <div class="absolute inset-0 velo-fiesta"></div>
 
     <div class="relative max-w-5xl mx-auto px-5 pt-[46vw] pb-14 md:pt-28 md:pb-32">
