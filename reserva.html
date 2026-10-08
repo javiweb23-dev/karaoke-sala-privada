@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google Analytics.
+     El identificador no depende del dominio: es de la propiedad, asi que vale
+     igual aunque en Analytics la propiedad siga llamandose como el dominio
+     viejo. Va en las cuatro paginas publicas; la app de las canciones, el
+     reproductor y las de administracion quedan fuera a proposito, que esas las
+     usa el cliente DENTRO de la sala y ensuciarian las visitas de la web. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-BR2650SX0C"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-BR2650SX0C');
+</script>
 <title>Reserva tu sala · Karaoke Latino</title>
 <meta name="description" content="Reserva la sala privada de karaoke en Lechería. Elige el día, las horas y la hora de inicio. Te confirmamos por WhatsApp.">
 <meta name="robots" content="index, follow">
