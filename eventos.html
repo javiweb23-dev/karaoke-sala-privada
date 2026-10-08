@@ -25,6 +25,22 @@
 <meta name="twitter:image" content="https://mikaraokelatino.com/fotos/eventos-compartir.jpg">
 
 <link rel="canonical" href="https://mikaraokelatino.com/eventos">
+
+<!-- Las mismas migas de la pagina, pero para Google: con esto el resultado de
+     busqueda sale como "mikaraokelatino.com > Fiestas y eventos" en vez de la
+     direccion pelada. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Inicio",
+      "item": "https://mikaraokelatino.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Fiestas y eventos",
+      "item": "https://mikaraokelatino.com/eventos" }
+  ]
+}
+</script>
 <link rel="icon" href="logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -117,6 +133,13 @@
             <img src="logo.png" alt="Karaoke Latino" class="h-12 sm:h-14 w-auto object-contain">
         </a>
 
+        <nav class="hidden sm:flex items-center gap-7 text-[13px] font-medium text-crema-400">
+            <a href="/" class="hover:text-marca-500 transition-colors" data-t="navInicio"></a>
+            <a href="#equipo" class="hover:text-marca-500 transition-colors" data-t="navEquipo"></a>
+            <a href="#precio" class="hover:text-marca-500 transition-colors" data-t="navPrecio"></a>
+            <a href="#preguntas" class="hover:text-marca-500 transition-colors" data-t="navPreguntas"></a>
+        </nav>
+
         <div class="flex items-center gap-2.5 flex-shrink-0">
             <button id="btnIdioma" type="button"
                 class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-noche-700
@@ -167,6 +190,22 @@
         </div>
     </div>
 </section>
+
+
+<!-- ══════════════════════════════════════════════════════════ MIGAS ═══ -->
+<!-- Esta pagina cuelga del home y se reparte por WhatsApp, asi que mucha
+     gente aterriza aqui sin haber pasado por el sitio. Las migas son lo que
+     les dice donde estan y como subir. -->
+<nav aria-label="Ruta" class="max-w-5xl mx-auto px-5 pt-7">
+    <ol class="flex items-center gap-2 text-xs">
+        <li>
+            <a href="/" class="text-crema-500 hover:text-marca-500 transition-colors"
+               data-t="migaInicio"></a>
+        </li>
+        <li aria-hidden="true" class="text-noche-700">›</li>
+        <li class="text-crema-300 font-medium" aria-current="page" data-t="migaActual"></li>
+    </ol>
+</nav>
 
 
 <!-- ════════════════════════════════════════════════ LO QUE LLEVAMOS ═══ -->
@@ -294,10 +333,24 @@
 </footer>
 
 
-<!-- La burbuja, que sigue a mano todo el rato. Esta pagina no tiene formulario:
-     la reserva se cierra por WhatsApp y punto, asi que el boton no se esconde. -->
+<!-- Los dos botones de la esquina. El de WhatsApp siempre esta: esta pagina no
+     tiene formulario y la reserva se cierra por chat. El de subir aparece solo
+     cuando ya hay algo de donde volver. -->
+<div class="fixed bottom-5 right-5 z-40 flex flex-col items-center gap-3">
+
+<button id="btnArriba" type="button"
+   class="w-11 h-11 rounded-full bg-noche-800/90 backdrop-blur border border-noche-700
+          hover:border-marca-500/60 hover:text-marca-500 text-crema-300
+          shadow-lg flex items-center justify-center transition-all duration-300
+          opacity-0 translate-y-2 pointer-events-none">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+    </svg>
+</button>
+
 <a id="waBurbuja" href="#" target="_blank" rel="noopener"
-   class="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1FBE59]
+   class="w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1FBE59]
           flex items-center justify-center shadow-lg shadow-black/40 transition-colors"
    aria-label="WhatsApp">
     <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -305,6 +358,7 @@
         <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
     </svg>
 </a>
+</div>
 
 
 <script>
@@ -319,6 +373,14 @@
 // =========================================================================
 const TEXTOS = {
     es: {
+        navInicio: 'Inicio',
+        navEquipo: 'Qué llevamos',
+        navPrecio: 'Precio',
+        navPreguntas: 'Preguntas',
+        migaInicio: 'Inicio',
+        migaActual: 'Fiestas y eventos',
+        irArriba: 'Ir al inicio',
+
         btnReservar: 'Reservar',
         btnReservarLargo: 'Reservar por WhatsApp',
         btnVerPrecio: 'Ver el precio',
@@ -399,6 +461,14 @@ const TEXTOS = {
     },
 
     en: {
+        navInicio: 'Home',
+        navEquipo: 'What we bring',
+        navPrecio: 'Price',
+        navPreguntas: 'FAQ',
+        migaInicio: 'Home',
+        migaActual: 'Parties and events',
+        irArriba: 'Back to top',
+
         btnReservar: 'Book',
         btnReservarLargo: 'Book on WhatsApp',
         btnVerPrecio: 'See the price',
@@ -548,6 +618,7 @@ function aplicarIdioma() {
         if (typeof valor === 'string') el.textContent = valor;
     });
 
+    document.getElementById('btnArriba').setAttribute('aria-label', t.irArriba);
     document.getElementById('banderaIcono').innerHTML = BANDERAS[idioma];
     document.getElementById('banderaTexto').textContent = idioma.toUpperCase();
 
@@ -607,6 +678,35 @@ function observarAparicion() {
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     cajas.forEach((c) => ojo.observe(c));
 }
+
+// El boton de subir. Se esconde arriba del todo porque ahi no sirve de nada,
+// y encima taparia la burbuja de WhatsApp sin motivo.
+const btnArriba = document.getElementById('btnArriba');
+
+btnArriba.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+function alDesplazarse() {
+    if (window.scrollY > 600) {
+        btnArriba.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+    } else {
+        btnArriba.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+    }
+}
+window.addEventListener('scroll', alDesplazarse, { passive: true });
+alDesplazarse();
+
+// Los enlaces a secciones de esta misma pagina se desplazan a mano, para que
+// la direccion no se llene de "#precio" y quede fea al compartirla.
+document.querySelectorAll('a[href^="#"]').forEach((enlace) => {
+    enlace.addEventListener('click', (ev) => {
+        const destino = document.getElementById(enlace.getAttribute('href').slice(1));
+        if (!destino) return;
+        ev.preventDefault();
+        destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
 
 document.getElementById('btnIdioma').addEventListener('click', () => {
     idioma = idioma === 'es' ? 'en' : 'es';
