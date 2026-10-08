@@ -23,6 +23,7 @@ const optional = [
   // El formulario de reserva: la pagina suelta que se le manda al cliente, y
   // los dos archivos que comparte con el home. Si falta alguno de los dos JS
   // el home se queda sin formulario, asi que mas abajo se comprueba.
+  'eventos.html',
   'reserva.html',
   'reserva-comun.js',
   'reserva-textos.js',

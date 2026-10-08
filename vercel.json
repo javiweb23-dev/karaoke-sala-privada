@@ -15,6 +15,10 @@
       "destination": "/karaoke.html"
     },
     {
+      "source": "/eventos",
+      "destination": "/eventos.html"
+    },
+    {
       "source": "/reserva",
       "destination": "/reserva.html"
     },

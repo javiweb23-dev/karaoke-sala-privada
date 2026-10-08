@@ -227,6 +227,7 @@
             <a href="#preguntas" class="hover:text-marca-500 transition-colors" data-t="navPreguntas"></a>
             <a href="#reserva" class="hover:text-marca-500 transition-colors" data-t="navReserva"></a>
             <a href="#resenas" class="hover:text-marca-500 transition-colors" data-t="navResenas"></a>
+            <a href="/eventos" class="hidden lg:block hover:text-marca-500 transition-colors" data-t="navEventos"></a>
         </nav>
 
         <div class="flex items-center gap-2.5 flex-shrink-0">
@@ -606,6 +607,38 @@
 </section>
 
 
+<!-- ════════════════════════════════════════════ FIESTAS Y EVENTOS ═══ -->
+<!-- Va al final a proposito: quien llega hasta aqui ya sabe lo que es el
+     sitio. Esto es el otro servicio, el que va a casa del cliente, y vive
+     en su propia pagina (/eventos). Aqui solo se asoma. -->
+<section id="eventos" class="resplandor luz-naranja py-24 px-5 border-t border-noche-800/80">
+    <div class="max-w-5xl mx-auto">
+        <div class="aparece grid md:grid-cols-2 gap-10 md:gap-14 items-center">
+
+            <div class="order-2 md:order-1">
+                <span class="inline-block bg-marca-500/15 border border-marca-500/40 text-marca-400
+                             text-[11px] font-bold uppercase tracking-[.14em] px-3 py-1.5 rounded-full mb-5"
+                      data-t="evEtiqueta"></span>
+                <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-4" data-t="evTitulo"></h2>
+                <p class="text-crema-400 text-lg leading-relaxed mb-6" data-t="evTexto"></p>
+
+                <ul id="evLista" class="space-y-2.5 mb-8"></ul>
+
+                <a href="/eventos"
+                   class="inline-block bg-marca-500 hover:bg-marca-400 text-black font-bold
+                          px-7 py-3.5 rounded-xl transition-colors shadow-lg shadow-marca-500/25"
+                   data-t="evBoton"></a>
+            </div>
+
+            <div class="order-1 md:order-2">
+                <img src="fotos/eventos.jpg" alt=""
+                     class="w-full aspect-[4/3] object-cover rounded-2xl border border-noche-800"
+                     loading="lazy">
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- ═════════════════════════════════════════════════════════ FOOTER ═══ -->
 <!-- ═══════════════════════════════════════════════ BOTONES FLOTANTES ═══ -->
 <!-- Se apilan en la esquina. El de WhatsApp siempre esta; el de subir
@@ -705,6 +738,19 @@ const TEXTOS = {
         // Las del formulario de reserva viven en reserva-textos.js,
         // porque el mismo formulario sale tambien en /reserva.
         ...TEXTOS_RESERVA.es,
+
+        // El otro servicio: el karaoke que va a casa del cliente. Vive en
+        // /eventos; aqui solo esta el bloque que lo presenta.
+        navEventos: 'Fiestas',
+        evEtiqueta: 'A domicilio · Lechería',
+        evTitulo: '¿Y si la fiesta es en tu casa?',
+        evTexto: 'Llevamos el karaoke completo a donde sea: montamos todo, lo dejamos andando y tu gente canta desde su propio celular. Igual que aquí, pero en tu sala.',
+        evLista: [
+            'Tres micrófonos, 1.500 W y televisor de 65 pulgadas',
+            'Las mismas 4.000 canciones, pedidas por código QR',
+            '3 horas continuas por $90, traslado incluido'
+        ],
+        evBoton: 'Ver cómo funciona',
 
 
 
@@ -868,6 +914,18 @@ const TEXTOS = {
         // Las del formulario de reserva viven en reserva-textos.js,
         // porque el mismo formulario sale tambien en /reserva.
         ...TEXTOS_RESERVA.en,
+
+        // El otro servicio: el karaoke que va a casa del cliente.
+        navEventos: 'Parties',
+        evEtiqueta: 'We come to you · Lechería',
+        evTitulo: 'What if the party is at your place?',
+        evTexto: 'We bring the whole karaoke setup wherever you are: we set it up, leave it running, and your people sing from their own phones. Same as here, but in your living room.',
+        evLista: [
+            'Three mics, 1,500 W and a 65-inch television',
+            'The same 4,000 songs, requested by QR code',
+            '3 continuous hours for $90, travel included'
+        ],
+        evBoton: 'See how it works',
 
 
 
@@ -1248,6 +1306,14 @@ function aplicarIdioma() {
         </div>`).join('');
 
 
+
+    // La lista del bloque de fiestas y eventos.
+    document.getElementById('evLista').innerHTML = t.evLista.map((x) => `
+        <li class="flex items-start gap-2.5 text-crema-300">
+            <svg class="w-4 h-4 text-marca-500 flex-shrink-0 mt-1" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            <span>${escapar(x)}</span>
+        </li>`).join('');
 
     pintarResenas();
     // El formulario de reserva tambien tiene texto dentro.

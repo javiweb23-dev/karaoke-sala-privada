@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karaoke para fiestas y eventos · Vamos a tu casa · Karaoke Latino</title>
+<meta name="description" content="Llevamos el karaoke a tu fiesta en Lechería: tres micrófonos inalámbricos, 1.500 W de sonido, televisor de 65 pulgadas y más de 4.000 canciones que cada quien pide desde su propio celular. 3 horas por $90, traslado incluido.">
+<meta name="robots" content="index, follow">
+
+<!-- Esta pagina se manda por WhatsApp, asi que la vista previa importa tanto
+     como la pagina. La imagen va con direccion ABSOLUTA: quien pinta la vista
+     previa es el servidor de WhatsApp, no el navegador, y una ruta relativa no
+     le dice nada. Y va recortada a 1.91:1, que es como la encaja. -->
+<meta property="og:site_name" content="Karaoke Latino">
+<meta property="og:locale" content="es_VE">
+<meta property="og:url" content="https://mikaraokelatino.com/eventos">
+<meta property="og:title" content="Karaoke para fiestas y eventos · Vamos a tu casa">
+<meta property="og:description" content="Micrófonos, sonido, pantalla y más de 4.000 canciones en tu propia fiesta. 3 horas por $90 en Lechería, traslado incluido.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://mikaraokelatino.com/fotos/eventos-compartir.jpg">
+<meta property="og:image:width" content="1376">
+<meta property="og:image:height" content="720">
+<meta property="og:image:alt" content="Dos amigas cantando karaoke en una fiesta en casa">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://mikaraokelatino.com/fotos/eventos-compartir.jpg">
+
+<link rel="canonical" href="https://mikaraokelatino.com/eventos">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    // La misma paleta del resto del sitio, sacada del logo.
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    marca:  { 300: '#FFC000', 400: '#FF9A1F', 500: '#FF8000', 600: '#FF5A1F' },
+                    noche:  { 950: '#0D0B09', 900: '#15110E', 850: '#1B1613',
+                              800: '#241D18', 700: '#362C25' },
+                    crema:  { 100: '#F7F3EE', 300: '#D8D0C7', 400: '#A89E93',
+                              500: '#85796D', 600: '#635A50', 700: '#443D36' },
+                    fiesta: '#F0338C'
+                }
+            }
+        }
+    };
+</script>
+
+<style>
+    html { scroll-behavior: smooth; }
+    section[id] { scroll-margin-top: 1rem; }
+
+    .degradado-marca {
+        background: linear-gradient(100deg, #FF5A1F 0%, #FF8000 45%, #FFC000 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    .resplandor { position: relative; isolation: isolate; }
+    .resplandor::before {
+        content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+        background:
+            radial-gradient(60% 50% at 15% 0%,   rgba(255,128,0,.16), transparent 70%),
+            radial-gradient(50% 45% at 90% 100%, rgba(240,51,140,.10), transparent 70%);
+    }
+
+    /* El velo de la portada. En pantalla ancha va en horizontal: oscuro a la
+       izquierda, donde esta el texto, y claro a la derecha, donde se ve la
+       fiesta. La segunda capa, vertical, funde la foto con el negro de abajo. */
+    .velo-fiesta {
+        background:
+            linear-gradient(to right,
+                rgba(13,11,9,.94) 0%,  rgba(13,11,9,.86) 28%,
+                rgba(13,11,9,.52) 55%, rgba(13,11,9,.26) 80%,
+                rgba(13,11,9,.24) 100%),
+            linear-gradient(to bottom,
+                rgba(13,11,9,.60) 0%,  rgba(13,11,9,.08) 22%,
+                rgba(13,11,9,.38) 70%, rgb(13,11,9) 100%);
+    }
+    /* En movil el texto cae ENCIMA de la mitad de abajo de la foto, que es la
+       parte clara (el vestido, las botellas, el mantel). El velo horizontal no
+       sirve ahi: se cambia por uno vertical que deja ver a las que cantan
+       arriba y oscurece de la mitad para abajo, donde va el texto. */
+    @media (max-width: 767px) {
+        .velo-fiesta {
+            background: linear-gradient(to bottom,
+                rgba(13,11,9,.35) 0%,  rgba(13,11,9,.12) 26%,
+                rgba(13,11,9,.72) 46%, rgba(13,11,9,.90) 68%,
+                rgb(13,11,9) 100%);
+        }
+    }
+
+    .aparece { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+    .aparece.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+        .aparece { opacity: 1; transform: none; transition: none; }
+    }
+</style>
+</head>
+
+<body class="bg-noche-950 text-crema-100 antialiased">
+
+<!-- ══════════════════════════════════════════════════════════ BARRA ═══ -->
+<header class="sticky top-0 z-50 backdrop-blur-md bg-noche-950/85 border-b border-noche-800/80">
+    <div class="max-w-5xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
+
+        <a href="/" class="flex items-center gap-2.5 flex-shrink-0" aria-label="Karaoke Latino">
+            <img src="logo.png" alt="Karaoke Latino" class="h-12 sm:h-14 w-auto object-contain">
+        </a>
+
+        <div class="flex items-center gap-2.5 flex-shrink-0">
+            <button id="btnIdioma" type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-noche-700
+                       hover:border-marca-500/60 hover:bg-noche-900 transition-colors"
+                aria-label="Cambiar idioma / Switch language">
+                <span id="banderaIcono" class="block w-6 h-4 rounded-[2px] overflow-hidden shadow-sm"></span>
+                <span id="banderaTexto" class="text-[11px] font-bold text-crema-400 tracking-wider"></span>
+            </button>
+
+            <a id="waBarra" href="#" target="_blank" rel="noopener"
+               class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-[13px]
+                      px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+               data-t="btnReservar"></a>
+        </div>
+    </div>
+</header>
+
+
+<!-- ═══════════════════════════════════════════════════════════ HERO ═══ -->
+<section id="inicio" class="relative overflow-hidden">
+    <img src="fotos/eventos.jpg" alt=""
+         class="absolute inset-0 w-full h-full object-cover object-center" aria-hidden="true">
+    <div class="absolute inset-0 velo-fiesta"></div>
+
+    <div class="relative max-w-5xl mx-auto px-5 pt-[46vw] pb-14 md:pt-28 md:pb-32">
+        <div class="max-w-xl">
+            <span class="inline-block bg-marca-500/15 border border-marca-500/40 text-marca-400
+                         text-[11px] font-bold uppercase tracking-[.14em] px-3 py-1.5 rounded-full mb-6"
+                  data-t="heroEtiqueta"></span>
+
+            <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05] mb-5">
+                <span data-t="heroTitulo1"></span><br>
+                <span class="degradado-marca" data-t="heroTitulo2"></span>
+            </h1>
+
+            <p class="text-crema-300 text-lg leading-relaxed mb-8" data-t="heroTexto"></p>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a id="waHero" href="#" target="_blank" rel="noopener"
+                   class="bg-marca-500 hover:bg-marca-400 text-black font-bold text-base
+                          px-7 py-4 rounded-xl transition-colors text-center
+                          shadow-lg shadow-marca-500/25" data-t="btnReservarLargo"></a>
+                <a href="#precio"
+                   class="border border-noche-700 hover:border-marca-500/60 hover:bg-noche-900
+                          text-crema-100 font-bold text-base px-7 py-4 rounded-xl
+                          transition-colors text-center" data-t="btnVerPrecio"></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════ LO QUE LLEVAMOS ═══ -->
+<section id="equipo" class="resplandor py-20 px-5 border-t border-noche-800/80">
+    <div class="max-w-5xl mx-auto">
+        <div class="aparece text-center max-w-2xl mx-auto mb-14">
+            <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-4" data-t="equipoTitulo"></h2>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="equipoTexto"></p>
+        </div>
+
+        <div id="equipo-lista" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════ COMO FUNCIONA ═══ -->
+<section id="como" class="resplandor py-20 px-5 bg-noche-900/30 border-y border-noche-800/80">
+    <div class="max-w-5xl mx-auto">
+        <div class="aparece text-center max-w-2xl mx-auto mb-14">
+            <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-4" data-t="comoTitulo"></h2>
+            <p class="text-crema-400 text-lg leading-relaxed" data-t="comoTexto"></p>
+        </div>
+
+        <div id="pasos" class="grid sm:grid-cols-3 gap-5 mb-12"></div>
+
+        <!-- Lo que mas confunde de este servicio: que no va animador. Se dice
+             de frente y en su propia caja, porque es lo que evita el malentendido
+             al llegar a la fiesta. -->
+        <div class="aparece max-w-3xl mx-auto bg-noche-950/60 border border-marca-500/30 rounded-2xl p-7">
+            <div class="flex items-start gap-4">
+                <svg class="w-7 h-7 text-marca-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M12 2a3 3 0 013 3v6a3 3 0 11-6 0V5a3 3 0 013-3z"/>
+                    <path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4M8 22h8"/>
+                </svg>
+                <div>
+                    <h3 class="font-black text-lg mb-2" data-t="sinAnimadorTitulo"></h3>
+                    <p class="text-crema-400 leading-relaxed" data-t="sinAnimadorTexto"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ PRECIO ═══ -->
+<section id="precio" class="resplandor py-20 px-5">
+    <div class="max-w-xl mx-auto">
+        <div class="aparece text-center mb-10">
+            <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-4" data-t="precioTitulo"></h2>
+            <p class="text-crema-400 text-lg" data-t="precioTexto"></p>
+        </div>
+
+        <div class="aparece bg-noche-950/60 border border-noche-800 rounded-2xl p-7 sm:p-9">
+            <div class="text-center pb-7 border-b border-noche-800">
+                <div class="flex items-end justify-center gap-2">
+                    <span class="text-6xl font-black degradado-marca">$90</span>
+                </div>
+                <p class="text-crema-300 font-bold mt-2" data-t="precioBase"></p>
+            </div>
+
+            <div class="flex items-center justify-between py-6 border-b border-noche-800">
+                <span class="text-crema-300" data-t="precioExtraEtiqueta"></span>
+                <span class="text-2xl font-black text-marca-400">$20</span>
+            </div>
+
+            <ul id="precio-incluye" class="space-y-3 pt-6 mb-8"></ul>
+
+            <a id="waPrecio" href="#" target="_blank" rel="noopener"
+               class="block text-center bg-marca-500 hover:bg-marca-400 text-black font-bold
+                      px-6 py-4 rounded-xl transition-colors shadow-lg shadow-marca-500/25"
+               data-t="btnReservarLargo"></a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════ PREGUNTAS ═══ -->
+<section id="preguntas" class="resplandor py-20 px-5 bg-noche-900/30 border-t border-noche-800/80">
+    <div class="max-w-2xl mx-auto">
+        <h2 class="aparece text-3xl sm:text-4xl font-black tracking-tight text-center mb-12"
+            data-t="preguntasTitulo"></h2>
+        <div id="preguntas-lista" class="aparece space-y-5"></div>
+    </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════ CIERRE ═══ -->
+<section class="resplandor py-20 px-5 border-t border-noche-800/80">
+    <div class="aparece max-w-xl mx-auto text-center">
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-4" data-t="cierreTitulo"></h2>
+        <p class="text-crema-400 text-lg leading-relaxed mb-8" data-t="cierreTexto"></p>
+        <a id="waCierre" href="#" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2.5 bg-marca-500 hover:bg-marca-400 text-black
+                  font-bold text-base px-8 py-4 rounded-xl transition-colors
+                  shadow-lg shadow-marca-500/25">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
+                <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
+            </svg>
+            <span data-t="btnReservarLargo"></span>
+        </a>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════ PIE ═══ -->
+<footer class="border-t border-noche-800 py-12 px-5">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 text-center sm:text-left">
+        <div class="flex flex-col items-center sm:items-start gap-2">
+            <img src="logo.png" alt="Karaoke Latino" class="h-10 w-auto object-contain">
+            <p class="text-crema-500 text-sm" data-t="footerUbicacion"></p>
+            <a href="https://wa.me/584121591072" target="_blank" rel="noopener"
+               class="text-crema-300 text-sm font-bold hover:text-marca-500 transition-colors">0412 1591072</a>
+        </div>
+        <div class="flex flex-col items-center sm:items-end gap-2">
+            <a href="/" class="text-crema-400 text-sm hover:text-marca-500 transition-colors" data-t="verSala"></a>
+            <a href="https://instagram.com/mikaraokelatino" target="_blank" rel="noopener"
+               class="text-crema-400 text-sm hover:text-marca-500 transition-colors">@mikaraokelatino</a>
+        </div>
+    </div>
+    <p class="text-center text-noche-700 text-xs mt-9">
+        © <span id="anio"></span> Karaoke Latino · Lechería, Venezuela
+    </p>
+</footer>
+
+
+<!-- La burbuja, que sigue a mano todo el rato. Esta pagina no tiene formulario:
+     la reserva se cierra por WhatsApp y punto, asi que el boton no se esconde. -->
+<a id="waBurbuja" href="#" target="_blank" rel="noopener"
+   class="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1FBE59]
+          flex items-center justify-center shadow-lg shadow-black/40 transition-colors"
+   aria-label="WhatsApp">
+    <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>
+        <path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3z"/>
+    </svg>
+</a>
+
+
+<script>
+// =========================================================================
+// Karaoke para fiestas y eventos
+//
+// Aqui NO se reserva: todos los botones llevan a WhatsApp con el mensaje ya
+// escrito. Es a proposito, Javier cierra estas por chat porque cada fiesta
+// tiene su sitio, su hora y sus cosas que hablar.
+//
+// Todo el texto esta en TEXTOS, marcado en el HTML con data-t="loQueSea".
+// =========================================================================
+const TEXTOS = {
+    es: {
+        btnReservar: 'Reservar',
+        btnReservarLargo: 'Reservar por WhatsApp',
+        btnVerPrecio: 'Ver el precio',
+
+        heroEtiqueta: 'Lechería · a domicilio',
+        heroTitulo1: 'Karaoke para',
+        heroTitulo2: 'fiestas y eventos',
+        heroTexto: 'Llevamos el karaoke completo a donde sea tu fiesta. Montamos, lo dejamos andando y tu gente canta toda la noche desde su propio celular.',
+
+        equipoTitulo: 'Lo que llegamos montando',
+        equipoTexto: 'El mismo equipo de la sala, en tu casa. Lo montamos nosotros y lo recogemos nosotros.',
+        equipo: [
+            { t: 'Tres micrófonos inalámbricos',
+              d: 'Para que canten de a tres sin pelearse por el micrófono, y sin cables por el piso.',
+              i: 'mic' },
+            { t: 'Sonido de 1.500 watts',
+              d: 'De sobra para una casa, una terraza o un salón. Se oye parejo sin tener que gritar.',
+              i: 'sonido' },
+            { t: 'Televisor de 65 pulgadas',
+              d: 'Con su base propia. Lo paramos donde mejor se vea, no hace falta colgar nada.',
+              i: 'tv' },
+            { t: 'Más de 4.000 canciones',
+              d: 'Todos los géneros, en español y en inglés. Salsa, merengue, vallenato, rock, pop, reggaetón, baladas.',
+              i: 'musica' },
+            { t: 'Sistema por código QR',
+              d: 'Cada invitado escanea un código y pide desde su teléfono. Sin libretas, sin hacer cola.',
+              i: 'qr' },
+            { t: 'Efectos de sonido',
+              d: 'Aplausos, risas, redobles y más, a un toque. Los dispara quien esté con el teléfono.',
+              i: 'efectos' }
+        ],
+
+        comoTitulo: 'Cómo funciona',
+        comoTexto: 'Llegamos, montamos y a partir de ahí la fiesta se maneja sola.',
+        pasos: [
+            { n: '1', t: 'Escanean el código',
+              d: 'Cada invitado apunta la cámara al QR. No hay que instalar nada ni registrarse.' },
+            { n: '2', t: 'Piden sus canciones',
+              d: 'Buscan y agregan desde su teléfono. El sistema reparte los turnos solo, para que nadie acapare.' },
+            { n: '3', t: 'Cantan',
+              d: 'La canción sale en la pantalla con la letra. Pausar, repetir o pasar también lo hacen ellos.' }
+        ],
+
+        sinAnimadorTitulo: 'No va animador, y eso es lo bueno',
+        sinAnimadorTexto: 'El sistema es automático: no hay nadie dirigiendo la fiesta ni diciéndole a tu gente qué hacer. Ustedes piden, ustedes cantan y ustedes disparan los sonidos graciosos, todo desde el teléfono. La fiesta es de ustedes, no de un animador.',
+
+        precioTitulo: 'Precio',
+        precioTexto: 'Cerrado y sin sorpresas.',
+        precioBase: 'Por 3 horas continuas',
+        precioExtraEtiqueta: 'Cada hora adicional',
+        precioIncluye: [
+            'Traslado dentro de Lechería incluido',
+            'Montaje y desmontaje por nuestra cuenta',
+            'Todo el equipo y las más de 4.000 canciones'
+        ],
+
+        preguntasTitulo: 'Lo que suelen preguntar',
+        preguntas: [
+            { p: '¿Hasta dónde van?',
+              r: 'Dentro de Lechería, y el traslado va incluido en el precio. Si tu fiesta es en otra zona, escríbenos por WhatsApp y lo vemos.' },
+            { p: '¿Las 3 horas son seguidas?',
+              r: 'Sí, son 3 horas continuas. Si la fiesta se prende y quieren más, cada hora adicional son $20.' },
+            { p: '¿Va alguien a animar la fiesta?',
+              r: 'No. El karaoke es automatizado: ustedes mismos piden las canciones, cantan y disparan los efectos de sonido desde su teléfono.' },
+            { p: '¿Cuántas personas pueden cantar?',
+              r: 'Las que quieran. Cada invitado pide desde su propio celular y el sistema reparte los turnos para que todos canten.' },
+            { p: '¿Qué canciones tienen?',
+              r: 'Más de 4.000, de todos los géneros, en español y en inglés. Se buscan por artista o por nombre de la canción.' },
+            { p: '¿Cómo reservo?',
+              r: 'Por WhatsApp. Escríbenos con la fecha, la hora y dónde es, y te confirmamos.' }
+        ],
+
+        cierreTitulo: '¿Lo cuadramos?',
+        cierreTexto: 'Escríbenos con la fecha y el sitio de tu fiesta. Te decimos de una si tenemos libre.',
+
+        footerUbicacion: 'Urbanización Mar · Lechería, Venezuela',
+        verSala: 'Ver la sala privada'
+    },
+
+    en: {
+        btnReservar: 'Book',
+        btnReservarLargo: 'Book on WhatsApp',
+        btnVerPrecio: 'See the price',
+
+        heroEtiqueta: 'Lechería · we come to you',
+        heroTitulo1: 'Karaoke for',
+        heroTitulo2: 'parties and events',
+        heroTexto: 'We bring the whole karaoke setup to wherever your party is. We set it up, leave it running, and your people sing all night from their own phones.',
+
+        equipoTitulo: 'What we bring and set up',
+        equipoTexto: 'The same gear as the room, at your place. We set it up and we take it down.',
+        equipo: [
+            { t: 'Three wireless microphones',
+              d: 'So three people can sing without fighting over the mic, and with no cables on the floor.',
+              i: 'mic' },
+            { t: '1,500 W sound system',
+              d: 'More than enough for a house, a terrace or a hall. Even sound without anyone shouting.',
+              i: 'sonido' },
+            { t: '65-inch television',
+              d: 'On its own stand. We place it wherever it is best seen, nothing needs mounting.',
+              i: 'tv' },
+            { t: 'Over 4,000 songs',
+              d: 'Every genre, in Spanish and English. Salsa, merengue, vallenato, rock, pop, reggaeton, ballads.',
+              i: 'musica' },
+            { t: 'QR code system',
+              d: 'Each guest scans a code and requests from their phone. No notebooks, no queuing.',
+              i: 'qr' },
+            { t: 'Sound effects',
+              d: 'Applause, laughs, drum rolls and more, one tap away. Whoever has the phone fires them.',
+              i: 'efectos' }
+        ],
+
+        comoTitulo: 'How it works',
+        comoTexto: 'We arrive, we set it up, and from there the party runs itself.',
+        pasos: [
+            { n: '1', t: 'They scan the code',
+              d: 'Each guest points their camera at the QR. Nothing to install, no sign-up.' },
+            { n: '2', t: 'They pick their songs',
+              d: 'They search and add from their phone. The system shares out the turns so nobody hogs it.' },
+            { n: '3', t: 'They sing',
+              d: 'The song comes up on screen with the lyrics. Pausing, repeating or skipping is theirs too.' }
+        ],
+
+        sinAnimadorTitulo: 'No host comes along, and that is the point',
+        sinAnimadorTexto: 'The system is automatic: nobody is running your party or telling your people what to do. You request, you sing and you fire the funny sounds, all from your phone. The party is yours, not a host’s.',
+
+        precioTitulo: 'Price',
+        precioTexto: 'Fixed, no surprises.',
+        precioBase: 'For 3 continuous hours',
+        precioExtraEtiqueta: 'Each extra hour',
+        precioIncluye: [
+            'Travel within Lechería included',
+            'Setting up and taking down on us',
+            'All the gear and the 4,000+ songs'
+        ],
+
+        preguntasTitulo: 'What people usually ask',
+        preguntas: [
+            { p: 'How far do you travel?',
+              r: 'Within Lechería, and travel is included in the price. If your party is somewhere else, message us on WhatsApp and we will see.' },
+            { p: 'Are the 3 hours in one go?',
+              r: 'Yes, 3 continuous hours. If the party takes off and you want more, each extra hour is $20.' },
+            { p: 'Does someone come to host the party?',
+              r: 'No. The karaoke is automated: you request the songs, sing and fire the sound effects yourselves from your phone.' },
+            { p: 'How many people can sing?',
+              r: 'As many as you like. Each guest requests from their own phone and the system shares out the turns so everyone gets to sing.' },
+            { p: 'What songs do you have?',
+              r: 'Over 4,000, every genre, in Spanish and English. You search by artist or by song name.' },
+            { p: 'How do I book?',
+              r: 'On WhatsApp. Message us with the date, the time and where it is, and we will confirm.' }
+        ],
+
+        cierreTitulo: 'Shall we set it up?',
+        cierreTexto: 'Message us with the date and the place. We will tell you right away if we are free.',
+
+        footerUbicacion: 'Urbanización Mar · Lechería, Venezuela',
+        verSala: 'See the private room'
+    }
+};
+
+const WHATSAPP = '584121591072';
+const MENSAJES_WA = {
+    es: 'Hola! Quiero karaoke para una fiesta. ¿Tienen disponible?',
+    en: 'Hi! I would like karaoke for a party. Do you have availability?'
+};
+
+// Los iconos de lo que llevamos. Dibujados a mano, no de una libreria: asi no
+// hay que cargar nada y se ven del mismo trazo que los del resto del sitio.
+const ICONOS = {
+    mic:     '<path d="M12 2a3 3 0 013 3v6a3 3 0 11-6 0V5a3 3 0 013-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4M8 22h8"/>',
+    sonido:  '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/>',
+    tv:      '<rect x="2" y="3" width="20" height="13" rx="2"/><path d="M12 16v4M8 20h8"/>',
+    musica:  '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    qr:      '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2M14 21h3"/>',
+    efectos: '<path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="3.5"/>'
+};
+
+// Las banderas, iguales que en el resto del sitio. La que se ve es la del
+// idioma en el que esta la pagina AHORA, no al que se cambiaria.
+const BANDERAS = {
+    es: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#CF142B"/>' +
+            '<rect width="30" height="13.34" fill="#00247D"/>' +
+            '<rect width="30" height="6.67" fill="#FFCC00"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="9.6" cy="11.9" r=".78"/><circle cx="11.4" cy="10.9" r=".78"/>' +
+                '<circle cx="13.4" cy="10.3" r=".78"/><circle cx="15" cy="10.1" r=".78"/>' +
+                '<circle cx="16.6" cy="10.3" r=".78"/><circle cx="18.6" cy="10.9" r=".78"/>' +
+                '<circle cx="20.4" cy="11.9" r=".78"/><circle cx="15" cy="13.2" r=".78"/>' +
+            '</g>' +
+        '</svg>',
+    en: '<svg viewBox="0 0 30 20" class="w-full h-full">' +
+            '<rect width="30" height="20" fill="#fff"/>' +
+            '<g fill="#B22234">' +
+                '<rect width="30" height="1.54" y="0"/><rect width="30" height="1.54" y="3.08"/>' +
+                '<rect width="30" height="1.54" y="6.15"/><rect width="30" height="1.54" y="9.23"/>' +
+                '<rect width="30" height="1.54" y="12.3"/><rect width="30" height="1.54" y="15.38"/>' +
+                '<rect width="30" height="1.54" y="18.46"/>' +
+            '</g>' +
+            '<rect width="13" height="10.77" fill="#3C3B6E"/>' +
+            '<g fill="#fff">' +
+                '<circle cx="2.2" cy="2" r=".62"/><circle cx="5.5" cy="2" r=".62"/>' +
+                '<circle cx="8.8" cy="2" r=".62"/><circle cx="11.5" cy="2" r=".62"/>' +
+                '<circle cx="3.8" cy="4.2" r=".62"/><circle cx="7.1" cy="4.2" r=".62"/>' +
+                '<circle cx="10.2" cy="4.2" r=".62"/>' +
+                '<circle cx="2.2" cy="6.4" r=".62"/><circle cx="5.5" cy="6.4" r=".62"/>' +
+                '<circle cx="8.8" cy="6.4" r=".62"/><circle cx="11.5" cy="6.4" r=".62"/>' +
+                '<circle cx="3.8" cy="8.6" r=".62"/><circle cx="7.1" cy="8.6" r=".62"/>' +
+                '<circle cx="10.2" cy="8.6" r=".62"/>' +
+            '</g>' +
+        '</svg>'
+};
+
+let idioma = 'es';
+
+function escapar(t) {
+    return String(t).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function aplicarIdioma() {
+    const t = TEXTOS[idioma];
+    document.documentElement.lang = idioma;
+
+    document.querySelectorAll('[data-t]').forEach((el) => {
+        const valor = t[el.dataset.t];
+        if (typeof valor === 'string') el.textContent = valor;
+    });
+
+    document.getElementById('banderaIcono').innerHTML = BANDERAS[idioma];
+    document.getElementById('banderaTexto').textContent = idioma.toUpperCase();
+
+    // Todos los botones llevan al mismo sitio, con el mensaje ya escrito.
+    const enlace = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(MENSAJES_WA[idioma]);
+    ['waBarra', 'waHero', 'waPrecio', 'waCierre', 'waBurbuja'].forEach((id) => {
+        document.getElementById(id).href = enlace;
+    });
+
+    document.getElementById('equipo-lista').innerHTML = t.equipo.map((x) => `
+        <div class="aparece bg-noche-900/40 border border-noche-800 rounded-2xl p-6
+                    hover:border-marca-500/40 transition-colors">
+            <svg class="w-8 h-8 text-marca-500 mb-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">${ICONOS[x.i] || ''}</svg>
+            <h3 class="font-black text-lg mb-2">${escapar(x.t)}</h3>
+            <p class="text-crema-400 text-sm leading-relaxed">${escapar(x.d)}</p>
+        </div>`).join('');
+
+    document.getElementById('pasos').innerHTML = t.pasos.map((x) => `
+        <div class="aparece text-center">
+            <div class="w-14 h-14 rounded-2xl bg-marca-500/10 border border-marca-500/30
+                        flex items-center justify-center mx-auto mb-5">
+                <span class="text-2xl font-black text-marca-500">${escapar(x.n)}</span>
+            </div>
+            <h3 class="font-black text-lg mb-2">${escapar(x.t)}</h3>
+            <p class="text-crema-400 text-sm leading-relaxed">${escapar(x.d)}</p>
+        </div>`).join('');
+
+    document.getElementById('precio-incluye').innerHTML = t.precioIncluye.map((x) => `
+        <li class="flex items-start gap-2.5 text-sm text-crema-300">
+            <svg class="w-4 h-4 text-marca-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            <span>${escapar(x)}</span>
+        </li>`).join('');
+
+    document.getElementById('preguntas-lista').innerHTML = t.preguntas.map((x) => `
+        <div class="bg-noche-950/60 border border-noche-800 rounded-xl p-5">
+            <p class="text-crema-100 font-bold mb-1.5">${escapar(x.p)}</p>
+            <p class="text-crema-400 text-sm leading-relaxed">${escapar(x.r)}</p>
+        </div>`).join('');
+
+    observarAparicion();
+    try { localStorage.setItem('kl_idioma', idioma); } catch (e) {}
+}
+
+function observarAparicion() {
+    const cajas = document.querySelectorAll('.aparece:not(.visible)');
+    if (!('IntersectionObserver' in window)) {
+        cajas.forEach((c) => c.classList.add('visible'));
+        return;
+    }
+    const ojo = new IntersectionObserver((entradas) => {
+        entradas.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add('visible'); ojo.unobserve(e.target); }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    cajas.forEach((c) => ojo.observe(c));
+}
+
+document.getElementById('btnIdioma').addEventListener('click', () => {
+    idioma = idioma === 'es' ? 'en' : 'es';
+    aplicarIdioma();
+});
+
+document.getElementById('anio').textContent = new Date().getFullYear();
+
+// Si ya eligio idioma en otra pagina del sitio, se respeta. Si no, SIEMPRE
+// castellano: un venezolano con el telefono en ingles es mas probable aqui que
+// un turista, y equivocarse hacia el ingles cuesta un cliente.
+try {
+    const guardado = localStorage.getItem('kl_idioma');
+    if (guardado === 'es' || guardado === 'en') idioma = guardado;
+} catch (e) {}
+
+aplicarIdioma();
+</script>
+</body>
+</html>
