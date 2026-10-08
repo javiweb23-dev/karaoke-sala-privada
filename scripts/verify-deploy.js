@@ -17,6 +17,11 @@ const required = [
 // el despliegue del karaoke tiene que seguir pasando igual.
 const optional = [
   'logo.png',
+  // Lo que Google necesita encontrar en la raiz del dominio. Van en optional
+  // como todo lo de la web: si algun dia se quitan, el karaoke tiene que
+  // seguir desplegando igual.
+  'robots.txt',
+  'sitemap.xml',
   // La web publica (mikaraokelatino.com). Va en optional como la tienda: si
   // algun dia se quita, el despliegue del karaoke tiene que pasar igual.
   'home.html',

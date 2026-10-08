@@ -1,0 +1,31 @@
+# Que puede mirar Google y que no.
+#
+# Lo unico que se quiere en los buscadores es la web publica: la portada, la
+# pagina de fiestas y eventos, y la de reservar.
+#
+# Todo lo demas de aqui abajo es la herramienta de la sala: la app donde los
+# clientes piden canciones, el reproductor de la tele, la tienda y las
+# pantallas de administracion. No son paginas que nadie vaya a buscar en
+# Google, y salir ahi solo serviria para que entraran a mirar.
+#
+# OJO con /resenas: NO se bloquea aqui a proposito. Esa pagina ya lleva dentro
+# una etiqueta "noindex", y para obedecerla Google tiene que poder entrar a
+# leerla. Si se bloqueara aqui, Google no la leeria nunca, no veria el noindex
+# y podria acabar enseñandola igual.
+
+User-agent: *
+
+Disallow: /karaoke
+Disallow: /karaoke.html
+Disallow: /reproductor.html
+Disallow: /admin.html
+Disallow: /panel
+Disallow: /panel.html
+Disallow: /resenas-admin.html
+Disallow: /reservas-admin.html
+Disallow: /tienda.html
+Disallow: /tienda-admin.html
+Disallow: /qr-tienda.html
+Disallow: /carteles_qr_sala_privada.html
+
+Sitemap: https://mikaraokelatino.com/sitemap.xml

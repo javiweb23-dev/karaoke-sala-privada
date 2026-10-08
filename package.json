@@ -7,7 +7,8 @@
     "efectos:generar": "node scripts/generar-efectos.js",
     "build": "node scripts/verify-deploy.js",
     "postinstall": "node scripts/copy-soundtouch-lib.js",
-    "probar": "node scripts/probar-sistema.js"
+    "probar": "node scripts/probar-sistema.js",
+    "sitemap": "node scripts/sitemap.js"
   },
   "dependencies": {
     "@soundtouchjs/audio-worklet": "^2.0.3"

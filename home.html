@@ -17,7 +17,7 @@
     gtag('config', 'G-BR2650SX0C');
 </script>
 <title>Karaoke Latino · Sala privada en Lechería</title>
-<meta name="description" content="Sala privada de karaoke en Lechería. Más de 4.000 canciones, pantalla de 65 pulgadas, tres micrófonos inalámbricos y un sistema donde pides desde tu propio celular.">
+<meta name="description" content="Sala privada de karaoke en Lechería. Más de 4.000 canciones, pantalla de 65″ y tres micrófonos: cada quien pide desde su propio celular.">
 
 <!-- Lo que se ve al compartir el enlace por WhatsApp, Instagram o donde sea.
      La direccion de la imagen tiene que ser ABSOLUTA: quien pinta la vista
@@ -39,7 +39,55 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://mikaraokelatino.com/fotos/compartir.jpg">
 
+<!-- La direccion buena de esta pagina. Sin esto, si alguien la comparte con
+     un "?fbclid=..." pegado o con www delante, Google puede tratarla como una
+     pagina distinta y repartir entre las dos lo que valen. -->
+<link rel="canonical" href="https://mikaraokelatino.com/">
+
 <link rel="icon" href="logo.png">
+
+<!-- La ficha del negocio, para Google.
+     Esto es lo que le dice QUE es esto, DONDE esta y CUANDO abre, en vez de
+     dejar que lo adivine del texto. Es lo que alimenta el panel de la derecha
+     y las busquedas de "karaoke cerca de mi".
+     Si cambia el telefono, el horario o el precio, se cambia TAMBIEN aqui. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "EntertainmentBusiness",
+  "@id": "https://mikaraokelatino.com/#negocio",
+  "name": "Karaoke Latino",
+  "description": "Sala privada de karaoke en Lecheria. Mas de 4.000 canciones que cada quien pide desde su propio celular.",
+  "url": "https://mikaraokelatino.com/",
+  "telephone": "+58-412-1591072",
+  "image": "https://mikaraokelatino.com/fotos/compartir.jpg",
+  "logo": "https://mikaraokelatino.com/logo.png",
+  "priceRange": "$40-$90",
+  "currenciesAccepted": "USD, VES",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Urbanizacion Mar",
+    "addressLocality": "Lecheria",
+    "addressRegion": "Anzoategui",
+    "addressCountry": "VE"
+  },
+  "sameAs": ["https://instagram.com/mikaraokelatino"],
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+      "opens": "20:00",
+      "closes": "00:00"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Friday", "Saturday"],
+      "opens": "20:00",
+      "closes": "02:00"
+    }
+  ]
+}
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     // ------------------------------------------------------------------
