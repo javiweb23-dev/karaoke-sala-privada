@@ -155,16 +155,17 @@
        ------------------------------------------------------------------
        Estan todas en fotos/ y se cambian dejando otra con el mismo nombre:
 
-         cantando.jpg        la portada de arriba
-         sala-principal.jpg  la de la seccion "La sala"
-         paso-1-reservas.jpg
-         paso-2-escanea.jpg   los cuatro pasos de "Como funciona"
-         paso-3-pide.jpg
-         paso-4-canta.jpg
-         app-*.jpg           las capturas del telefono
+         cantando.jpg          la portada de arriba
+         sala-principal.jpg    la de la seccion "La sala"
+         precios.jpg           la de la seccion "Precio"
+         eventos.jpg           la del bloque de fiestas, y la portada de /eventos
+         app-*.jpg             las capturas del telefono
 
-       Las de los pasos son de Pexels: uso comercial permitido y sin
-       obligacion de acreditar al autor.
+         compartir.jpg         lo que se ve al compartir el home por WhatsApp
+         eventos-compartir.jpg lo mismo para /eventos
+
+       Las dos de compartir van recortadas a 1.91:1, que es como las encaja
+       WhatsApp. Si se cambia una foto conviene rehacer la suya.
        ------------------------------------------------------------------ */
 
     /* La foto de portada se ve nitida. Lo unico que se toca es un punto de
@@ -483,18 +484,22 @@
             <!-- La foto va a la IZQUIERDA, al reves que en "La sala": asi las
                  dos secciones con foto no se ven calcadas al bajar.
 
-                 Esta viene con la chica pegada a su izquierda y medio encuadre
-                 de fondo vacio, por eso el object-position tira hacia ahi. -->
+                 Es la sala de verdad, no una foto de archivo: se ve la tele con
+                 la letra, la pared de discos y la grama. Las que cantan quedan
+                 pegadas a la izquierda, por eso el encuadre tira hacia alli.
+
+                 No lleva filtro ni sombra fuerte a proposito. La foto ya es
+                 oscura y calida de por si, y la version anterior venia bajada de
+                 brillo y de color porque la de archivo era clara y azulada:
+                 aplicarle lo mismo a esta solo le apagaba la madera y la grama.
+                 Queda un velo suave por abajo, para que funda con la tarjeta. -->
             <div class="aparece relative rounded-2xl overflow-hidden border border-noche-800
                         bg-noche-900 min-h-[300px] lg:min-h-0 order-2 lg:order-1">
                 <img src="fotos/precios.jpg" alt="" loading="lazy"
-                     class="absolute inset-0 w-full h-full object-cover object-[22%_40%]"
-                     style="filter:saturate(.82) brightness(.94)">
+                     class="absolute inset-0 w-full h-full object-cover object-[22%_40%]">
                 <div class="absolute inset-0 pointer-events-none"
                      style="background:
-                        radial-gradient(110% 80% at 30% 40%, transparent 42%, rgba(13,11,9,.55) 100%),
-                        linear-gradient(to bottom, rgba(13,11,9,.45) 0%, rgba(13,11,9,0) 28%),
-                        linear-gradient(to top, rgba(13,11,9,.72) 0%, rgba(13,11,9,0) 40%)"></div>
+                        linear-gradient(to top, rgba(13,11,9,.55) 0%, rgba(13,11,9,0) 45%)"></div>
             </div>
 
             <!-- La tarjeta, ajustada a lo que lleva dentro: antes ocupaba el
