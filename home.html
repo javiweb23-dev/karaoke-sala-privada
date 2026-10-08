@@ -411,41 +411,6 @@
 </section>
 
 
-<!-- ═══════════════════════════════════════════════════════════ VIDEO ═══ -->
-<!-- Va pegado debajo de las cifras: quien acaba de leer "4.000 canciones"
-     es justo quien quiere ver como se ve una. -->
-<section id="video" class="resplandor luz-naranja py-20 px-5 border-b border-noche-800/80">
-    <div class="max-w-4xl mx-auto">
-
-        <div class="aparece text-center mb-8">
-            <span class="inline-block text-marca-500 text-[11px] font-bold uppercase
-                         tracking-[.18em] mb-3" data-t="videoEtiqueta"></span>
-            <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-3" data-t="videoTitulo"></h2>
-            <p class="text-crema-400 leading-relaxed max-w-xl mx-auto" data-t="videoTexto"></p>
-        </div>
-
-        <!-- El hueco guarda su sitio desde el principio (aspect-video), para que
-             al cargar el reproductor no salte todo lo de abajo. -->
-        <div class="aparece relative rounded-2xl overflow-hidden border border-noche-800
-                    bg-noche-900 aspect-video">
-            <div id="ytHueco" class="absolute inset-0"></div>
-        </div>
-
-        <div class="aparece mt-4 flex justify-center">
-            <button id="btnSonido" type="button"
-                class="inline-flex items-center gap-2 border border-noche-700 hover:border-marca-500/60
-                       hover:bg-noche-900 text-crema-300 text-sm font-bold px-5 py-2.5
-                       rounded-xl transition-colors">
-                <svg id="iconoSonido" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round" aria-hidden="true"></svg>
-                <span data-t="videoSonido"></span>
-            </button>
-        </div>
-    </div>
-</section>
-
-
 <!-- ════════════════════════════════════════════════════════ SISTEMA ═══ -->
 <section id="sistema" class="resplandor luz-naranja py-24 px-5 bg-noche-900/30 border-y border-noche-800/80">
     <div class="max-w-6xl mx-auto">
@@ -771,6 +736,41 @@
     </div>
 </section>
 
+<!-- ═══════════════════════════════════════════════════════════ VIDEO ═══ -->
+<!-- Lo ultimo de la pagina, debajo de las fiestas. Sin titulo ni explicacion:
+     el video habla solo. Debajo, lo unico que se le pide al que llego hasta
+     aqui: que siga el canal.
+
+     Empieza en el segundo 30 porque los primeros son silencio. -->
+<section id="video" class="resplandor luz-naranja py-20 px-5 border-t border-noche-800/80">
+    <div class="max-w-4xl mx-auto">
+
+        <!-- El hueco guarda su sitio desde el principio (aspect-video), para que
+             al cargar el reproductor no salte nada. -->
+        <div class="aparece relative rounded-2xl overflow-hidden border border-noche-800
+                    bg-noche-900 aspect-video">
+            <div id="ytHueco" class="absolute inset-0"></div>
+        </div>
+
+        <div class="aparece mt-7 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <p class="text-crema-300 font-bold" data-t="videoSiguenos"></p>
+
+            <!-- El ?sub_confirmation=1 abre el canal con la ventanita de
+                 suscribirse ya puesta, en vez de dejarlo en la portada. -->
+            <a href="https://www.youtube.com/@KaraokeLatino2025?sub_confirmation=1"
+               target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2.5 bg-[#FF0000] hover:bg-[#CC0000] text-white
+                      font-bold text-sm px-6 py-3 rounded-xl transition-colors
+                      shadow-lg shadow-[#FF0000]/25">
+                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span data-t="videoBoton"></span>
+            </a>
+        </div>
+    </div>
+</section>
+
 <!-- ═════════════════════════════════════════════════════════ FOOTER ═══ -->
 <!-- ═══════════════════════════════════════════════ BOTONES FLOTANTES ═══ -->
 <!-- Se apilan en la esquina. El de WhatsApp siempre esta; el de subir
@@ -936,11 +936,8 @@ const TEXTOS = {
         heroTexto: 'Más de 4.000 canciones, pantalla de 65 pulgadas y tres micrófonos inalámbricos. ' +
                    'Sin escenario, sin gente mirando, sin esperar turno con desconocidos. Solo tu gente y el micrófono.',
 
-        videoEtiqueta: 'De nuestro canal',
-        videoTitulo: 'Escucha cómo suena',
-        videoTexto: 'Uno de los karaokes que vas a encontrar en la sala. Empieza sin sonido para no molestar a nadie: dale al botón si quieres oírlo.',
-        videoSonido: 'Activar sonido',
-        videoSilencio: 'Quitar sonido',
+        videoSiguenos: 'Síguenos en YouTube',
+        videoBoton: 'Seguir el canal',
 
         cifraCanciones: 'Canciones',
         cifraGeneros: 'Géneros',
@@ -1117,11 +1114,8 @@ const TEXTOS = {
         heroTexto: 'Over 4,000 songs, a 65-inch screen and three wireless microphones. ' +
                    'No stage, no strangers watching, no waiting in line. Just your people and the mic.',
 
-        videoEtiqueta: 'From our channel',
-        videoTitulo: 'Hear how it sounds',
-        videoTexto: 'One of the karaoke tracks you will find in the room. It starts with no sound so it does not bother anyone: tap the button if you want to hear it.',
-        videoSonido: 'Turn on sound',
-        videoSilencio: 'Mute',
+        videoSiguenos: 'Follow us on YouTube',
+        videoBoton: 'Follow the channel',
 
         cifraCanciones: 'Songs',
         cifraGeneros: 'Genres',
@@ -1322,51 +1316,21 @@ let idioma = 'es';
 //
 // ARRANCA SIN SONIDO, Y NO ES UN CAPRICHO: desde 2018 ningun navegador deja
 // que un video empiece solo CON sonido si el visitante todavia no ha tocado
-// nada de la pagina. Si se intenta, el navegador lo corta y el video no
-// arranca siquiera. Asi que empieza mudo y el boton lo enciende al 10%.
+// nada de la pagina. Si se intenta, el navegador lo corta y no arranca
+// siquiera. Quien quiera oirlo le da al altavoz del propio reproductor, que
+// esta a la vista y funciona en todos los navegadores porque el clic cae
+// DENTRO del marco de YouTube.
 //
-// El 10% se pone en cuanto el reproductor esta listo, para que al activar el
-// sonido ya salga bajito y no pegue un susto.
-const VIDEO = { id: 'eVsm1j6NBtg', volumen: 10 };
+// El volumen se deja al 100 desde que esta listo, para que al quitarle el
+// silencio suene de una y no haya que subirlo a mano.
+//
+// Empieza en el segundo 30: los primeros son silencio y daba la sensacion de
+// que el video estaba roto.
+const VIDEO = { id: 'eVsm1j6NBtg', volumen: 100, desde: 30 };
 
 let ytReproductor = null;
 let ytPausadoPorNosotros = false;
 let ytArrancado = false;
-
-// Los dos dibujos del boton: altavoz tachado cuando esta mudo, con ondas
-// cuando suena.
-const ICONOS_SONIDO = {
-    mudo: '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/>',
-    suena: '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>' +
-           '<path d="M18.5 5.5a9 9 0 0 1 0 13"/>'
-};
-
-function pintarBotonSonido() {
-    const mudo = !ytReproductor || ytReproductor.isMuted();
-    document.getElementById('iconoSonido').innerHTML =
-        mudo ? ICONOS_SONIDO.mudo : ICONOS_SONIDO.suena;
-    document.querySelector('#btnSonido span').textContent =
-        mudo ? TEXTOS[idioma].videoSonido : TEXTOS[idioma].videoSilencio;
-}
-
-document.getElementById('btnSonido').addEventListener('click', () => {
-    if (!ytReproductor) return;
-    if (ytReproductor.isMuted()) {
-        ytReproductor.unMute();
-        ytReproductor.setVolume(VIDEO.volumen);
-        ytReproductor.playVideo();     // por si lo habian pausado
-    } else {
-        ytReproductor.mute();
-    }
-    pintarBotonSonido();
-
-    // El reproductor de YouTube va dentro de un marco de otro dominio, y hay
-    // navegadores que no le pasan el "permiso" de nuestro boton y lo vuelven a
-    // silenciar por su cuenta. Se vuelve a mirar al rato: si gano el navegador,
-    // el boton lo dice en vez de quedarse mintiendo. Y siempre queda el altavoz
-    // del propio reproductor, que ese si funciona en todos.
-    setTimeout(pintarBotonSonido, 800);
-});
 
 // La API de YouTube llama a esta funcion sola cuando termina de cargar. Tiene
 // que ser global y llamarse asi.
@@ -1378,8 +1342,7 @@ function onYouTubeIframeAPIReady() {
             autoplay: 0,             // lo arranca vigilarVideoEnPantalla() al llegar
             mute: 1,                 // obligatorio: ningun navegador deja sonido sin permiso
             controls: 1,             // los mandos de YouTube: pausar y volumen a mano
-            loop: 1,
-            playlist: VIDEO.id,      // sin esto el loop no funciona
+            start: VIDEO.desde,      // los primeros 30 segundos son silencio
             playsinline: 1,          // en iPhone, que no se ponga a pantalla completa solo
             rel: 0,
             modestbranding: 1,
@@ -1388,8 +1351,15 @@ function onYouTubeIframeAPIReady() {
         events: {
             onReady: (e) => {
                 e.target.setVolume(VIDEO.volumen);
-                pintarBotonSonido();
                 vigilarVideoEnPantalla();
+            },
+            // El loop por parametro volveria al segundo 0, que es el silencio.
+            // Asi vuelve al 30, que es donde empieza a sonar.
+            onStateChange: (e) => {
+                if (e.data === YT.PlayerState.ENDED) {
+                    e.target.seekTo(VIDEO.desde);
+                    e.target.playVideo();
+                }
             }
         }
     });
@@ -1603,7 +1573,6 @@ function aplicarIdioma() {
         </li>`).join('');
 
     pintarRedes();
-    if (typeof pintarBotonSonido === 'function') pintarBotonSonido();
     pintarResenas();
     // El formulario de reserva tambien tiene texto dentro.
     // Vive en reserva-comun.js, que carga DESPUES de este script: en la
