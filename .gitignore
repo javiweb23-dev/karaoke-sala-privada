@@ -13,3 +13,9 @@ canciones.js.bak
 plantillacanciones.RESPALDO-*.xlsx
 .ultimo-vistazo.json
 identificar/
+
+# La lista vieja que se comparo y los dos resultados: son papeles de trabajo
+# de Javier, no del sitio. Se rehacen con "node scripts/comparar-lista.js".
+listavieja.txt
+faltantes.txt
+dudosas.txt
