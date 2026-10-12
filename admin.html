@@ -222,6 +222,17 @@
         // reproducir: se veian en cola y no sonaban nunca.
         let sesionIdAdmin = null;
 
+        // Segundos de sala que quedan, cortesia incluida. null = no se sabe
+        // (sin PIN, sin sesion, o sin horas programadas) y entonces no se
+        // avisa de nada.
+        let segundosDeSalaAdmin = null;
+
+        // Lo que dura una cancion, de media. TIENE QUE SER EL MISMO numero
+        // que MIN_POR_CANCION de index.html: si el celular le dice al cliente
+        // que caben y el panel te dice que no, uno de los dos miente. Hay una
+        // prueba que compara los dos.
+        const MIN_POR_CANCION = 3.5;
+
         function pintarPanelSesion(data) {
             if (!data) {
                 panelSesion.innerHTML = `<p class="text-zinc-600 italic text-sm">PIN no ingresado.</p>
@@ -307,7 +318,18 @@
                     cerrar sesión
                 </button>`;
 
+            // El tiempo que queda lo calcula el servidor (ver conTiempos en
+            // api/sesion.js), asi que un reloj desajustado en este telefono
+            // no lo estropea. La cortesia se suma porque la sala de verdad no
+            // se corta hasta que se acaba.
+            segundosDeSalaAdmin = data.sesion.programada
+                ? data.sesion.segundos_restantes + data.sesion.segundos_gracia
+                : null;
+
             pintarPanelTiempo(data.sesion);
+
+            // La cola se repinta: el aviso de "ya no entra" depende de esto.
+            actualizarCola();
         }
 
         // ------------------------------------------------------------------
@@ -608,9 +630,49 @@
                 return;
             }
 
-            adminQueue.innerHTML = data.map((s, i) =>
-                `<div class="truncate py-0.5"><span class="text-amber-500 font-bold mr-1">${i + 1}.</span>${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`
-            ).join('');
+            // ¿Entra todo lo que hay en cola en lo que queda de sala?
+            //
+            // Esto es lo que no se veia en ninguna parte. El sabado 10 de
+            // octubre la sala cerro a la 1:40 con 15 canciones esperando: una
+            // hora de musica que nadie canto, y que ademas quedo apuntada
+            // como cantada. Con el aviso a tiempo se puede extender la sala,
+            // saltar alguna, o al menos decirselo a quien va a quedarse sin
+            // cantar en vez de que se entere al apagarse la TV.
+            let cabenCuantas = data.length;
+            let aviso = '';
+
+            if (segundosDeSalaAdmin !== null) {
+                const minutosSala = segundosDeSalaAdmin / 60;
+                cabenCuantas = Math.max(0, Math.floor(minutosSala / MIN_POR_CANCION));
+
+                if (cabenCuantas < data.length) {
+                    const fuera = data.length - cabenCuantas;
+                    const minutosCola = Math.round(data.length * MIN_POR_CANCION);
+                    aviso = `
+                        <div class="bg-amber-500/10 border border-amber-500/40 rounded-xl px-3 py-2 mb-3">
+                            <p class="text-amber-300 text-xs font-bold mb-0.5">
+                                ⚠ La cola ya no entra en lo que queda</p>
+                            <p class="text-zinc-400 text-[11px] leading-snug">
+                                ${data.length} en espera (~${minutosCola} min) y quedan
+                                ${Math.max(0, Math.round(minutosSala))} min de sala.
+                                ${fuera === 1 ? 'La última no va' : `Las últimas ${fuera} no van`} a sonar.</p>
+                        </div>`;
+                }
+            }
+
+            // Las que no alcanzan se pintan apagadas y marcadas: de un
+            // vistazo se ve por donde se corta la noche.
+            adminQueue.innerHTML = aviso + data.map((s, i) => {
+                const alcanza = i < cabenCuantas;
+                const tono = alcanza ? 'text-amber-500' : 'text-zinc-700';
+                const cuerpo = alcanza ? '' : ' opacity-40';
+                // La marca va DELANTE del titulo, no detras. La linea lleva
+                // "truncate", asi que en el celular los titulos largos se
+                // comian justo el aviso, que es lo unico que hay que ver.
+                const marca = alcanza ? '' :
+                    `<span class="text-amber-600/80 text-[10px] font-bold mr-1">sin tiempo</span>`;
+                return `<div class="truncate py-0.5${cuerpo}"><span class="${tono} font-bold mr-1">${i + 1}.</span>${marca}${s.cancion_info} <span class="text-zinc-500 text-xs">(${s.nombre_usuario})</span></div>`;
+            }).join('');
         }
 
         channel

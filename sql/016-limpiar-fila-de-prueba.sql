@@ -1,0 +1,36 @@
+-- Ejecutar una sola vez en Supabase (SQL Editor > New query > Run).
+--
+-- Borra UNA fila de prueba de portadas_cache, y de paso deja escrito por que
+-- las caratulas llevaban meses sin guardarse.
+--
+-- QUE PASO
+-- --------
+-- guardarPortadaCache() de index.html usa .upsert(). Por debajo eso manda
+-- "resolution=merge-duplicates", que es un ON CONFLICT DO UPDATE, y Postgres
+-- pide permiso de UPDATE sobre la tabla aunque la fila acabe insertandose.
+--
+-- 006-cerrar-permisos.sql se lo quito al navegador a proposito:
+--
+--     revoke update, delete on portadas_cache from anon, authenticated;
+--     -- Aqui solo se lee y se escribe una vez por cancion: nada mas hace falta.
+--
+-- La intencion era buena, pero el codigo no escribia asi. Desde entonces
+-- TODAS las caratulas fallaban con "permission denied for table
+-- portadas_cache" y el catalogo se las volvia a pedir a iTunes una por una en
+-- cada carga del celular.
+--
+-- NO se arregla devolviendo el UPDATE: se arregla en index.html, poniendo
+-- ignoreDuplicates, que es ON CONFLICT DO NOTHING y solo necesita INSERT. Los
+-- permisos se quedan como estan, que es como deben estar.
+--
+-- LA FILA DE PRUEBA
+-- -----------------
+-- Para comprobar cual de las dos formas pasaba el permiso hubo que intentarlo
+-- contra la base de verdad, y la que funciono dejo esta fila metida. Con la
+-- clave publica no se puede borrar (delete revocado, y bien revocado), asi
+-- que se borra aqui.
+delete from portadas_cache
+ where identificador like 'ZZZ PRUEBA BORRAR - %';
+
+-- Para comprobar que no quedo ninguna:
+--   select count(*) from portadas_cache where identificador like 'ZZZ PRUEBA%';

@@ -1146,6 +1146,61 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
             /MINUTOS_GRACIA_SALA \* 60000/.test(lector));
     }
 
+    seccion('Caratulas y lo que se apunta como que falta');
+
+    {
+        const app = leer('index.html');
+        const permisos = leer('sql/006-cerrar-permisos.sql');
+
+        // El upsert normal pide permiso de UPDATE, y 006 se lo quito al
+        // navegador a proposito. Con ignoreDuplicates basta con INSERT.
+        const guardar = sacarFuncion(app, 'guardarPortadaCache', 8);
+        comprobar('la caratula se guarda sin pedir permiso de UPDATE',
+            /ignoreDuplicates: true/.test(guardar), guardar.trim());
+        comprobar('y 006 sigue sin dar UPDATE sobre portadas_cache',
+            /revoke update, delete on portadas_cache/.test(permisos));
+
+        // El reloj que apunta la busqueda tiene que cancelarse en cuanto hay
+        // resultados, o apunta como hueco algo que si esta.
+        const cargar = sacarFuncion(app, 'cargarCanciones', 8);
+        comprobar('al pintar resultados se cancela el apunte pendiente',
+            /clearTimeout\(anotarBusquedaId\)/.test(cargar));
+        comprobar('y se cancela ANTES de decidir si la lista esta vacia',
+            cargar.indexOf('clearTimeout(anotarBusquedaId)') > 0 &&
+            cargar.indexOf('clearTimeout(anotarBusquedaId)') <
+            cargar.indexOf('if (lista.length === 0)'));
+    }
+
+    seccion('El panel avisa de que la cola no entra');
+
+    {
+        const panel = leer('admin.html');
+        const app = leer('index.html');
+
+        // Si el celular y el panel no usan el mismo numero, uno de los dos
+        // le miente a alguien.
+        const enPanel = panel.match(/MIN_POR_CANCION = ([\d.]+)/);
+        const enApp = app.match(/MIN_POR_CANCION = ([\d.]+)/);
+        comprobar('el panel y el celular miden la cancion igual',
+            Boolean(enPanel && enApp) && enPanel[1] === enApp[1],
+            [enPanel && enPanel[1], enApp && enApp[1]]);
+
+        const cola = sacarFuncion(panel, 'actualizarCola', 8);
+        comprobar('la cola mira cuanto queda de sala',
+            /segundosDeSalaAdmin !== null/.test(cola));
+        comprobar('y sin saberlo no avisa de nada',
+            /let aviso = '';/.test(cola) || /let aviso = ""/.test(cola));
+        comprobar('se señalan las que se quedan sin tiempo',
+            /cabenCuantas/.test(cola) && /sin tiempo/.test(cola));
+
+        // El tiempo lo calcula el servidor; sumarle la cortesia es lo que
+        // hace que no avise doce minutos antes de tiempo.
+        comprobar('el tiempo de sala sale del servidor, con la cortesia',
+            /segundos_restantes \+ data\.sesion\.segundos_gracia/.test(panel));
+        comprobar('y al refrescar el panel se repinta la cola',
+            /pintarPanelTiempo\(data\.sesion\);[\s\S]{0,200}actualizarCola\(\)/.test(panel));
+    }
+
     // ---------------------------------------------------------------------
     console.log('');
     if (fallos === 0) {

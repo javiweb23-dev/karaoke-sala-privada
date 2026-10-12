@@ -475,12 +475,24 @@
             return data.caratula_url;
         }
 
+        // El upsert normal manda "resolution=merge-duplicates", que por
+        // debajo es un ON CONFLICT DO UPDATE y por eso Postgres pide permiso
+        // de UPDATE sobre la tabla. Pero 006-cerrar-permisos.sql se lo quito
+        // al navegador a proposito ("aqui solo se lee y se escribe una vez
+        // por cancion"), asi que desde entonces TODAS las caratulas fallaban
+        // con "permission denied for table portadas_cache" y el catalogo se
+        // las volvia a pedir a iTunes una por una, en cada carga, para
+        // siempre.
+        //
+        // ignoreDuplicates lo convierte en ON CONFLICT DO NOTHING, que solo
+        // necesita INSERT. Y encaja con lo que se queria: la caratula se
+        // guarda una vez y no se vuelve a tocar.
         async function guardarPortadaCache(identificador, url) {
             const { error } = await supabaseClient
                 .from('portadas_cache')
                 .upsert(
                     { identificador: identificador, caratula_url: url },
-                    { onConflict: 'identificador' }
+                    { onConflict: 'identificador', ignoreDuplicates: true }
                 );
             if (error) console.error("Error en Supabase:", error);
         }
@@ -1291,7 +1303,20 @@
         function cargarCanciones(lista) {
             const songList = document.getElementById('songList');
             songList.innerHTML = '';
-            
+
+            // Se cancela SIEMPRE el apunte que estuviera esperando.
+            //
+            // El reloj se arma cuando la lista sale vacia y, 1,8 s despues,
+            // apunta lo que haya en el buscador EN ESE MOMENTO. Nadie lo
+            // cancelaba al aparecer resultados, asi que escribir "Rock d"
+            // (vacio, reloj armado) y seguir hasta "Rock dj" (que si existe)
+            // apuntaba "Rock dj" como cancion que falta. Once de las 58
+            // entradas de la lista de descargar eran canciones que ya
+            // estaban: "Olivia Rodrigo", "Soy luna", "Rock dj"...
+            //
+            // Las dos ramas que si quieren apuntar lo vuelven a armar abajo.
+            clearTimeout(anotarBusquedaId);
+
             if (lista.length === 0) {
                 songList.innerHTML = `<p class="text-center text-zinc-600 italic py-6">No se encontraron resultados</p>`;
                 anotarBusquedaSinResultados();
