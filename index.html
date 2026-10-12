@@ -313,6 +313,46 @@
 
         let sesionSalaId = null;
 
+        // Cuanto dura una cancion, de media. Medido sobre las 82 que sonaron
+        // el sabado 10 de octubre: 3,6 min. Se usa el MISMO numero para
+        // decirle al cliente cuanto va a esperar y para avisarle de que no
+        // alcanza; con dos numeros distintos la app se contradiria sola.
+        const MIN_POR_CANCION = 3.5;
+
+        // Minutos de cortesia una vez agotada la hora pagada.
+        // TIENE QUE SER EL MISMO que MINUTOS_GRACIA de api/sesion.js, que es
+        // quien manda de verdad. Hay una prueba en scripts/probar-sistema.js
+        // que compara los dos numeros, porque aqui no se puede preguntar al
+        // servidor: /api/sesion exige el PIN del operador.
+        const MINUTOS_GRACIA_SALA = 10;
+
+        // Hora a la que se acaba la sala, cortesia incluida.
+        // null = no se sabe, y entonces no se avisa de nada.
+        let finSalaMs = null;
+
+        // Se lee APARTE del control de sala y con su propio try/catch, a
+        // proposito. Si se metiera en la consulta de verificarSesionSala y
+        // algun dia faltara la columna, el error diria "does not exist", que
+        // es justo lo que esa funcion interpreta como "el control no esta
+        // instalado": dejaria entrar a todo el mundo sin codigo. Aqui lo peor
+        // que puede pasar es quedarse sin el aviso.
+        async function leerFinDeSala() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('sesion_activa')
+                    .select('fin_previsto')
+                    .limit(1);
+                if (error) throw error;
+                const fin = data && data.length ? data[0].fin_previsto : null;
+                finSalaMs = fin
+                    ? new Date(fin).getTime() + MINUTOS_GRACIA_SALA * 60000
+                    : null;
+            } catch (e) {
+                console.warn('[Sala] No se pudo leer la hora de cierre:', e.message || e);
+                finSalaMs = null;
+            }
+        }
+
         async function verificarSesionSala() {
             const cerrada = document.getElementById('salaCerradaModal');
             let activa = null;
@@ -346,6 +386,8 @@
             // curiosear el catalogo hasta que el operador la abra.
             if (!activa) {
                 sesionSalaId = null;
+                // Que no se quede la hora de cierre de la sala anterior.
+                finSalaMs = null;
                 localStorage.removeItem('karaoke_sesion_id');
                 cerrada.classList.remove('hidden');
                 document.getElementById('codeModal').classList.add('hidden');
@@ -354,6 +396,7 @@
 
             cerrada.classList.add('hidden');
             sesionSalaId = activa.id;
+            await leerFinDeSala();
 
             if (Number(localStorage.getItem('karaoke_sesion_id')) === activa.id) {
                 return true;
@@ -1939,6 +1982,39 @@
                 const orden = repartirCola(simulada);
                 const puesto = orden.findIndex(x => x._nueva === MARCA) + 1;
 
+                // Lo que va a esperar esta cancion. El puesto ya trae los
+                // turnos contados, asi que las que van de verdad delante son
+                // puesto - 1.
+                const esperaMin = (puesto - 1) * MIN_POR_CANCION;
+
+                // Y si no alcanza, se dice ANTES de aceptarla.
+                //
+                // El sabado 10 de octubre la sala cerro a la 1:40 con 15
+                // canciones todavia en cola. La app las habia aceptado todas
+                // y encima les habia dado una espera en minutos, porque no
+                // miraba nunca a que hora se acababa la sala: solo preguntaba
+                // si estaba abierta. Esas 15 nadie las canto.
+                //
+                // No se prohibe pedirla: a lo mejor va a ser la ultima de la
+                // noche y la quiere igual, o se extiende la sala. Se le dice
+                // y decide el.
+                if (finSalaMs !== null) {
+                    const quedanMin = (finSalaMs - Date.now()) / 60000;
+                    if (esperaMin > quedanMin) {
+                        const quedan = Math.max(0, Math.round(quedanMin));
+                        const delante = puesto - 1;
+                        const seguro = await confirmarEnPantalla(
+                            'A la sala le quedan unos ' + quedan + ' min, y ' +
+                            (delante === 1
+                                ? 'hay 1 canción antes que la tuya'
+                                : 'hay ' + delante + ' canciones antes que la tuya') +
+                            ' (unos ' + Math.round(esperaMin) + ' min de espera).' +
+                            '\n\nLo más probable es que esta no llegue a sonar.',
+                            'Pedirla igual');
+                        if (!seguro) return;
+                    }
+                }
+
                 const solicitud = {
                     nombre_usuario: miNombre,
                     cancion_info: nombreArchivo,
@@ -1980,9 +2056,10 @@
                 if (puesto <= 1) {
                     mostrarAlerta("✅ ¡Enviada! Es la siguiente en sonar.");
                 } else {
-                    // El puesto ya cuenta el reparto por turnos, asi que la
-                    // espera es la de las canciones que van de verdad delante.
-                    const minsAprox = (puesto - 1) * 3;
+                    // La espera sale de MIN_POR_CANCION, el mismo numero con
+                    // el que se decide si avisar de que no alcanza. Antes
+                    // aqui habia un 3 escrito a mano.
+                    const minsAprox = Math.round(esperaMin);
                     mostrarAlerta(`✅ ¡En cola! Tu canción es la número ${puesto} (unos ${minsAprox} min).`);
                 }
 

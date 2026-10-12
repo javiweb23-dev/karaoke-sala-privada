@@ -63,6 +63,36 @@ function conTiempos(sesion) {
     };
 }
 
+// Lo que se queda en la cola al cerrar la sala NO se canto, y hasta ahora
+// quedaba marcado "completada" igual que una cancion que sono entera. Era la
+// mayor fuente de confusion de toda la base: el sabado 10 de octubre la sala
+// cerro a la 1:40 con 15 canciones todavia esperando, y las 15 figuraban
+// como cantadas.
+//
+// Se sigue marcando completada —si no, el panel mostraria restos de anoche y
+// el reparto de turnos de la noche siguiente las contaria— pero con
+// "sin_sonar_cierre" al lado, que es lo que las separa.
+//
+// Si todavia no se ha ejecutado sql/015 esa columna no existe y el PATCH
+// devuelve error. Se reintenta sin ella: cerrar la sala es lo ultimo que
+// puede fallar, y menos por una nota.
+async function marcarColaSinSonar(filtro) {
+    try {
+        await supabaseFetchEstricto(filtro, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'completada', resultado: 'sin_sonar_cierre' })
+        });
+    } catch (err) {
+        console.warn('[sesion] sin columna resultado (¿falta sql/015?):', err.message);
+        await supabaseFetchEstricto(filtro, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'completada' })
+        });
+    }
+}
+
 async function cerrarAbiertas() {
     const abierta = await sesionAbierta();
     if (!abierta) return null;
@@ -77,17 +107,13 @@ async function cerrarAbiertas() {
     });
 
     // Lo que quedo en cola de ese grupo ya no tiene sentido: el grupo se fue.
-    // Se marca como completada para que el admin no vea restos de anoche.
+    // Se aparta para que el admin no vea restos de anoche, pero queda dicho
+    // que no sono (ver marcarColaSinSonar).
     // Se incluyen las que no tienen sesion (pedidas antes de abrirla), que si
     // no quedarian colgadas en la cola indefinidamente.
-    await supabaseFetchEstricto(
+    await marcarColaSinSonar(
         `Solicitudes?estado=eq.pendiente` +
-        `&or=(sesion_id.eq.${abierta.id},sesion_id.is.null)`,
-        {
-            method: 'PATCH',
-            headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify({ estado: 'completada' })
-        }
+        `&or=(sesion_id.eq.${abierta.id},sesion_id.is.null)`
     );
 
     return abierta;
@@ -217,11 +243,7 @@ module.exports = async (req, res) => {
             // (se apago la TV, se cerro sin sesion abierta) se quedaban ahi
             // para siempre. Aqui no hay sesion abierta: nada que sea pendiente
             // tiene ya sentido.
-            await supabaseFetchEstricto('Solicitudes?estado=eq.pendiente', {
-                method: 'PATCH',
-                headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ estado: 'completada' })
-            });
+            await marcarColaSinSonar('Solicitudes?estado=eq.pendiente');
 
             const fin = new Date(inicio.getTime() + horas * 3600000);
 

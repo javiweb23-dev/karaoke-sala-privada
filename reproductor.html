@@ -1359,6 +1359,31 @@
             }, 1000);
         }
 
+        // Deja constancia de que una cancion NO sono, en la tabla que ya
+        // existia para esto (canciones_con_error) y que lee "npm run
+        // actualizar" para decir que archivos hay que reponer.
+        //
+        // Es un aviso, no una urgencia: si no se puede escribir, la noche
+        // sigue igual. Por eso no se espera la respuesta.
+        //
+        // Lo bueno de usar esa tabla es que lleva un contador: un archivo
+        // roto de verdad sube noche tras noche y salta a la vista, mientras
+        // que un tropiezo de una sola vez se queda en uno y se distingue.
+        function anotarQueNoSono(nombre, motivo, quien) {
+            try {
+                supabaseClient.rpc('reportar_cancion_con_error', {
+                    p_identificador: nombre,
+                    p_motivo: String(motivo).slice(0, 200),
+                    p_usuario: quien || null,
+                    p_sesion: sesionIdActiva || null
+                }).then(({ error }) => {
+                    if (error) console.warn('No se pudo anotar el fallo:', error.message);
+                });
+            } catch (e) {
+                console.warn('No se pudo anotar el fallo:', e.message);
+            }
+        }
+
         async function reproducirVideo(solicitud) {
             const token = ++reproduccionToken;
             const nombre = solicitud.cancion_info;
@@ -1385,23 +1410,56 @@
                 timeCounter.classList.remove('hidden');
 
                 player.onended = () => {
-                    if (idActual === solicitud.id) marcarComoCompletada(solicitud.id);
+                    if (idActual === solicitud.id) marcarComoCompletada(solicitud.id, 'sonada');
                 };
                 player.onerror = () => {
+                    // Habia empezado a sonar y se corto a mitad. Cuenta como
+                    // fallo igual: el cliente no canto su cancion.
+                    const codigo = player.error ? player.error.code : '?';
                     console.error('Error durante reproducción:', player.error);
-                    if (idActual === solicitud.id) marcarComoCompletada(solicitud.id);
+                    if (idActual !== solicitud.id) return;
+                    const porque = 'se corto a mitad (codigo ' + codigo + ')';
+                    anotarQueNoSono(nombre, porque, solicitud.nombre_usuario);
+                    marcarComoCompletada(solicitud.id, 'fallada', porque);
                 };
             } catch (err) {
-                console.warn('No se pudo reproducir:', nombre, err);
+                // AQUI ESTABA EL AGUJERO.
+                //
+                // El cliente ve su cancion anunciada en la pantalla, no
+                // suena, y la noche sigue. Antes quedaba apuntada como
+                // cantada y el unico rastro era este console.warn, que muere
+                // en cuanto se recarga la pagina de la TV: si el operador no
+                // estaba delante en ese momento, nadie se enteraba nunca.
+                //
+                // Paso el 2 de octubre con una de Mabel (CARLOS ALFREDO -
+                // SOLO EN MI CUARTO, 23:10). Se descubrio de casualidad,
+                // porque hubo que volver a pedirla diez minutos despues.
+                const motivo = 'no cargo: ' +
+                    String((err && (err.message || err)) || 'desconocido');
+                console.warn('No se pudo reproducir:', nombre, motivo);
                 if (token === reproduccionToken && idActual === solicitud.id) {
-                    lobbyMessage.innerText = `NO DISPONIBLE:\n${nombre}`;
-                    await new Promise(r => setTimeout(r, 900));
-                    await marcarComoCompletada(solicitud.id);
+                    // Cuatro segundos en vez de nueve decimas: desde el sofa
+                    // hay que poder leer lo que paso. En 0,9 s lo unico que
+                    // se veia era un parpadeo y la cancion siguiente.
+                    lobbyMessage.innerText =
+                        `NO SE PUDO REPRODUCIR:\n${nombre}\n\nQueda anotada, pide otra`;
+                    anotarQueNoSono(nombre, motivo, solicitud.nombre_usuario);
+                    await new Promise(r => setTimeout(r, 4000));
+                    await marcarComoCompletada(solicitud.id, 'fallada', motivo);
                 }
             }
         }
 
-        async function marcarComoCompletada(id) {
+        // "resultado" dice que paso DE VERDAD: sono, no cargo, o la salto el
+        // operador. El estado se queda en "completada" en los tres casos, y
+        // no es pereza: el reparto de turnos cuenta las completadas para
+        // saber a quien le toca, asi que si un fallo dejara la cancion sin
+        // marcar, a esa persona le volveria a tocar y la cola se repetiria
+        // sola.
+        //
+        // Separar las dos cosas es justo lo que permite mirar una noche y
+        // saber que sono y que no, sin tocar el reparto.
+        async function marcarComoCompletada(id, resultado = 'sonada', detalle = null) {
             if (!id || completandoCancion) return;
             if (idActual !== null && id !== idActual) return;
 
@@ -1412,10 +1470,26 @@
             try {
                 const { error } = await supabaseClient
                     .from('Solicitudes')
-                    .update({ estado: 'completada' })
+                    .update({
+                        estado: 'completada',
+                        resultado: resultado,
+                        detalle: detalle ? String(detalle).slice(0, 200) : null,
+                        terminada_en: new Date().toISOString()
+                    })
                     .eq('id', id);
 
-                if (error) console.error('Error al marcar completada:', error);
+                // Si todavia no se ha ejecutado sql/015 esas tres columnas no
+                // existen y el update entero falla. Se reintenta a lo viejo:
+                // perder la nota es molesto, pero dejar la cancion sin marcar
+                // colgaria la cola repitiendola para siempre.
+                if (error) {
+                    console.warn('Sin columnas de resultado (¿falta sql/015?):', error.message);
+                    const viejo = await supabaseClient
+                        .from('Solicitudes')
+                        .update({ estado: 'completada' })
+                        .eq('id', id);
+                    if (viejo.error) console.error('Error al marcar completada:', viejo.error);
+                }
             } catch (e) {
                 console.error('Error al marcar completada:', e);
             }
@@ -1479,7 +1553,9 @@
                         break;
 
                     case 'saltar':
-                        if (isPlaying && idActual) marcarComoCompletada(idActual);
+                        // Saltada a mano no es lo mismo que sonada ni que
+                        // fallada: el operador la corto a proposito.
+                        if (isPlaying && idActual) marcarComoCompletada(idActual, 'saltada');
                         break;
 
                     case 'efecto':

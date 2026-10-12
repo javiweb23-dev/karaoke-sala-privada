@@ -533,7 +533,13 @@ seccion('Lo que piden y no tienes');
         api.yaLaTienes('Manda una carta a tu marido'));
 
     // Huecos de verdad: tienen que sobrevivir al filtro.
-    for (const q of ['Aguanile', 'Locomia', 'Metallica', 'Depeche mode']) {
+    //
+    // OJO: estos nombres tienen que seguir SIN estar en el catalogo. Aqui
+    // estaba "Aguanile" y la prueba se puso roja sola el 9 de octubre, no
+    // por un fallo sino porque HECTOR LAVOE - AGUANILE ya se descargo: el
+    // sistema hizo justo lo que tenia que hacer. Si algun dia caen Locomia o
+    // Metallica, hay que cambiarlos por otros que no esten.
+    for (const q of ['Locomia', 'Metallica', 'Depeche mode']) {
         comprobar('"' + q + '" sobrevive: es un hueco real', !api.yaLaTienes(q));
     }
 
@@ -1003,6 +1009,141 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
             JSON.stringify(new Function('return ' + servidor[1])()) ===
             JSON.stringify(new Function('return ' + cliente[1])()),
             [servidor && servidor[1], cliente && cliente[1]]);
+    }
+
+    seccion('Que paso de verdad con cada cancion');
+
+    {
+        const tv = leer('reproductor.html');
+        const api = leer('api/sesion.js');
+        const sql = leer('sql/015-que-paso-con-cada-cancion.sql');
+
+        // El agujero: cuando el video no cargaba, la cancion quedaba marcada
+        // como cantada y el unico rastro era un console.warn que moria al
+        // recargar la TV. Ahora tiene que quedar escrito en la base.
+        const fallo = tv.slice(tv.indexOf('} catch (err) {'),
+            tv.indexOf('async function marcarComoCompletada'));
+
+        comprobar('un video que no carga se anota como fallada',
+            /marcarComoCompletada\(solicitud\.id, .fallada./.test(fallo), fallo.slice(-240));
+        comprobar('y ademas se reporta a canciones_con_error',
+            /anotarQueNoSono\(/.test(fallo));
+        comprobar('el aviso en pantalla dura mas de 3 segundos',
+            (() => {
+                const m = fallo.match(/setTimeout\(r, (\d+)\)/);
+                return Boolean(m) && Number(m[1]) >= 3000;
+            })(),
+            (fallo.match(/setTimeout\(r, (\d+)\)/) || [])[1]);
+
+        // Se mira DENTRO de cada manejador. Medir "a menos de N caracteres"
+        // se rompe en cuanto alguien añade un comentario en medio, que es
+        // justo lo que paso al escribir esta prueba.
+        // Los limites se buscan A PARTIR del manejador: el primer
+        // "} catch (err) {" del archivo es el de cargarFuenteVideo, muy
+        // arriba, y el trozo salia vacio.
+        const iFin = tv.indexOf('player.onended = () => {');
+        const iErr = tv.indexOf('player.onerror = () => {', iFin);
+        const onended = tv.slice(iFin, iErr);
+        const onerror = tv.slice(iErr, tv.indexOf('} catch (err) {', iErr));
+        comprobar('los dos manejadores se encuentran en el reproductor',
+            iFin > 0 && iErr > iFin && onended.length > 0 && onerror.length > 0,
+            { onended: onended.length, onerror: onerror.length });
+
+        comprobar('una que suena entera se anota como sonada',
+            /marcarComoCompletada\(solicitud\.id, .sonada.\)/.test(onended), onended.trim());
+        comprobar('una que se corta a mitad se anota como fallada',
+            /marcarComoCompletada\(solicitud\.id, .fallada./.test(onerror) &&
+            /anotarQueNoSono\(/.test(onerror), onerror.trim());
+        comprobar('el boton de saltar se anota como saltada',
+            /case .saltar.[\s\S]{0,260}marcarComoCompletada\(idActual, .saltada./.test(tv));
+
+        // Lo que se queda en cola al cerrar la sala tampoco sono.
+        comprobar('al cerrar la sala la cola queda como sin_sonar_cierre',
+            /resultado: 'sin_sonar_cierre'/.test(api));
+        comprobar('y los dos sitios que vacian la cola usan el mismo camino',
+            (api.match(/await marcarColaSinSonar\(/g) || []).length === 2,
+            (api.match(/await marcarColaSinSonar\(/g) || []).length);
+
+        // El estado NO se toca: el reparto de turnos cuenta las completadas,
+        // asi que un fallo no puede devolverle el turno a quien ya lo gasto.
+        const marcar = sacarFuncion(tv, 'marcarComoCompletada', 8);
+        comprobar('el estado sigue siendo completada en todos los casos',
+            (marcar.match(/estado: 'completada'/g) || []).length >= 1 &&
+            !/estado: .(fallada|saltada|sin_sonar)/.test(tv));
+
+        // Si falta sql/015 las columnas no existen y el update falla. Tiene
+        // que reintentar a lo viejo, o la cancion se queda sin marcar y la
+        // cola la repite para siempre.
+        comprobar('si faltan las columnas, reintenta marcando solo el estado',
+            /if \(error\)[\s\S]{0,400}\.update\(\{ estado: 'completada' \}\)/.test(marcar));
+        comprobar('cerrar la sala tambien aguanta sin las columnas',
+            /catch \(err\)[\s\S]{0,420}estado: .completada.[\s\S]{0,40}\}\)/.test(api));
+
+        // Y los valores que escribe el codigo tienen que ser EXACTAMENTE los
+        // que la base acepta. Si se añade uno en el codigo y no en el SQL, el
+        // update falla de noche y en silencio.
+        const usados = new Set();
+        // La comilla va literal: con un punto comodin, la FIRMA
+        // "marcarComoCompletada(id, resultado = ..." colaba "esultado".
+        for (const m of tv.matchAll(/marcarComoCompletada\([^,)]+, '([a-z_]+)'/g)) usados.add(m[1]);
+        for (const m of tv.matchAll(/resultado = '([a-z_]+)'/g)) usados.add(m[1]);
+        for (const m of api.matchAll(/resultado: '([a-z_]+)'/g)) usados.add(m[1]);
+
+        const permitidos = new Set();
+        const lista = sql.match(/resultado in \(([^)]*)\)/);
+        if (lista) for (const m of lista[1].matchAll(/.([a-z_]+)./g)) permitidos.add(m[1]);
+
+        comprobar('los resultados que escribe el codigo son los que la base acepta',
+            usados.size > 0 && permitidos.size > 0 &&
+            [...usados].every((v) => permitidos.has(v)) &&
+            [...permitidos].every((v) => usados.has(v)),
+            { usados: [...usados].sort(), permitidos: [...permitidos].sort() });
+
+        // 006-cerrar-permisos.sql limito el update del navegador a una sola
+        // columna a proposito. Las nuevas hay que sumarlas o la TV no puede
+        // escribirlas.
+        comprobar('el navegador tiene permiso para escribir las 3 columnas',
+            /grant\s+update \(estado, resultado, detalle, terminada_en\)/.test(sql));
+    }
+
+    seccion('Avisar cuando la cancion no va a alcanzar a sonar');
+
+    {
+        const app = leer('index.html');
+        const api = leer('api/sesion.js');
+
+        // Los minutos de cortesia estan escritos en dos sitios porque el
+        // celular no puede preguntarle al servidor (/api/sesion pide el PIN).
+        // Si se cambian en uno y no en el otro, el aviso miente.
+        const enApp = app.match(/MINUTOS_GRACIA_SALA = (\d+)/);
+        const enApi = api.match(/MINUTOS_GRACIA = (\d+)/);
+        comprobar('los minutos de cortesia del celular y del servidor coinciden',
+            Boolean(enApp && enApi) && enApp[1] === enApi[1],
+            [enApp && enApp[1], enApi && enApi[1]]);
+
+        // Un solo numero para lo que dura una cancion.
+        comprobar('la duracion media de una cancion esta en un solo sitio',
+            (app.match(/MIN_POR_CANCION = /g) || []).length === 1 &&
+            !/\(puesto - 1\) \* 3\b/.test(app));
+
+        // El aviso avisa, no prohibe: a lo mejor la quiere igual.
+        const pedir = app.slice(app.indexOf('const esperaMin'),
+            app.indexOf('const solicitud = {'));
+        comprobar('el aviso deja pedirla igual (es una pregunta, no un no)',
+            /confirmarEnPantalla\(/.test(pedir) && /if \(!seguro\) return;/.test(pedir));
+        comprobar('sin saber la hora de cierre no se avisa de nada',
+            /finSalaMs !== null/.test(pedir));
+
+        // Leer la hora de cierre NO puede tumbar el control de sala: si el
+        // error dijera "does not exist", verificarSesionSala lo tomaria por
+        // "no instalado" y dejaria entrar a cualquiera sin codigo.
+        const lector = sacarFuncion(app, 'leerFinDeSala', 8);
+        comprobar('leer la hora de cierre tiene su propio try/catch',
+            /try \{/.test(lector) && /catch \(e\)/.test(lector));
+        comprobar('y si falla no toca el control de sala',
+            !/sesionSalaId/.test(lector) && /finSalaMs = null/.test(lector));
+        comprobar('la cortesia se suma a la hora pagada',
+            /MINUTOS_GRACIA_SALA \* 60000/.test(lector));
     }
 
     // ---------------------------------------------------------------------
