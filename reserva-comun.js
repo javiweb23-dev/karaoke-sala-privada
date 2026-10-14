@@ -6,9 +6,10 @@
 // quiere reservar. Por eso vive aqui y no dentro de ninguna de las dos: el
 // precio y los horarios estan escritos una sola vez.
 //
-// Da por hecho que antes existen dos cosas:
-//   TEXTOS   con las frases ya mezcladas (ver reserva-textos.js)
-//   idioma   'es' o 'en'
+// Da por hecho que antes existen tres cosas:
+//   TEXTOS     con las frases ya mezcladas (ver reserva-textos.js)
+//   idioma     'es' o 'en'
+//   WHATSAPP   el numero de Javier, para mandarle la reserva
 // y que el HTML de la pagina trae los mismos id que el del home.
 // =========================================================================
 // =========================================================================
@@ -16,19 +17,38 @@
 //
 // Las reglas estan repetidas aqui y en api/reserva.js, y es a proposito: aqui
 // para que el cliente no pierda el tiempo, y alli porque es quien decide. Si
-// alguna vez cambian, hay que tocar LOS DOS sitios.
+// alguna vez cambian, hay que tocar LOS DOS sitios. Hay una prueba en
+// scripts/probar-sistema.js que compara los dos numeros.
 // =========================================================================
 var RES = {
     ABRE: 20 * 60,
-    // La tarifa, igual que en api/reserva.js. Si cambia, se cambia en los dos.
-    PRECIOS: { 2: 40, 3: 60, 4: 70 },
+
+    // La tarifa: $2 por persona y por hora. Antes era precio fijo por la sala
+    // (2h $40, 3h $60, 4h $70); ahora paga cada cabeza, asi que un grupo
+    // pequeno sale mucho mas barato y uno grande paga mas.
+    PRECIO_PERSONA_HORA: 2,
+
+    // Minimo que se cobra. Quien quiera venir solo puede, pero paga como si
+    // vinieran cuatro: la sala se ocupa igual.
+    MIN_PERSONAS: 4,
+    MAX_PERSONAS: 14,          // lo que cabe en la sala
+
+    // Nunca se alquila una sola hora.
+    MIN_HORAS: 2,
+    MAX_HORAS: 4,
+
+    // A partir de este total va de regalo una racion de tequenos y un
+    // refresco de dos litros.
+    COMBO_DESDE: 50,
+
     ACOMODO: 20,           // para instalarse: el tiempo empieza a correr despues
     RECOGIDA: 20           // para recoger al final
 };
 
 var reserva = {
     fecha: '', horas: 3,   // 3 es la que se recomienda
-    inicio: null, comprobante: null, tasa: null
+    personas: RES.MIN_PERSONAS,
+    inicio: null, tasa: null, enviada: null
 };
 
 function nodo(id) { return document.getElementById(id); }
@@ -57,8 +77,26 @@ function resFechaEnPalabras(iso) {
     }
 }
 
-function resPrecio(horas) {
-    return RES.PRECIOS[horas];
+// Cuantas personas se COBRAN, que no es lo mismo que cuantas vienen.
+function resPersonasCobradas(personas) {
+    return Math.max(RES.MIN_PERSONAS, Number(personas) || 0);
+}
+
+function resPrecio(horas, personas) {
+    return RES.PRECIO_PERSONA_HORA * horas * resPersonasCobradas(personas);
+}
+
+// Lo que pone cada uno de los que de verdad vienen. Si son menos de cuatro,
+// el minimo se reparte entre los que son, no entre cuatro imaginarios.
+function resPorCabeza(horas, personas) {
+    const cuantos = Math.max(1, Number(personas) || 1);
+    return resPrecio(horas, personas) / cuantos;
+}
+
+// Dos decimales solo cuando hacen falta: $6 se lee mejor que $6.00, pero
+// $5.33 no se puede redondear a $5.
+function resDinero(usd) {
+    return Number.isInteger(usd) ? String(usd) : usd.toFixed(2);
 }
 
 function resBolivares(usd) {
@@ -70,11 +108,24 @@ function resBolivares(usd) {
 function resLlenarSelects() {
     const t = TEXTOS[idioma];
 
-    // Cada duracion con su precio al lado: asi se elige mirando lo que cuesta,
-    // sin tener que sumar nada.
-    nodo('resHoras').innerHTML = Object.keys(RES.PRECIOS).map(Number).sort((a, b) => a - b)
-        .map((horas) => `<option value="${horas}"${horas === reserva.horas ? ' selected' : ''}>` +
-             `${horas} ${t.resHoraPl} · $${RES.PRECIOS[horas]}</option>`).join('');
+    // Cada duracion con lo que costaria PARA LA GENTE QUE VIENE, asi se elige
+    // mirando el precio de verdad. Por eso se vuelve a pintar cuando cambia el
+    // numero de personas.
+    const horas = [];
+    for (let h = RES.MIN_HORAS; h <= RES.MAX_HORAS; h++) horas.push(h);
+    nodo('resHoras').innerHTML = horas
+        .map((h) => `<option value="${h}"${h === reserva.horas ? ' selected' : ''}>` +
+             `${h} ${t.resHoraPl} · $${resDinero(resPrecio(h, reserva.personas))}</option>`).join('');
+
+    // Las personas, de una en una hasta lo que cabe en la sala.
+    const caja = nodo('resPersonas');
+    if (caja) {
+        const gente = [];
+        for (let p = 1; p <= RES.MAX_PERSONAS; p++) gente.push(p);
+        caja.innerHTML = gente
+            .map((p) => `<option value="${p}"${p === reserva.personas ? ' selected' : ''}>` +
+                 `${p} ${p === 1 ? t.resPersonaSg : t.resPersonaPl}</option>`).join('');
+    }
 
     // Desde hoy: no tiene sentido ofrecer ayer.
     const hoy = new Date();
@@ -214,10 +265,73 @@ function resPintarResumen() {
     // correr el tiempo contratado.
     const canta = reserva.inicio + RES.ACOMODO;
     const fin = canta + reserva.horas * 60;
-    const total = resPrecio(reserva.horas);
-    const abono = total / 2;
+
+    const total = resPrecio(reserva.horas, reserva.personas);
+    const cabeza = resPorCabeza(reserva.horas, reserva.personas);
+    const cobradas = resPersonasCobradas(reserva.personas);
     const bsTotal = resBolivares(total);
-    const bsAbono = resBolivares(abono);
+
+    // Si vienen menos de cuatro se les dice, para que el total no parezca un
+    // error de la pagina.
+    const notaMinimo = reserva.personas < RES.MIN_PERSONAS
+        ? `<p class="text-crema-500 text-xs pt-1">${t.resMinimoNota
+             .replace('{n}', RES.MIN_PERSONAS)}</p>`
+        : '';
+
+    // El combo: o se lo ganaron, o se les dice cuanto les falta. Lo segundo es
+    // lo que de verdad mueve a subir una hora o avisar a un amigo mas.
+    let combo = '';
+    if (total >= RES.COMBO_DESDE) {
+        combo = `
+            <div class="mt-4 bg-marca-500/10 border border-marca-500/30 rounded-xl p-4">
+                <!-- En el celular las fotos van ARRIBA y el texto debajo: a lo
+                     ancho, entre las dos fotos solo quedaban unos 160px y
+                     "¡Te lo ganaste!" se partia en dos lineas. -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="flex gap-3 flex-shrink-0">
+                        <img src="fotos/combo-tequenos.webp" alt="" width="56" height="56" loading="lazy"
+                             class="w-14 h-14 rounded-lg object-cover">
+                        <img src="fotos/combo-refresco.webp" alt="" width="56" height="56" loading="lazy"
+                             class="w-14 h-14 rounded-lg object-cover">
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-marca-400 text-xs font-black uppercase tracking-wider mb-0.5">
+                            ${t.resComboGanado}</p>
+                        <p class="text-crema-300 text-sm leading-snug">${t.resComboQue}</p>
+                    </div>
+                </div>
+            </div>`;
+    } else {
+        const falta = RES.COMBO_DESDE - total;
+
+        // Que hace falta DE VERDAD para llegar, no lo que suene bonito.
+        // Se calcula por separado subiendo gente y subiendo horas, y solo se
+        // ofrece lo que cabe: mas de 14 personas no entran en la sala y mas
+        // de 4 horas no se alquilan.
+        // Cuantas personas harian falta EN TOTAL, y cuantas mas que las que
+        // vienen. Se resta sobre las que vienen de verdad, no sobre las que
+        // se cobran: a quien viene solo hay que decirle que le faltan 12,
+        // no 9, porque el minimo de 4 ya lo esta pagando pero no los trae.
+        const gentePara = Math.ceil(RES.COMBO_DESDE /
+            (RES.PRECIO_PERSONA_HORA * reserva.horas));
+        const porGente = gentePara - reserva.personas;
+        const porHoras = Math.ceil(RES.COMBO_DESDE /
+            (RES.PRECIO_PERSONA_HORA * cobradas)) - reserva.horas;
+
+        const salidas = [];
+        if (porGente > 0 && gentePara <= RES.MAX_PERSONAS) {
+            salidas.push(t.resComboMasGente.replace('{n}', porGente)
+                .replace('{q}', porGente === 1 ? t.resPersonaSg : t.resPersonaPl));
+        }
+        if (porHoras > 0 && reserva.horas + porHoras <= RES.MAX_HORAS) {
+            salidas.push(t.resComboMasHoras.replace('{n}', porHoras)
+                .replace('{q}', porHoras === 1 ? t.resHoraSg : t.resHoraPl));
+        }
+
+        combo = `
+            <p class="mt-4 text-crema-500 text-xs leading-relaxed">
+                ${t.resComboFalta.replace('{n}', '$' + resDinero(falta))}${salidas.length ? ' ' + salidas.join(' ') : ''}</p>`;
+    }
 
     caja.innerHTML = `
         <div class="space-y-1.5 text-sm mb-4">
@@ -231,41 +345,26 @@ function resPintarResumen() {
         <p class="text-crema-500 text-xs leading-relaxed mb-5">${t.resResumenCortesia}</p>
 
         <div class="border-t border-noche-800 pt-4 space-y-2">
+            <p class="text-crema-500 text-xs">${t.resResumenCuenta
+                .replace('{p}', cobradas)
+                .replace('{h}', reserva.horas)
+                .replace('{precio}', '$' + RES.PRECIO_PERSONA_HORA)}</p>
             <div class="flex items-baseline justify-between">
-                <span class="text-crema-400 text-sm">${t.resResumenTotal}</span>
-                <span class="text-crema-100 font-bold">$${total}${bsTotal ? `
-                    <span class="text-crema-500 font-normal text-sm"> · Bs ${bsTotal}</span>` : ''}</span>
+                <span class="text-marca-400 text-sm font-bold">${t.resResumenTotal}</span>
+                <span class="degradado-marca font-black text-xl">$${resDinero(total)}${bsTotal ? `
+                    <span class="text-crema-400 font-normal text-sm"> · Bs ${bsTotal}</span>` : ''}</span>
             </div>
             <div class="flex items-baseline justify-between">
-                <span class="text-marca-400 text-sm font-bold">${t.resResumenAbono}</span>
-                <span class="degradado-marca font-black text-xl">$${abono}${bsAbono ? `
-                    <span class="text-crema-400 font-normal text-sm"> · Bs ${bsAbono}</span>` : ''}</span>
+                <span class="text-crema-400 text-sm">${t.resResumenCabeza}</span>
+                <span class="text-crema-100 font-bold">$${resDinero(cabeza)}</span>
             </div>
-            <p class="text-crema-600 text-xs pt-1">${t.resResumenResto}${
+            ${notaMinimo}
+            <p class="text-crema-600 text-xs pt-1">${t.resResumenPagoTodo}${
                 reserva.tasa ? ` · ${t.resTasaNota}: ${reserva.tasa.toLocaleString('es-VE',
                     { maximumFractionDigits: 2 })}` : ''}</p>
-        </div>`;
+        </div>
+        ${combo}`;
 }
-
-// ---------------------------------------------------------- el comprobante
-nodo('resComprobante').addEventListener('change', (ev) => {
-    const t = TEXTOS[idioma];
-    const f = ev.target.files && ev.target.files[0];
-    if (!f) return;
-
-    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(f.type)) {
-        return resMostrarError(t.resErrArchivo);
-    }
-    if (f.size > 5 * 1024 * 1024) return resMostrarError(t.resErrPesado);
-
-    reserva.comprobante = f;
-    resOcultarError();
-
-    const ok = nodo('resComprobanteOk');
-    ok.textContent = t.resComprobanteListo + ' ' + f.name;
-    ok.classList.remove('hidden');
-    nodo('resEnviar').disabled = false;
-});
 
 function resMostrarError(texto) {
     const e = nodo('resError');
@@ -273,6 +372,35 @@ function resMostrarError(texto) {
     e.classList.remove('hidden');
 }
 function resOcultarError() { nodo('resError').classList.add('hidden'); }
+
+// ------------------------------------------------- el mensaje para Javier
+//
+// Va en castellano SIEMPRE, aunque el cliente tenga la pagina en ingles: lo
+// lee Javier, no el cliente. Lleva justo lo que necesita para cobrar y
+// apuntar la noche, y el numero de reserva para encontrarla en el panel.
+function resMensajeWhatsApp(datos) {
+    const lineas = [
+        'Hola, quiero reservar la sala 🎤',
+        '',
+        'Nombre: ' + datos.nombre,
+        'WhatsApp: ' + datos.telefono,
+        'Personas: ' + datos.personas,
+        'Día: ' + datos.fechaTexto,
+        'Hora: ' + datos.hora,
+        '',
+        'Total de la reserva: $' + resDinero(datos.total),
+        'Le toca a cada uno: $' + resDinero(datos.cabeza)
+    ];
+    if (datos.combo) lineas.push('', 'Incluye: 1 ración de tequeños + 1 refresco de 2 L 🎉');
+    if (datos.id) lineas.push('', 'Reserva #' + datos.id);
+    return lineas.join('\n');
+}
+
+function resEnlaceWhatsApp(datos) {
+    const numero = (typeof WHATSAPP !== 'undefined' && WHATSAPP) ? WHATSAPP : '584121591072';
+    return 'https://wa.me/' + numero + '?text=' +
+        encodeURIComponent(resMensajeWhatsApp(datos));
+}
 
 // --------------------------------------------------------------- enviarla
 async function resEnviar() {
@@ -282,29 +410,13 @@ async function resEnviar() {
 
     if (nombre.length < 2) return resMostrarError(t.resErrNombre);
     if (telefono.replace(/\D/g, '').length < 10) return resMostrarError(t.resErrTelefono);
-    if (!reserva.comprobante) return resMostrarError(t.resErrComprobante);
 
     resOcultarError();
     const btn = nodo('resEnviar');
     btn.disabled = true;
-    btn.textContent = t.resSubiendo;
+    btn.textContent = t.resEnviando;
 
     try {
-        // El comprobante va primero: si falla, no queda una reserva sin pago.
-        const cliente = supabase.createClient(
-            'https://mefrjbmjfdphdqndpzcw.supabase.co',
-            'sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8'
-        );
-        const ext = (reserva.comprobante.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 4);
-        const ruta = Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.' + ext;
-
-        const { error: errSubida } = await cliente.storage
-            .from('comprobantes')
-            .upload(ruta, reserva.comprobante, { contentType: reserva.comprobante.type });
-        if (errSubida) throw errSubida;
-
-        btn.textContent = t.resEnviando;
-
         const r = await fetch('/api/reserva', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -313,8 +425,8 @@ async function resEnviar() {
                 fecha: reserva.fecha,
                 inicio_min: reserva.inicio,
                 horas: reserva.horas,
-                nombre, telefono,
-                comprobante: ruta
+                personas: reserva.personas,
+                nombre, telefono
             })
         });
         const d = await r.json();
@@ -326,9 +438,36 @@ async function resEnviar() {
             throw new Error(d.error || t.resErrEnvio);
         }
 
+        // El total manda el servidor, no este navegador. Si por lo que sea no
+        // coincidieran, el mensaje lleva el bueno.
+        const total = typeof d.total === 'number'
+            ? d.total : resPrecio(reserva.horas, reserva.personas);
+        const datos = {
+            id: d.id,
+            nombre, telefono,
+            personas: reserva.personas,
+            fechaTexto: resFechaEnPalabras(reserva.fecha),
+            hora: resHora(reserva.inicio),
+            total,
+            cabeza: total / Math.max(1, reserva.personas),
+            combo: total >= RES.COMBO_DESDE
+        };
+        reserva.enviada = datos;
+
+        const enlace = resEnlaceWhatsApp(datos);
+
+        // El boton de la pantalla de gracias se deja listo ANTES de intentar
+        // abrir nada: si el navegador bloquea la ventana —cosa normal cuando
+        // se abre despues de esperar al servidor y no en el toque— el cliente
+        // tiene igual donde pulsar, y ese toque suyo nunca se bloquea.
+        const btnWa = nodo('resGraciasWa');
+        if (btnWa) btnWa.href = enlace;
+
         nodo('resGracias').previousElementSibling.classList.add('hidden');
         nodo('resGracias').classList.remove('hidden');
         nodo('resGracias').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        try { window.open(enlace, '_blank'); } catch (e) {}
 
     } catch (e) {
         console.warn('[reserva]', e.message);
@@ -359,6 +498,18 @@ nodo('resFecha').addEventListener('change', (e) => {
 nodo('resHoras').addEventListener('change', (e) => {
     reserva.horas = Number(e.target.value); resBuscarHoras();
 });
+
+// Cambiar el numero de personas cambia el precio de TODAS las duraciones, asi
+// que hay que repintar el desplegable de horas. No hace falta volver a
+// preguntar los horarios libres: cuanta gente viene no cambia lo que esta
+// ocupado.
+if (nodo('resPersonas')) {
+    nodo('resPersonas').addEventListener('change', (e) => {
+        reserva.personas = Number(e.target.value);
+        resLlenarSelects();
+        resPintarResumen();
+    });
+}
 
 resLlenarSelects();
 resBuscarHoras();

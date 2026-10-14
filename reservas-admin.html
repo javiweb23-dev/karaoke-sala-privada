@@ -162,7 +162,15 @@ function tarjeta(r) {
             </div>
             <div class="text-right flex-shrink-0">
                 <p class="text-crema-100 font-black">$${r.total_usd}</p>
-                <p class="text-crema-500 text-xs">abonó $${r.abono_usd}</p>
+                <!-- Ya no hay abono: se cobra todo por WhatsApp antes de
+                     confirmar. Las reservas VIEJAS si lo llevan, asi que se
+                     sigue enseñando cuando lo hay. -->
+                <p class="text-crema-500 text-xs">${Number(r.abono_usd) > 0
+                    ? `abonó $${r.abono_usd}`
+                    : (r.personas
+                        ? `${r.personas} ${r.personas === 1 ? 'persona' : 'personas'} · $${
+                            (Math.round(r.total_usd / r.personas * 100) / 100)} c/u`
+                        : '')}</p>
             </div>
         </div>
         <p class="text-crema-300 text-sm mb-1">${escapar(r.nombre)}</p>

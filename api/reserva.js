@@ -27,16 +27,28 @@ const LIMPIEZA_MIN  = 40;               // limpiar y preparar la sala
 const MARGEN_MIN    = RECOGIDA_MIN + LIMPIEZA_MIN;
 const PASO_MIN      = 30;               // las horas se ofrecen cada media hora
 
-// La tarifa, por duracion cerrada. No hay formula: cada duracion tiene su
-// precio y ya. Antes era una base mas horas sueltas, y obligaba al cliente a
-// hacer una cuenta justo cuando esta decidiendo si reserva o no.
+// La tarifa: $2 por persona y por hora.
 //
-// Si cambian los precios se cambian AQUI y en el mismo sitio de home.html.
-const PRECIOS = { 2: 40, 3: 60, 4: 70 };
+// Antes era precio cerrado por la sala (2h $40, 3h $60, 4h $70). Ahora paga
+// cada cabeza, asi que un grupo pequeno sale mucho mas barato y uno grande
+// paga mas. El minimo existe porque la sala se ocupa entera venga quien
+// venga: quien quiera cantar solo puede, pero paga como si fueran cuatro.
+//
+// Si cambia, se cambia AQUI y en reserva-comun.js. Hay una prueba en
+// scripts/probar-sistema.js que compara los dos sitios.
+const PRECIO_PERSONA_HORA = 2;
+const MIN_PERSONAS = 4;
+const MAX_PERSONAS = 14;          // lo que cabe en la sala
 
-const DURACIONES = Object.keys(PRECIOS).map(Number).sort((a, b) => a - b);
-const HORAS_MIN   = DURACIONES[0];
-const HORAS_MAX   = DURACIONES[DURACIONES.length - 1];
+// A partir de este total va de regalo una racion de tequenos y un refresco
+// de dos litros. Mismo numero en reserva-comun.js.
+const COMBO_DESDE = 50;
+
+// Nunca se alquila una sola hora.
+const HORAS_MIN = 2;
+const HORAS_MAX = 4;
+const DURACIONES = [];
+for (let h = HORAS_MIN; h <= HORAS_MAX; h++) DURACIONES.push(h);
 
 // Cuando la tasa del BCV no responde se usa la ultima que se vio. No se cae la
 // reserva por eso: el precio real es el del dolar y el bolivar es informativo.
@@ -49,8 +61,18 @@ function cierreDe(fecha) {
     return (dia === 5 || dia === 6) ? CIERRE_FINDE : CIERRE_SEMANA;
 }
 
-function precioDe(horas) {
-    return PRECIOS[horas] || null;      // null = duracion que no vendemos
+// Cuantas se COBRAN, que no es lo mismo que cuantas vienen.
+function personasCobradas(personas) {
+    return Math.max(MIN_PERSONAS, Number(personas) || 0);
+}
+
+function duracionValida(horas) {
+    return DURACIONES.indexOf(horas) !== -1;
+}
+
+function precioDe(horas, personas) {
+    if (!duracionValida(horas)) return null;    // duracion que no vendemos
+    return PRECIO_PERSONA_HORA * horas * personasCobradas(personas);
 }
 
 // En am/pm: la hora militar obliga a traducir mentalmente, y quien reserva
@@ -86,31 +108,26 @@ async function tasaBcv() {
 // El nombre del archivo lo pone el navegador, asi que se mira con lupa: solo
 // letras, numeros, punto y guion. Sin esto se podria pedir "../otra-cosa" y
 // asomarse a otros sitios del deposito.
+//
+// Sigue haciendo falta para el panel: las reservas VIEJAS si tienen
+// comprobante subido y Javier tiene que poder abrirlo. Lo que se fue es la
+// comprobacion al crear la reserva, porque ya no se sube ninguno.
 const NOMBRE_LIMPIO = /^[A-Za-z0-9._-]{5,120}$/;
 
-async function comprobanteExiste(ruta) {
-    if (!NOMBRE_LIMPIO.test(ruta)) return false;
-
-    const url = sanitizeEnv(process.env.SUPABASE_URL);
-    const key = sanitizeEnv(process.env.SUPABASE_SERVICE_KEY);
-    if (!url || !key) return false;
-
-    try {
-        const r = await fetch(url + '/storage/v1/object/info/comprobantes/' + ruta, {
-            headers: { apikey: key, Authorization: 'Bearer ' + key },
-            signal: AbortSignal.timeout(6000)
-        });
-        return r.ok;
-    } catch (e) {
-        console.warn('[reserva] no se pudo comprobar el comprobante:', e.message);
-        return false;
-    }
-}
-
+// Solo bloquean el horario las CONFIRMADAS.
+//
+// Antes bloqueaban tambien las pendientes, y tenia sentido: no se podia
+// reservar sin subir el comprobante del 50%, asi que una pendiente era una
+// reserva pagada a medias y merecia guardar el sitio.
+//
+// Ahora no se paga nada por la web, asi que cualquiera podria apartar todos
+// los sabados del mes sin poner un bolivar. Una reserva se queda en
+// pendiente hasta que Javier cobra y la confirma desde el panel; hasta
+// entonces el horario se le sigue ofreciendo a los demas.
 async function ocupadoEn(fecha) {
     const filas = await supabaseFetchEstricto(
         'reservas?select=inicio_min,fin_min&fecha=eq.' + encodeURIComponent(fecha) +
-        '&estado=in.(pendiente,confirmada)'
+        '&estado=eq.confirmada'
     );
     return filas || [];
 }
@@ -165,7 +182,7 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ ok: false, error: 'Fecha no válida' });
             }
             const pedidas = Number(cuerpo?.horas);
-            const horas = PRECIOS[pedidas] ? pedidas : HORAS_MIN;
+            const horas = duracionValida(pedidas) ? pedidas : HORAS_MIN;
 
             const ocupado = await ocupadoEn(fecha);
             const libres = horasLibres(fecha, horas, ocupado);
@@ -198,7 +215,7 @@ module.exports = async (req, res) => {
             const horas = Number(cuerpo?.horas);
             const nombre = String(cuerpo?.nombre || '').trim();
             const telefono = String(cuerpo?.telefono || '').trim();
-            const comprobante = String(cuerpo?.comprobante || '').trim();
+            const personas = Number(cuerpo?.personas);
 
             if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
                 return res.status(400).json({ ok: false, error: 'Falta la fecha.' });
@@ -206,10 +223,16 @@ module.exports = async (req, res) => {
             if (!Number.isInteger(inicio) || inicio < ABRE_MIN) {
                 return res.status(400).json({ ok: false, error: 'Falta la hora de inicio.' });
             }
-            if (!precioDe(horas)) {
+            if (!duracionValida(horas)) {
                 return res.status(400).json({
                     ok: false,
                     error: 'Esa duración no está disponible (' + DURACIONES.join(', ') + ' horas).'
+                });
+            }
+            if (!Number.isInteger(personas) || personas < 1 || personas > MAX_PERSONAS) {
+                return res.status(400).json({
+                    ok: false,
+                    error: 'Dinos cuántos son (de 1 a ' + MAX_PERSONAS + ').'
                 });
             }
             if (nombre.length < 2) {
@@ -217,17 +240,6 @@ module.exports = async (req, res) => {
             }
             if (telefono.replace(/\D/g, '').length < 10) {
                 return res.status(400).json({ ok: false, error: 'Falta un teléfono válido.' });
-            }
-            // Sin comprobante no hay reserva. Es lo que evita que alguien
-            // aparte una hora y no aparezca nunca.
-            //
-            // Y no basta con que venga un texto: hay que comprobar que el
-            // archivo esta de verdad en el deposito. Si solo se mirara que no
-            // viene vacio, bastaria con mandar cualquier palabra para bloquear
-            // un horario sin haber pagado nada, que es justo lo que esta regla
-            // existe para impedir.
-            if (!comprobante || !await comprobanteExiste(comprobante)) {
-                return res.status(400).json({ ok: false, error: 'Falta el comprobante del abono.' });
             }
 
             const fin = finDe(inicio, horas);
@@ -247,8 +259,7 @@ module.exports = async (req, res) => {
                 });
             }
 
-            const total = precioDe(horas);
-            const abono = Math.round(total * 50) / 100;
+            const total = precioDe(horas, personas);
             const tasa = await tasaBcv();
 
             const creada = await supabaseFetchEstricto('reservas', {
@@ -256,12 +267,15 @@ module.exports = async (req, res) => {
                 headers: { Prefer: 'return=representation' },
                 body: JSON.stringify({
                     fecha, inicio_min: inicio, fin_min: fin, horas,
+                    personas,
                     nombre: nombre.slice(0, 60),
                     telefono: telefono.slice(0, 25),
                     total_usd: total,
-                    abono_usd: abono,
-                    tasa_bs: tasa,
-                    comprobante_url: comprobante.slice(0, 400)
+                    // Se guarda en cero: ya no hay abono, se cobra todo por
+                    // WhatsApp antes de confirmar. La columna se queda por las
+                    // reservas viejas (ver sql/017).
+                    abono_usd: 0,
+                    tasa_bs: tasa
                 })
             });
 
@@ -276,13 +290,17 @@ module.exports = async (req, res) => {
                 '🎵 Cantan ' + comoHora(inicio + ACOMODO_MIN) + ' a ' + comoHora(fin) +
                 '  (' + horas + ' h)\n\n' +
                 '👤 ' + nombre + '\n' +
-                '📱 ' + telefono + '\n\n' +
-                '💵 Total $' + total + '  ·  abonó $' + abono + '\n' +
-                '📎 Comprobante subido: revísalo en el panel.'
+                '📱 ' + telefono + '\n' +
+                '👥 ' + personas + (personas < MIN_PERSONAS
+                    ? ' (se cobran ' + MIN_PERSONAS + ')' : '') + '\n\n' +
+                '💵 Total $' + total + '  ·  $' +
+                    (Math.round(total / personas * 100) / 100) + ' cada uno\n' +
+                (total >= COMBO_DESDE ? '🎁 Lleva tequeños y refresco\n' : '') +
+                '⏳ SIN PAGAR todavía. No bloquea el horario hasta que la confirmes.'
             );
             if (!aviso.ok) console.warn('[reserva] telegram:', aviso.error);
 
-            return res.status(200).json({ ok: true, id, total, abono });
+            return res.status(200).json({ ok: true, id, total });
         }
 
         // ================================================ lo del panel, con PIN

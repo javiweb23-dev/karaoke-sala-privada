@@ -43,6 +43,9 @@ function sacarFuncion(texto, nombre, sangria) {
     return texto.slice(ini, fin + sangria + 2);
 }
 
+// Atajo para leer un numero del bloque RES sin repetir la ruta entera.
+function RESmin(api, clave) { return api.RES[clave]; }
+
 function compilar(codigo, nombre) {
     return new Function(codigo + '\nreturn ' + nombre + ';')();
 }
@@ -982,7 +985,8 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
 
             // El precio vive en la maquinaria, que es lo que comparten.
             comprobar(pagina + ': no repite la tabla de precios',
-                !/PRECIOS\s*:\s*\{/.test(html));
+                !/PRECIOS\s*:\s*\{/.test(html) &&
+                !/PRECIO_PERSONA_HORA\s*[:=]/.test(html));
 
             // Y cada data-t del formulario tiene que tener su frase.
             const bloque = html.slice(html.indexOf('data-t="resTitulo"'));
@@ -1002,13 +1006,104 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
             es.every((k) => String(TR.es[k]).trim() && String(TR.en[k]).trim()));
 
         // La tarifa del navegador y la del servidor tienen que decir lo mismo.
-        const servidor = leer('api/reserva.js').match(/const PRECIOS = (\{[^}]*\})/);
-        const cliente = comun.match(/PRECIOS: (\{[^}]*\})/);
-        comprobar('la tarifa del navegador y la del servidor coinciden',
-            Boolean(servidor && cliente) &&
-            JSON.stringify(new Function('return ' + servidor[1])()) ===
-            JSON.stringify(new Function('return ' + cliente[1])()),
-            [servidor && servidor[1], cliente && cliente[1]]);
+        // Ya no es una tabla de precios sino cuatro numeros, y si alguno se
+        // descuadra el cliente ve un total y se le cobra otro.
+        const api = leer('api/reserva.js');
+        const pares = [
+            ['PRECIO_PERSONA_HORA', 'PRECIO_PERSONA_HORA'],
+            ['MIN_PERSONAS',        'MIN_PERSONAS'],
+            ['MAX_PERSONAS',        'MAX_PERSONAS'],
+            ['COMBO_DESDE',         'COMBO_DESDE'],
+            ['HORAS_MIN',           'MIN_HORAS'],
+            ['HORAS_MAX',           'MAX_HORAS']
+        ];
+        for (const [enApi, enJs] of pares) {
+            const a = api.match(new RegExp('const ' + enApi + ' = (\\d+)'));
+            const c = comun.match(new RegExp(enJs + ': (\\d+)'));
+            comprobar('tarifa: ' + enApi + ' igual en el navegador y el servidor',
+                Boolean(a && c) && a[1] === c[1], [a && a[1], c && c[1]]);
+        }
+    }
+
+    seccion('La tarifa por persona y hora');
+
+    {
+        const comun = leer('reserva-comun.js');
+
+        // Se sacan las funciones de verdad y se les dan casos.
+        const bloqueRES = comun.match(/var RES = \{[\s\S]*?\n\};/)[0];
+        const nl = String.fromCharCode(10);
+        const api = new Function(bloqueRES + nl +
+            sacarFuncion(comun, 'resPersonasCobradas', 0) + nl +
+            sacarFuncion(comun, 'resPrecio', 0) + nl +
+            sacarFuncion(comun, 'resPorCabeza', 0) + nl +
+            'return { RES, resPrecio, resPorCabeza, resPersonasCobradas };')();
+
+        comprobar('4 personas y 2 horas son $16', api.resPrecio(2, 4) === 16, api.resPrecio(2, 4));
+        comprobar('6 personas y 3 horas son $36', api.resPrecio(3, 6) === 36, api.resPrecio(3, 6));
+        comprobar('14 personas y 4 horas son $112', api.resPrecio(4, 14) === 112, api.resPrecio(4, 14));
+
+        // El minimo: quien venga solo paga como si fueran cuatro.
+        comprobar('1 persona paga el minimo de 4', api.resPrecio(2, 1) === 16, api.resPrecio(2, 1));
+        comprobar('3 personas tambien pagan 4', api.resPrecio(2, 3) === 16, api.resPrecio(2, 3));
+        comprobar('5 personas ya pagan 5', api.resPrecio(2, 5) === 20, api.resPrecio(2, 5));
+
+        // Lo que pone cada uno se reparte entre los que DE VERDAD vienen, no
+        // entre los cuatro del minimo.
+        comprobar('si son 2 el minimo se reparte entre 2',
+            api.resPorCabeza(2, 2) === 8, api.resPorCabeza(2, 2));
+        comprobar('6 personas 3 horas ponen $6 cada una',
+            api.resPorCabeza(3, 6) === 6, api.resPorCabeza(3, 6));
+
+        // El combo. Que el umbral se pueda alcanzar de verdad con lo que cabe
+        // en la sala: con el precio a secas por persona no llegaba nadie.
+        const alcanzan = [];
+        for (let h = RESmin(api, 'MIN_HORAS'); h <= RESmin(api, 'MAX_HORAS'); h++) {
+            for (let p = 1; p <= api.RES.MAX_PERSONAS; p++) {
+                if (api.resPrecio(h, p) >= api.RES.COMBO_DESDE) alcanzan.push(h + 'h x ' + p);
+            }
+        }
+        comprobar('hay grupos que llegan a los $50 del combo', alcanzan.length > 0, alcanzan.length);
+        comprobar('y tambien hay grupos que NO llegan',
+            api.resPrecio(2, 4) < api.RES.COMBO_DESDE);
+        comprobar('13 personas 2 horas llegan al combo',
+            api.resPrecio(2, 13) >= api.RES.COMBO_DESDE, api.resPrecio(2, 13));
+    }
+
+    seccion('Ya no hay abono ni comprobante');
+
+    {
+        const comun = leer('reserva-comun.js');
+        const textos = leer('reserva-textos.js');
+        const api = leer('api/reserva.js');
+
+        comprobar('la maquinaria no sube ningun comprobante',
+            !/comprobante/i.test(comun), (comun.match(/comprobante/i) || [])[0]);
+        comprobar('no queda ninguna frase de abono',
+            !/abono|abonas|deposit/i.test(textos));
+        comprobar('el servidor ya no exige comprobante para crear',
+            !/Falta el comprobante/.test(api));
+        comprobar('y guarda el abono en cero',
+            /abono_usd: 0/.test(api));
+
+        // Lo mas importante de todo: una reserva sin pagar NO puede bloquear
+        // el horario, o cualquiera aparta los sabados del mes gratis.
+        comprobar('solo las confirmadas bloquean el horario',
+            /estado=eq\.confirmada/.test(api) && !/estado=in\.\(pendiente,confirmada\)/.test(api));
+
+        // Y el boton manda el WhatsApp con lo que Javier necesita.
+        const mensaje = sacarFuncion(comun, 'resMensajeWhatsApp', 0);
+        for (const dato of ['Nombre', 'WhatsApp', 'Personas', 'Día', 'Hora', 'Total', 'cada uno']) {
+            comprobar('el WhatsApp lleva ' + dato, mensaje.includes(dato));
+        }
+
+        for (const pagina of ['home.html', 'reserva.html']) {
+            const html = leer(pagina);
+            comprobar(pagina + ': no quedan datos de pago movil a la vista',
+                !html.includes('Banco de Venezuela') && !html.includes('15.364.072'));
+            comprobar(pagina + ': no habla de abonos',
+                !/abono/i.test(html));
+        }
     }
 
     seccion('Que paso de verdad con cada cancion');
