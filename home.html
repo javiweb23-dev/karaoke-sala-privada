@@ -522,8 +522,6 @@
                 <!-- ⚠️ PRECIO: si cambia, se cambia AQUI, en precioDetalles de
                      las dos traducciones, y en RES.PRECIO_PERSONA_HORA de
                      reserva-comun.js, que es lo que se cobra de verdad. -->
-                <p class="text-crema-500 text-xs font-bold uppercase tracking-[0.15em] mb-2"
-                   data-t="precioEtiqueta"></p>
                 <p class="text-5xl sm:text-6xl font-black degradado-marca tracking-tight leading-none">$2</p>
                 <p class="text-crema-400 text-sm font-bold mb-2" data-t="precioUnidad"></p>
 
@@ -887,7 +885,7 @@ const TEXTOS = {
             ]},
             { grupo: 'Precio, tiempo y cancelaciones', lista: [
                 { p: '¿Cuánto cuesta?',
-                  r: '$2 por persona y por hora. La reserva mínima es de 4 personas y 2 horas, o sea $16. Si vienen menos de 4 se cobran 4 igual, porque la sala se ocupa completa. Ejemplos: 6 personas 3 horas son $36; 10 personas 3 horas son $60.' },
+                  r: '$2 por persona y por hora.' },
                 { p: '¿Cómo se paga?',
                   r: 'Llenas la reserva en la web y se te abre un WhatsApp con tus datos. Te respondemos con el pago móvil y, en cuanto esté pagado completo, queda confirmada. Mientras no esté pagada, esa hora se le sigue ofreciendo a los demás.' },
                 { p: '¿Podemos pagar entre varios?',
@@ -972,8 +970,7 @@ const TEXTOS = {
                       'semana entran canciones nuevas.',
 
         preciosTitulo: 'Precio',
-        precioEtiqueta: 'Desde',
-        preciosTexto: 'De la sala completa para tu grupo.',
+        preciosTexto: 'Por persona y por hora.',
 
         tiendaTitulo: 'Snacks y bebidas',
         tiendaTexto: 'Vendemos refrigerios en la sala, pero pueden traer lo que quieran.',
@@ -1016,7 +1013,6 @@ const TEXTOS = {
 
         precioUnidad: 'por persona, cada hora',
         precioDetalles: [
-            'Mínimo 4 personas y 2 horas — desde $16',
             'A partir de $50: tequeños y refresco de regalo',
             'Hasta 14 personas',
             'Todos los días desde las 8:00 pm',
@@ -1070,7 +1066,7 @@ const TEXTOS = {
             ]},
             { grupo: 'Price, time and cancellations', lista: [
                 { p: 'How much does it cost?',
-                  r: '$2 per person, per hour. The minimum booking is 4 people and 2 hours, so $16. If fewer than 4 come, 4 are still charged, because the room is taken either way. Examples: 6 people for 3 hours is $36; 10 people for 3 hours is $60.' },
+                  r: '$2 per person, per hour.' },
                 { p: 'How do I pay?',
                   r: 'You fill in the booking on the site and it opens WhatsApp with your details. We reply with the payment details and, once it is paid in full, the booking is confirmed. Until it is paid, that slot stays open to others.' },
                 { p: 'Can we split the payment?',
@@ -1155,8 +1151,7 @@ const TEXTOS = {
                       'coming in every week.',
 
         preciosTitulo: 'Price',
-        precioEtiqueta: 'From',
-        preciosTexto: 'The whole room, just for your group.',
+        preciosTexto: 'Per person, per hour.',
 
         tiendaTitulo: 'Snacks and drinks',
         tiendaTexto: 'We sell snacks in the room, but you are welcome to bring your own.',
@@ -1199,7 +1194,6 @@ const TEXTOS = {
 
         precioUnidad: 'per person, each hour',
         precioDetalles: [
-            'Minimum 4 people and 2 hours — from $16',
             'From $50: free tequeños and a 2 L soda',
             'Up to 14 people',
             'Every day from 8:00 pm',
