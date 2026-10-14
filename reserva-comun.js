@@ -272,6 +272,10 @@ function resPintarResumen() {
 
     // Si vienen menos de cuatro se les dice, para que el total no parezca un
     // error de la pagina.
+    //
+    // Con replace() y un texto, solo se cambia la PRIMERA aparicion. La frase
+    // llevaba {n} dos veces y en pantalla salia "se cobran {n}" tal cual. Por
+    // eso ahora el marcador esta una sola vez en la frase.
     const notaMinimo = reserva.personas < RES.MIN_PERSONAS
         ? `<p class="text-crema-500 text-xs pt-1">${t.resMinimoNota
              .replace('{n}', RES.MIN_PERSONAS)}</p>`
@@ -301,35 +305,12 @@ function resPintarResumen() {
                 </div>
             </div>`;
     } else {
-        const falta = RES.COMBO_DESDE - total;
-
-        // Que hace falta DE VERDAD para llegar, no lo que suene bonito.
-        // Se calcula por separado subiendo gente y subiendo horas, y solo se
-        // ofrece lo que cabe: mas de 14 personas no entran en la sala y mas
-        // de 4 horas no se alquilan.
-        // Cuantas personas harian falta EN TOTAL, y cuantas mas que las que
-        // vienen. Se resta sobre las que vienen de verdad, no sobre las que
-        // se cobran: a quien viene solo hay que decirle que le faltan 12,
-        // no 9, porque el minimo de 4 ya lo esta pagando pero no los trae.
-        const gentePara = Math.ceil(RES.COMBO_DESDE /
-            (RES.PRECIO_PERSONA_HORA * reserva.horas));
-        const porGente = gentePara - reserva.personas;
-        const porHoras = Math.ceil(RES.COMBO_DESDE /
-            (RES.PRECIO_PERSONA_HORA * cobradas)) - reserva.horas;
-
-        const salidas = [];
-        if (porGente > 0 && gentePara <= RES.MAX_PERSONAS) {
-            salidas.push(t.resComboMasGente.replace('{n}', porGente)
-                .replace('{q}', porGente === 1 ? t.resPersonaSg : t.resPersonaPl));
-        }
-        if (porHoras > 0 && reserva.horas + porHoras <= RES.MAX_HORAS) {
-            salidas.push(t.resComboMasHoras.replace('{n}', porHoras)
-                .replace('{q}', porHoras === 1 ? t.resHoraSg : t.resHoraPl));
-        }
-
+        // Una frase y ya. Antes se calculaba cuanto faltaba y con cuanta
+        // gente mas se llegaba, pero eran cuentas en la cara de alguien que
+        // solo esta decidiendo si reserva.
         combo = `
             <p class="mt-4 text-crema-500 text-xs leading-relaxed">
-                ${t.resComboFalta.replace('{n}', '$' + resDinero(falta))}${salidas.length ? ' ' + salidas.join(' ') : ''}</p>`;
+                ${t.resComboAviso.replace('{n}', '$' + RES.COMBO_DESDE)}</p>`;
     }
 
     caja.innerHTML = `
@@ -358,9 +339,10 @@ function resPintarResumen() {
                 <span class="text-crema-100 font-bold">$${resDinero(cabeza)}</span>
             </div>
             ${notaMinimo}
-            <p class="text-crema-600 text-xs pt-1">${t.resResumenPagoTodo}${
-                reserva.tasa ? ` · ${t.resTasaNota}: ${reserva.tasa.toLocaleString('es-VE',
-                    { maximumFractionDigits: 2 })}` : ''}</p>
+            <!-- Sin la tasa del BCV. Se ponia la del dia, pero entre que
+                 reservan y pagan suele pasar una noche y ya no es esa: era
+                 prometer un numero que al rato dejaba de ser verdad. -->
+            <p class="text-crema-600 text-xs pt-1">${t.resResumenPagoTodo}</p>
         </div>
         ${combo}`;
 }
