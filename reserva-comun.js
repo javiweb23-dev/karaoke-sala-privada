@@ -108,23 +108,22 @@ function resBolivares(usd) {
 function resLlenarSelects() {
     const t = TEXTOS[idioma];
 
-    // Cada duracion con lo que costaria PARA LA GENTE QUE VIENE, asi se elige
-    // mirando el precio de verdad. Por eso se vuelve a pintar cuando cambia el
-    // numero de personas.
+    // Solo la duracion, sin el precio al lado: el total sale completo en el
+    // resumen de abajo y ponerlo tambien aqui era ruido.
     const horas = [];
     for (let h = RES.MIN_HORAS; h <= RES.MAX_HORAS; h++) horas.push(h);
     nodo('resHoras').innerHTML = horas
         .map((h) => `<option value="${h}"${h === reserva.horas ? ' selected' : ''}>` +
-             `${h} ${t.resHoraPl} · $${resDinero(resPrecio(h, reserva.personas))}</option>`).join('');
+             `${h} ${t.resHoraPl}</option>`).join('');
 
-    // Las personas, de una en una hasta lo que cabe en la sala.
+    // Las personas, numeros pelados: ya lo dice la etiqueta de encima.
     const caja = nodo('resPersonas');
     if (caja) {
         const gente = [];
         for (let p = 1; p <= RES.MAX_PERSONAS; p++) gente.push(p);
         caja.innerHTML = gente
             .map((p) => `<option value="${p}"${p === reserva.personas ? ' selected' : ''}>` +
-                 `${p} ${p === 1 ? t.resPersonaSg : t.resPersonaPl}</option>`).join('');
+                 `${p}</option>`).join('');
     }
 
     // Desde hoy: no tiene sentido ofrecer ayer.
@@ -499,14 +498,13 @@ nodo('resHoras').addEventListener('change', (e) => {
     reserva.horas = Number(e.target.value); resBuscarHoras();
 });
 
-// Cambiar el numero de personas cambia el precio de TODAS las duraciones, asi
-// que hay que repintar el desplegable de horas. No hace falta volver a
-// preguntar los horarios libres: cuanta gente viene no cambia lo que esta
-// ocupado.
+// Cambiar el numero de personas cambia el total, pero ya no el texto de los
+// desplegables, asi que basta con repintar el resumen. Tampoco hace falta
+// volver a preguntar los horarios libres: cuanta gente viene no cambia lo que
+// esta ocupado.
 if (nodo('resPersonas')) {
     nodo('resPersonas').addEventListener('change', (e) => {
         reserva.personas = Number(e.target.value);
-        resLlenarSelects();
         resPintarResumen();
     });
 }
