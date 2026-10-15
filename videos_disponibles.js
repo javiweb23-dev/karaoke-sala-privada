@@ -1,5 +1,5 @@
 // Generado por scripts/actualizar.js — no editar a mano
-// Archivos: 4072 — 2026-10-15T04:58:20.694Z
+// Archivos: 4072 — 2026-10-15T05:05:40.918Z
 window.VIDEOS_DISPONIBLES = {
   "4 NON BLONDES - WHATS UP": "4 NON BLONDES - WHATS UP.mp4",
   "5 SECONDS OF SUMMER - GHOST OF YOU": "5 SECONDS OF SUMMER - GHOST OF YOU.mp4",

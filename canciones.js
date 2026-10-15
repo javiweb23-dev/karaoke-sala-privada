@@ -1277,7 +1277,7 @@ const cancionesREAL = [
 { id: 1275, artista: "ENANITOS VERDES", titulo: "TE VI EN UN TREN", genero: "ROCK EN ESPAÑOL", idioma: "ESPAÑOL" },
 { id: 1276, artista: "ENANITOS VERDES", titulo: "TU CARCEL", genero: "ROCK EN ESPAÑOL", idioma: "ESPAÑOL" },
 { id: 1277, artista: "ENCANTO", titulo: "SURFACE PRESSURE", genero: "POP", idioma: "INGLES" },
-{ id: 1278, artista: "ENGELBERT HUMPERDINCK", titulo: "A MAN WITHOUT LOVE", genero: "BALADAS", idioma: "INGLES" },
+{ id: 1278, artista: "ENGELBERT HUMPERDINCK", titulo: "A MAN WITHOUT LOVE", genero: "BALADA", idioma: "INGLES" },
 { id: 1279, artista: "ENHYPEN", titulo: "BIG GIRLS DONT CRY", genero: "K-POP", idioma: "INGLES" },
 { id: 1280, artista: "ENHYPEN", titulo: "BITE ME", genero: "K-POP", idioma: "INGLES" },
 { id: 1281, artista: "ENHYPEN", titulo: "BROUGHT THE HEAT BACK", genero: "K-POP", idioma: "INGLES" },
