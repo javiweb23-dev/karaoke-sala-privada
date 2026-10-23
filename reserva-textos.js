@@ -15,7 +15,7 @@
 const TEXTOS_RESERVA = {
     es: {
         resTitulo: "Haz tu reserva",
-        resTexto: "La sala completa para tu grupo. Elige el día, cuántos son y cuánto tiempo.",
+        resTexto: "La sala completa para tu grupo, a $2 por persona y por hora. Elige el día, cuántos son y cuánto tiempo.",
         resCampoFecha: "Día",
         resCampoHoras: "Duración",
         resCampoPersonas: "¿Cuántas personas son?",
@@ -51,7 +51,7 @@ const TEXTOS_RESERVA = {
     },
     en: {
         resTitulo: "Book your night",
-        resTexto: "The whole room, just for your group. Pick the day, how many you are and how long.",
+        resTexto: "The whole room, just for your group, at $2 per person per hour. Pick the day, how many you are and how long.",
         resCampoFecha: "Day",
         resCampoHoras: "Length",
         resCampoPersonas: "How many people?",

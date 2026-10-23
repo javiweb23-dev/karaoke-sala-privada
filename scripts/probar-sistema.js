@@ -1066,6 +1066,18 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
         comprobar('hay grupos que llegan a los $50 del combo', alcanzan.length > 0, alcanzan.length);
         comprobar('y tambien hay grupos que NO llegan',
             api.resPrecio(2, 4) < api.RES.COMBO_DESDE);
+        // La frase de arriba del formulario lleva el precio escrito a mano.
+        // Si algun dia cambia la tarifa y nadie toca la frase, la pagina
+        // estaria prometiendo un precio y cobrando otro.
+        {
+            const TR = new Function(leer('reserva-textos.js') + ';return TEXTOS_RESERVA;')();
+            const precio = api.RES.PRECIO_PERSONA_HORA;
+            for (const [lengua, t] of Object.entries(TR)) {
+                comprobar('la frase de reserva en "' + lengua + '" dice el precio de verdad',
+                    t.resTexto.indexOf('$' + precio) !== -1, t.resTexto);
+            }
+        }
+
         comprobar('13 personas 2 horas llegan al combo',
             api.resPrecio(2, 13) >= api.RES.COMBO_DESDE, api.resPrecio(2, 13));
     }
