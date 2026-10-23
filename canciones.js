@@ -1836,7 +1836,7 @@ const cancionesREAL = [
 { id: 1834, artista: "JESSI URIBE", titulo: "QUE PASO AYER", genero: "POPULAR COLOMBIA", idioma: "ESPAÑOL" },
 { id: 1835, artista: "JESSI URIBE", titulo: "REPITELA", genero: "POPULAR COLOMBIA", idioma: "ESPAÑOL" },
 { id: 1836, artista: "JESSI URIBE FT JEAN CARLOS CENTENO", titulo: "DANDO INSTRUCCIONES", genero: "POPULAR COLOMBIA", idioma: "ESPAÑOL" },
-{ id: 1837, artista: "JESUS AVILA", titulo: "GUANAGUANARE", genero: "POP", idioma: "ESPAÑOL" },
+{ id: 1837, artista: "JESUS AVILA", titulo: "GUANAGUANARE", genero: "TRADICIONAL VENEZOLANA", idioma: "ESPAÑOL" },
 { id: 1838, artista: "JHAYCO", titulo: "EN MI CUARTO", genero: "REGGAETON / URBANO", idioma: "ESPAÑOL" },
 { id: 1839, artista: "JHON ALEX CASTAÑO", titulo: "AMIGOS CON DERECHO", genero: "POPULAR COLOMBIA", idioma: "ESPAÑOL" },
 { id: 1840, artista: "JHON ALEX CASTAÑO", titulo: "DE BAR EN BAR", genero: "POPULAR COLOMBIA", idioma: "ESPAÑOL" },
