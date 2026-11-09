@@ -281,23 +281,66 @@ function pintarChips() {
     }
 }
 
-function filtrar() {
-    const q = sinAcentos(nodo('buscador').value);
-    nodo('limpiar').classList.toggle('hidden', nodo('buscador').value.length === 0);
+function hayFiltroPuesto() {
+    return generoActivo !== 'Todos' || idiomaActivo !== 'Todos';
+}
 
-    // Todas las palabras tienen que estar en la MISMA cancion: asi
-    // "shakira waka" encuentra lo que toca y no todo lo de Shakira.
-    const palabras = q ? q.split(' ').filter(Boolean) : [];
+// Como se llama lo que esta filtrando, para poder decirselo al cliente.
+function nombreDelFiltro() {
+    const partes = [];
+    if (generoActivo !== 'Todos') partes.push(generoActivo);
+    if (idiomaActivo !== 'Todos') partes.push(idiomaActivo);
+    return partes.join(' y ');
+}
 
-    const salida = cancionesREAL.filter((c) => {
-        if (generoActivo !== 'Todos' && String(c.genero).trim() !== generoActivo) return false;
-        if (idiomaActivo !== 'Todos' && String(c.idioma).trim() !== idiomaActivo) return false;
-        if (!palabras.length) return true;
+// Busca dentro de la lista que se le pase. Esta aparte para poder llamarla
+// dos veces: primero dentro del filtro y, si ahi no hay nada, otra vez sobre
+// el catalogo entero.
+//
+// Todas las palabras tienen que estar en la MISMA cancion: asi
+// "shakira waka" encuentra lo que toca y no todo lo de Shakira.
+function buscarEn(lista, palabras) {
+    if (!palabras.length) return lista;
+    return lista.filter((c) => {
         const texto = sinAcentos(c.artista + ' ' + c.titulo + ' ' + c.genero + ' ' + c.idioma);
         return palabras.every((p) => texto.includes(p));
     });
+}
 
-    pintarLista(salida);
+// Cuantas de las que se enseñan venian de fuera del filtro, para avisarlo.
+let fueraDelFiltro = 0;
+
+function filtrar() {
+    const q = sinAcentos(nodo('buscador').value);
+    nodo('limpiar').classList.toggle('hidden', nodo('buscador').value.length === 0);
+    const palabras = q ? q.split(' ').filter(Boolean) : [];
+
+    const delFiltro = cancionesREAL.filter((c) =>
+        (generoActivo === 'Todos' || String(c.genero).trim() === generoActivo) &&
+        (idiomaActivo === 'Todos' || String(c.idioma).trim() === idiomaActivo));
+
+    fueraDelFiltro = 0;
+
+    const dentro = buscarEn(delFiltro, palabras);
+    if (dentro.length > 0 || !palabras.length) return pintarLista(dentro);
+
+    // Dentro del filtro no hay nada. ANTES de decir "no la tenemos" se mira el
+    // catalogo entero, igual que en la app de la sala.
+    //
+    // Aqui importa todavia mas que alli: si al cliente le sale el hueco vacio
+    // con el filtro de ESPAÑOL puesto buscando "michael jackson", le da al
+    // boton de pedirla y acabamos con una lista de descargas llena de
+    // canciones que YA estan. Es el mismo fallo que se arreglo en la sala,
+    // donde 17 de 39 peticiones eran canciones que si teniamos.
+    if (hayFiltroPuesto()) {
+        const fuera = buscarEn(cancionesREAL, palabras);
+        if (fuera.length > 0) {
+            fueraDelFiltro = fuera.length;
+            return pintarLista(fuera);
+        }
+    }
+
+    pintarLista([]);
 }
 
 function pintarLista(canciones) {
@@ -320,6 +363,22 @@ function pintarLista(canciones) {
         caja.appendChild(vacio);
         nodo('sugerirDesdeVacio').onclick = () => abrirSugerencia(nodo('buscador').value.trim());
         return;
+    }
+
+    // Si lo que se ensena viene de FUERA del filtro, avisarlo arriba: asi el
+    // cliente entiende por que le salen canciones que no cuadran con el chip
+    // que tiene puesto, y sobre todo no le da a "Pidenosla" por una que ya
+    // tenemos solo porque el filtro la escondia.
+    if (fueraDelFiltro > 0) {
+        const escrito = nodo('buscador').value.trim();
+        const aviso = document.createElement('div');
+        aviso.className = 'bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center';
+        aviso.innerHTML =
+            '<p class="text-amber-300 text-xs font-bold mb-1">No hay "' + escapar(escrito) + '" en ' + escapar(nombreDelFiltro()) + '</p>' +
+            '<p class="text-zinc-400 text-[11px] leading-snug">Te mostramos ' +
+            (fueraDelFiltro === 1 ? 'la que hay' : 'las ' + fueraDelFiltro + ' que hay') +
+            ' en el resto del catálogo</p>';
+        caja.appendChild(aviso);
     }
 
     for (const c of canciones) {

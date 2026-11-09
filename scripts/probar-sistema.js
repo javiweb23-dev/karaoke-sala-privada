@@ -1354,6 +1354,18 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
 
         // Que no se indexe: es una pagina para clientes con clave.
         comprobar('la lista no sale en Google', /noindex/.test(pag));
+
+        // La salida de emergencia del filtro. Sin esto, un cliente con el chip
+        // de ESPANOL puesto que busca "michael jackson" ve el hueco vacio, le da
+        // a "Pidenosla" y acabamos con peticiones de canciones que YA tenemos.
+        // Es el mismo fallo que ya se arreglo en la app de la sala.
+        comprobar('si el filtro esconde lo buscado, se busca en todo el catalogo',
+            /if \(hayFiltroPuesto\(\)\)[\s\S]{0,260}buscarEn\(cancionesREAL/.test(pag));
+        comprobar('y se le avisa de que eso viene de fuera del filtro',
+            /fueraDelFiltro > 0/.test(pag) && /No hay/.test(pag) && /resto del cat/.test(pag));
+        comprobar('el aviso dice que filtro era', /nombreDelFiltro\(\)/.test(pag));
+        comprobar('el contador de fuera se pone a cero en cada busqueda',
+            /fueraDelFiltro = 0;[\s\S]{0,160}buscarEn\(delFiltro/.test(pag));
     }
 
     // ---------------------------------------------------------------------
