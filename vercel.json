@@ -27,6 +27,10 @@
       "destination": "/resenas.html"
     },
     {
+      "source": "/lista",
+      "destination": "/lista.html"
+    },
+    {
       "source": "/panel",
       "destination": "/panel.html"
     }

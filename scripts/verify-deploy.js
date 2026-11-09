@@ -33,6 +33,7 @@ const optional = [
   'reserva-comun.js',
   'reserva-textos.js',
   'resenas.html',
+  'lista.html',
   'resenas-admin.html',
   'reservas-admin.html',
   'panel.html',

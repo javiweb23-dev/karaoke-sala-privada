@@ -1308,6 +1308,54 @@ seccion('Abrir sesion (el endpoint real, con Supabase simulado)');
             /pintarPanelTiempo\(data\.sesion\);[\s\S]{0,200}actualizarCola\(\)/.test(panel));
     }
 
+    seccion('La lista para los clientes (/lista)');
+
+    {
+        const pag = leer('lista.html');
+        const sql = leer('sql/018-claves-de-lista.sql');
+        const build = leer('scripts/verify-deploy.js');
+        const vercel = JSON.parse(leer('vercel.json'));
+
+        // Que llegue a publicarse y que tenga su direccion bonita.
+        comprobar('el build publica lista.html', /'lista\.html'/.test(build));
+        comprobar('vercel enruta /lista',
+            vercel.rewrites.some((r) => r.source === '/lista' && r.destination === '/lista.html'));
+
+        // Lo que la pagina NO puede hacer: desde aqui no se pide nada a la TV.
+        comprobar('no se puede pedir una cancion desde la lista',
+            !/from\('Solicitudes'\)/.test(pag) && !/>\s*Pedir\s*</i.test(pag));
+        comprobar('no toca la cola ni las sesiones',
+            !/sesion_activa/.test(pag) && !/liveQueue/.test(pag));
+
+        // La puerta.
+        comprobar('la entrada pasa por validar_clave_lista',
+            /rpc\('validar_clave_lista'/.test(pag));
+        comprobar('la clave se recomprueba en cada carga, no se fia del navegador',
+            /sessionStorage.getItem\(.clave_lista.\)[\s\S]{0,120}entrar\(/.test(pag));
+
+        // La sugerencia, que es para lo que existe la pagina.
+        comprobar('la sugerencia usa la misma tabla que la sala',
+            /rpc\('sugerir_cancion'/.test(pag));
+        comprobar('y viaja con la nota de la clave, para saber de que reserva es',
+            /p_usuario: quien/.test(pag));
+        comprobar('el boton de sugerir esta siempre a la vista',
+            /id="btnSugerir"/.test(pag) && /sticky/.test(pag));
+
+        // El pie que pidio Javier.
+        comprobar('el pie lleva el instagram escrito',
+            /instagram\.com\/mikaraokelatino/.test(pag) && /@mikaraokelatino/.test(pag));
+        comprobar('y el logo arriba', /src="logo\.png"/.test(pag));
+
+        // Seguridad: la tabla de claves no se puede listar desde el navegador.
+        comprobar('nadie puede leer la tabla de claves',
+            /revoke all on claves_lista from anon/.test(sql));
+        comprobar('solo se puede preguntar por una clave concreta',
+            /grant execute on function validar_clave_lista/.test(sql));
+
+        // Que no se indexe: es una pagina para clientes con clave.
+        comprobar('la lista no sale en Google', /noindex/.test(pag));
+    }
+
     // ---------------------------------------------------------------------
     console.log('');
     if (fallos === 0) {

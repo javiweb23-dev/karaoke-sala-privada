@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuestra lista de canciones · Karaoke Latino</title>
+
+<!-- Esta pagina es para los clientes que YA reservaron: miran el catalogo
+     completo antes de venir y, si les falta alguna, la piden con tiempo para
+     tenerla lista esa noche.
+     Se entra con una clave que crea Javier a mano en Supabase (ver
+     sql/018-claves-de-lista.sql) y que borra cuando pasa el evento.
+     NO se pide nada a la TV desde aqui: solo se mira y se sugiere. -->
+<meta name="robots" content="noindex, nofollow">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<link rel="icon" href="logo.png">
+
+<style>
+    body { background-color: #09090b; }
+    .portada-slot img { transition: opacity .35s ease-out; }
+    /* La barra de generos se arrastra con el dedo y sin barra a la vista. */
+    .sin-barra { scrollbar-width: none; -ms-overflow-style: none; }
+    .sin-barra::-webkit-scrollbar { display: none; }
+</style>
+</head>
+
+<body class="text-zinc-100 min-h-screen">
+
+<!-- ═══════════════════════════════════════════════════ LA CLAVE ═══ -->
+<div id="puerta" class="fixed inset-0 bg-zinc-950 z-[100] flex flex-col justify-center items-center p-6">
+    <img src="logo.png" alt="Karaoke Latino" class="h-24 w-auto max-w-[70%] object-contain mb-8">
+    <h1 class="text-xl font-black mb-2 text-center">Nuestra lista de canciones</h1>
+    <p class="text-zinc-400 text-sm text-center mb-7 max-w-xs leading-relaxed">
+        Escribe la clave que te enviamos para ver todo lo que tenemos.
+    </p>
+
+    <input id="claveInput" type="text" maxlength="40" autocomplete="off"
+        placeholder="Tu clave"
+        class="w-full max-w-xs bg-zinc-900 border border-zinc-700 rounded-xl py-3.5 px-4
+               text-zinc-100 text-center text-lg tracking-widest uppercase
+               placeholder-zinc-600 placeholder:tracking-normal placeholder:text-base
+               focus:outline-none focus:border-amber-500 transition-colors mb-3">
+
+    <p id="claveError" class="hidden text-red-400 text-sm mb-3 text-center"></p>
+
+    <button id="claveBtn" type="button"
+        class="w-full max-w-xs bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800
+               disabled:text-zinc-600 text-black font-black py-3.5 rounded-xl
+               active:scale-95 transition-all">ENTRAR</button>
+
+    <a href="https://mikaraokelatino.com" class="text-zinc-600 hover:text-amber-500 text-xs mt-8 transition-colors">
+        ¿Aún no reservas? Mira nuestra web
+    </a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ LA LISTA ═══ -->
+<div id="todo" class="hidden flex flex-col min-h-screen">
+
+    <header class="bg-zinc-900 border-b border-zinc-800">
+        <div class="max-w-md mx-auto px-4 py-4 flex flex-col items-center gap-1.5">
+            <img src="logo.png" alt="Karaoke Latino" class="h-16 w-auto max-w-[85%] object-contain">
+            <p id="paraQuien" class="text-xs text-zinc-500 text-center tracking-wide"></p>
+        </div>
+    </header>
+
+    <!-- El boton de sugerir va aqui arriba y pegado: Javier lo pidio siempre
+         visible, porque el cliente que no encuentra su cancion tiene que poder
+         pedirla sin bajar hasta el final de 4.000 tarjetas. -->
+    <div class="sticky top-0 z-40 bg-zinc-950/95 backdrop-blur border-b border-zinc-800/80 shadow-lg shadow-black/40">
+        <div class="max-w-md w-full mx-auto px-4 py-3 space-y-3">
+
+            <button id="btnSugerir" type="button"
+                class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black
+                       py-3 rounded-xl text-sm active:scale-95 transition-all
+                       flex items-center justify-center gap-2">
+                <span aria-hidden="true">💡</span> SUGERIR UNA CANCIÓN
+            </button>
+
+            <div class="relative">
+                <input id="buscador" type="text" autocomplete="off"
+                    placeholder="Busca artista, canción o género..."
+                    class="w-full bg-zinc-900 border border-zinc-700 rounded-xl py-3 pl-4 pr-10
+                           text-zinc-100 placeholder-zinc-600 text-sm
+                           focus:outline-none focus:border-amber-500 transition-colors">
+                <button id="limpiar" type="button" aria-label="Borrar búsqueda"
+                    class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">✕</button>
+            </div>
+
+            <div id="chipsGenero" class="flex gap-1.5 overflow-x-auto sin-barra pb-0.5"></div>
+            <div id="chipsIdioma" class="flex gap-1.5 justify-center"></div>
+
+            <p id="cuenta" class="text-zinc-600 text-[11px] text-center"></p>
+        </div>
+    </div>
+
+    <main class="flex-1">
+        <div id="lista" class="max-w-md w-full mx-auto px-4 py-4 flex flex-col gap-2.5"></div>
+    </main>
+
+    <!-- ──────────────────────────────────────────────────── el pie ─── -->
+    <footer class="border-t border-zinc-800 mt-6">
+        <div class="max-w-md mx-auto px-4 py-8 flex flex-col items-center gap-4">
+            <p class="text-zinc-500 text-xs text-center leading-relaxed">
+                ¿No está la que buscas?<br>Pídela y la tenemos lista para tu noche.
+            </p>
+
+            <a href="https://instagram.com/mikaraokelatino" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2.5 bg-zinc-900 hover:bg-zinc-800
+                      border border-zinc-800 hover:border-[#E4405F]/60 text-zinc-200
+                      px-5 py-3 rounded-xl transition-colors group">
+                <svg class="w-5 h-5 flex-shrink-0 text-[#E4405F]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+                <span class="font-bold text-sm">@mikaraokelatino</span>
+            </a>
+
+            <p class="text-zinc-700 text-[11px]">Karaoke Latino · Lechería, Venezuela</p>
+        </div>
+    </footer>
+</div>
+
+<!-- ═════════════════════════════════════════════════ SUGERENCIA ═══ -->
+<div id="modalSugerir" class="hidden fixed inset-0 bg-black/90 z-[110] flex flex-col justify-center items-center p-6">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-sm p-6">
+        <h2 class="text-lg font-black text-amber-400 mb-1">Sugerir una canción</h2>
+        <p class="text-zinc-500 text-xs mb-5 leading-relaxed">
+            Dinos cuál te falta y hacemos lo posible por tenerla para tu noche.
+            Pídela con unos días de antelación.
+        </p>
+
+        <input id="sugerenciaInput" type="text" maxlength="80" autocomplete="off"
+            placeholder="Artista - Canción"
+            class="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-3 px-4
+                   text-zinc-100 placeholder-zinc-600 text-sm text-center mb-3
+                   focus:outline-none focus:border-amber-500 transition-colors">
+
+        <p id="sugerenciaAviso" class="hidden text-sm text-center mb-3"></p>
+
+        <div class="flex gap-3">
+            <button id="sugerirCerrar" type="button"
+                class="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-300 font-bold py-3 rounded-xl active:scale-95 transition-all">
+                Cerrar
+            </button>
+            <button id="sugerirEnviar" type="button"
+                class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl active:scale-95 transition-all">
+                Enviar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="canciones.js"></script>
+<script>
+const SUPABASE_URL = "https://mefrjbmjfdphdqndpzcw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Xfq71bq0xH8DQ62OHekwCQ_B5dAPsz8";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const nodo = (id) => document.getElementById(id);
+
+// Quien entro: la nota de la clave ("Reserva sabado 15 - Marieta"). Viaja con
+// cada sugerencia para saber a que reserva pertenece.
+let quien = '';
+
+const sinAcentos = (t) => String(t || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase().replace(/\s+/g, ' ').trim();
+
+const escapar = (t) => String(t || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+// =========================================================== LA PUERTA
+//
+// La clave se comprueba SIEMPRE contra el servidor al abrir la pagina, aunque
+// ya estuviera guardada. Es lo que hace que borrar la fila en Supabase corte
+// el acceso de verdad: si se diera por buena la copia del navegador, Javier
+// borraria la clave y el cliente seguiria entrando.
+async function validarClave(clave) {
+    const { data, error } = await supabaseClient.rpc('validar_clave_lista', { p_clave: clave });
+    if (error) throw error;
+    return data;            // null = no existe · '' o texto = vale
+}
+
+function mostrarErrorClave(texto) {
+    const e = nodo('claveError');
+    e.textContent = texto;
+    e.classList.remove('hidden');
+}
+
+async function entrar(clave, callada) {
+    const btn = nodo('claveBtn');
+    btn.disabled = true;
+    if (!callada) btn.textContent = 'COMPROBANDO...';
+
+    try {
+        const nota = await validarClave(clave);
+        if (nota === null) {
+            sessionStorage.removeItem('clave_lista');
+            if (!callada) mostrarErrorClave('Esa clave no es válida o ya venció.');
+            return false;
+        }
+
+        quien = nota;
+        sessionStorage.setItem('clave_lista', clave);
+        nodo('paraQuien').textContent = nota || 'Nuestro catálogo completo';
+        nodo('puerta').classList.add('hidden');
+        nodo('todo').classList.remove('hidden');
+        arrancarCatalogo();
+        return true;
+
+    } catch (err) {
+        console.warn('[lista]', err.message || err);
+        if (!callada) mostrarErrorClave('No se pudo comprobar. Revisa tu internet.');
+        return false;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'ENTRAR';
+    }
+}
+
+nodo('claveBtn').addEventListener('click', () => {
+    const c = nodo('claveInput').value.trim();
+    if (c.length < 3) return mostrarErrorClave('Escribe la clave que te enviamos.');
+    nodo('claveError').classList.add('hidden');
+    entrar(c, false);
+});
+nodo('claveInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') nodo('claveBtn').click();
+});
+
+// ========================================================== EL CATALOGO
+let generoActivo = 'Todos';
+let idiomaActivo = 'Todos';
+let yaArranco = false;
+
+const CHIP_ON  = 'shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide whitespace-nowrap bg-amber-500 text-black transition-all';
+const CHIP_OFF = 'shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide whitespace-nowrap bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-all';
+
+function arrancarCatalogo() {
+    if (yaArranco) return;
+    yaArranco = true;
+    pintarChips();
+    filtrar();
+}
+
+function pintarChips() {
+    const cuenta = (campo) => {
+        const n = {};
+        for (const c of cancionesREAL) {
+            const v = String(c[campo] || '').trim();
+            if (v) n[v] = (n[v] || 0) + 1;
+        }
+        return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+    };
+
+    const crear = (caja, valor, texto, activo, alPulsar) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = texto;
+        b.className = activo ? CHIP_ON : CHIP_OFF;
+        b.onclick = alPulsar;
+        caja.appendChild(b);
+    };
+
+    const cajaG = nodo('chipsGenero');
+    cajaG.innerHTML = '';
+    crear(cajaG, 'Todos', 'Todos', generoActivo === 'Todos', () => { generoActivo = 'Todos'; pintarChips(); filtrar(); });
+    for (const g of cuenta('genero')) {
+        crear(cajaG, g, g, generoActivo === g, () => { generoActivo = g; pintarChips(); filtrar(); });
+    }
+
+    const cajaI = nodo('chipsIdioma');
+    cajaI.innerHTML = '';
+    const idiomas = cuenta('idioma');
+    if (idiomas.length < 2) return;
+    crear(cajaI, 'Todos', 'Todos', idiomaActivo === 'Todos', () => { idiomaActivo = 'Todos'; pintarChips(); filtrar(); });
+    for (const i of idiomas) {
+        crear(cajaI, i, i, idiomaActivo === i, () => { idiomaActivo = i; pintarChips(); filtrar(); });
+    }
+}
+
+function filtrar() {
+    const q = sinAcentos(nodo('buscador').value);
+    nodo('limpiar').classList.toggle('hidden', nodo('buscador').value.length === 0);
+
+    // Todas las palabras tienen que estar en la MISMA cancion: asi
+    // "shakira waka" encuentra lo que toca y no todo lo de Shakira.
+    const palabras = q ? q.split(' ').filter(Boolean) : [];
+
+    const salida = cancionesREAL.filter((c) => {
+        if (generoActivo !== 'Todos' && String(c.genero).trim() !== generoActivo) return false;
+        if (idiomaActivo !== 'Todos' && String(c.idioma).trim() !== idiomaActivo) return false;
+        if (!palabras.length) return true;
+        const texto = sinAcentos(c.artista + ' ' + c.titulo + ' ' + c.genero + ' ' + c.idioma);
+        return palabras.every((p) => texto.includes(p));
+    });
+
+    pintarLista(salida);
+}
+
+function pintarLista(canciones) {
+    const caja = nodo('lista');
+    caja.innerHTML = '';
+    window.scrollTo({ top: 0 });
+
+    nodo('cuenta').textContent = canciones.length === 0
+        ? ''
+        : canciones.length + (canciones.length === 1 ? ' canción' : ' canciones');
+
+    if (canciones.length === 0) {
+        const vacio = document.createElement('div');
+        vacio.className = 'text-center py-10';
+        vacio.innerHTML =
+            '<p class="text-zinc-500 italic mb-5">No encontramos esa canción.</p>' +
+            '<button type="button" id="sugerirDesdeVacio" ' +
+            'class="bg-amber-500 hover:bg-amber-400 text-black font-black px-6 py-3 rounded-xl text-sm active:scale-95 transition-all">' +
+            '💡 Pídenosla</button>';
+        caja.appendChild(vacio);
+        nodo('sugerirDesdeVacio').onclick = () => abrirSugerencia(nodo('buscador').value.trim());
+        return;
+    }
+
+    for (const c of canciones) {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'bg-zinc-900/90 border border-zinc-800/90 p-4 rounded-2xl flex items-center gap-4 shadow-sm';
+        tarjeta.dataset.artista = c.artista;
+        tarjeta.dataset.titulo = c.titulo;
+
+        const portada = document.createElement('div');
+        portada.className = 'portada-slot flex-shrink-0 w-16 h-16';
+        portada.dataset.portada = 'true';
+        portada.innerHTML = fallbackPortada();
+
+        const info = document.createElement('div');
+        info.className = 'flex-1 min-w-0';
+        // El ARTISTA arriba y el titulo debajo, igual que en la sala: la lista
+        // va ordenada por artista y asi se lee agrupada al pasarla con la vista.
+        info.innerHTML =
+            '<p class="text-[13px] text-zinc-400 font-medium tracking-wide break-words">' + escapar(c.artista) + '</p>' +
+            '<h3 class="font-semibold text-zinc-50 text-[15px] leading-snug tracking-tight mt-0.5 mb-2.5 break-words">' + escapar(c.titulo) + '</h3>' +
+            '<div class="flex flex-wrap gap-1.5">' +
+                '<span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">' + escapar(c.genero) + '</span>' +
+                '<span class="text-[10px] uppercase tracking-widest bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 px-2.5 py-0.5 rounded-full font-medium">' + escapar(c.idioma) + '</span>' +
+            '</div>';
+
+        tarjeta.appendChild(portada);
+        tarjeta.appendChild(info);
+        caja.appendChild(tarjeta);
+        ojoPortadas.observe(tarjeta);
+    }
+}
+
+nodo('buscador').addEventListener('input', filtrar);
+nodo('limpiar').addEventListener('click', () => { nodo('buscador').value = ''; filtrar(); });
+
+// ========================================================== LAS PORTADAS
+//
+// Mismo camino que en la sala: primero el cache de Supabase y, si no esta, se
+// le pregunta a iTunes una vez y se guarda. Asi la segunda visita no vuelve a
+// salir a buscar nada.
+const cachePortadas = new Map();
+const pendientes = new Map();
+
+const idPortada = (c) => (String(c.artista).trim() + ' - ' + String(c.titulo).trim()).toUpperCase();
+
+function fallbackPortada() {
+    return '<div class="w-16 h-16 rounded-lg bg-gradient-to-tr from-zinc-800 to-zinc-700 ' +
+           'flex items-center justify-center shadow-md border border-zinc-600/50">' +
+           '<span class="text-2xl text-amber-400 drop-shadow-md" aria-hidden="true">🎤</span></div>';
+}
+
+async function leerCache(id) {
+    const { data, error } = await supabaseClient
+        .from('portadas_cache').select('caratula_url').eq('identificador', id).maybeSingle();
+    if (error || !data) return undefined;
+    return data.caratula_url;
+}
+
+async function guardarCache(id, url) {
+    // ignoreDuplicates: el navegador solo tiene permiso de INSERT sobre esta
+    // tabla, no de UPDATE (ver sql/006). Sin esto fallaria cada guardado.
+    await supabaseClient.from('portadas_cache')
+        .upsert({ identificador: id, caratula_url: url },
+                { onConflict: 'identificador', ignoreDuplicates: true });
+}
+
+async function buscarPortada(c) {
+    const id = idPortada(c);
+    if (cachePortadas.has(id)) return cachePortadas.get(id);
+    if (pendientes.has(id)) return pendientes.get(id);
+
+    const promesa = (async () => {
+        const guardada = await leerCache(id);
+        if (guardada !== undefined) return guardada === 'no_encontrado' ? null : guardada;
+
+        try {
+            const term = encodeURIComponent(c.artista + ' ' + c.titulo);
+            const r = await fetch('https://itunes.apple.com/search?term=' + term + '&entity=song&limit=1');
+            if (!r.ok) return null;
+            const j = await r.json();
+            const url = (j.results && j.results[0] && j.results[0].artworkUrl100) || null;
+            await guardarCache(id, url || 'no_encontrado');
+            return url;
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    pendientes.set(id, promesa);
+    const url = await promesa;
+    pendientes.delete(id);
+    cachePortadas.set(id, url);
+    return url;
+}
+
+const ojoPortadas = new IntersectionObserver((entradas) => {
+    entradas.forEach(async (e) => {
+        if (!e.isIntersecting) return;
+        const tarjeta = e.target;
+        ojoPortadas.unobserve(tarjeta);
+
+        const url = await buscarPortada({ artista: tarjeta.dataset.artista, titulo: tarjeta.dataset.titulo });
+        if (!url) return;
+
+        const hueco = tarjeta.querySelector('[data-portada]');
+        if (!hueco) return;
+        const img = document.createElement('img');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.className = 'w-16 h-16 rounded-lg object-cover shadow-md border border-zinc-700/50 opacity-0';
+
+        const aparecer = () => requestAnimationFrame(() =>
+            img.classList.replace('opacity-0', 'opacity-100'));
+
+        // Los manejadores ANTES que el src, y ademas se mira "complete" por si
+        // la imagen ya estaba en cache: en ese caso el evento load puede haber
+        // pasado ya y la portada se quedaria invisible para siempre en
+        // opacity-0.
+        img.onload = aparecer;
+        img.onerror = () => { hueco.innerHTML = fallbackPortada(); };
+        img.src = url;
+        if (img.complete && img.naturalWidth > 0) aparecer();
+
+        hueco.innerHTML = '';
+        hueco.appendChild(img);
+    });
+}, { root: null, rootMargin: '150px', threshold: 0.05 });
+
+// ========================================================= LA SUGERENCIA
+function abrirSugerencia(texto) {
+    nodo('sugerenciaInput').value = texto || '';
+    nodo('sugerenciaAviso').classList.add('hidden');
+    nodo('sugerirEnviar').disabled = false;
+    nodo('sugerirEnviar').textContent = 'Enviar';
+    nodo('modalSugerir').classList.remove('hidden');
+    setTimeout(() => nodo('sugerenciaInput').focus(), 80);
+}
+
+function cerrarSugerencia() { nodo('modalSugerir').classList.add('hidden'); }
+
+function avisoSugerencia(texto, bien) {
+    const p = nodo('sugerenciaAviso');
+    p.textContent = texto;
+    p.className = 'text-sm text-center mb-3 ' + (bien ? 'text-emerald-400' : 'text-red-400');
+    p.classList.remove('hidden');
+}
+
+nodo('btnSugerir').addEventListener('click', () => abrirSugerencia(nodo('buscador').value.trim()));
+nodo('sugerirCerrar').addEventListener('click', cerrarSugerencia);
+nodo('modalSugerir').addEventListener('click', (e) => {
+    if (e.target === nodo('modalSugerir')) cerrarSugerencia();
+});
+nodo('sugerenciaInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') nodo('sugerirEnviar').click();
+});
+
+nodo('sugerirEnviar').addEventListener('click', async () => {
+    const texto = nodo('sugerenciaInput').value.trim();
+    if (texto.length < 3) return avisoSugerencia('Escribe el artista y la canción.', false);
+
+    const btn = nodo('sugerirEnviar');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    // Va a la misma tabla que las sugerencias de la sala. La nota de la clave
+    // viaja como nombre_usuario, que es lo que le dice a Javier de que reserva
+    // salio la peticion.
+    const { error } = await supabaseClient.rpc('sugerir_cancion', {
+        p_texto: texto,
+        p_norm: sinAcentos(texto),
+        p_usuario: quien || null,
+        p_sesion: null
+    });
+
+    if (error) {
+        console.warn('[lista] sugerencia:', error.message);
+        avisoSugerencia('No se pudo enviar. Inténtalo de nuevo.', false);
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+        return;
+    }
+
+    avisoSugerencia('¡Anotada! La buscamos para tu noche.', true);
+    btn.textContent = '✓ Enviada';
+    setTimeout(cerrarSugerencia, 1600);
+});
+
+// ================================================================ inicio
+// Si ya entro antes en esta pestaña, se le vuelve a comprobar la clave sin
+// pedirsela. Si Javier la borro, vuelve a la puerta.
+(function () {
+    const guardada = sessionStorage.getItem('clave_lista');
+    if (guardada) entrar(guardada, true);
+}());
+</script>
+</body>
+</html>
