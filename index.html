@@ -1157,7 +1157,21 @@
             }
 
             const dentro = buscarEn(delFiltro, q);
-            if (dentro.hallazgos.length > 0) {
+            let sirveLoDeDentro = dentro.hallazgos.length > 0;
+
+            // Lo de dentro puede ser solo APROXIMADO: con SALSA puesto, "jose
+            // jose" no tiene nada exacto, pero el corrector de erratas lo toma
+            // por "Joe" y enseña 9 de Joe Arroyo. Como "hay resultados", nunca
+            // se miraba fuera y las 22 de JOSE JOSE no salian. Si dentro solo
+            // hay aproximadas y fuera hay una coincidencia EXACTA, gana la exacta.
+            if (sirveLoDeDentro && dentro.aproximada && hayFiltroPuesto()) {
+                const fueraExacta = buscarEn(conVideo, q);
+                if (fueraExacta.hallazgos.length > 0 && !fueraExacta.aproximada) {
+                    sirveLoDeDentro = false;
+                }
+            }
+
+            if (sirveLoDeDentro) {
                 busquedaFueAproximada = dentro.aproximada;
                 return dentro.hallazgos;
             }
